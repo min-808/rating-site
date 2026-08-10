@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { connectMongo, getMongoClient } from '../../../lib/connect-db';
 const mongoose = require('mongoose');
