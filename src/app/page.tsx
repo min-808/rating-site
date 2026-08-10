@@ -120,6 +120,7 @@ export default async function LeaderboardPage() {
       <p style={{ fontSize: '0.8rem', color: '#777', marginTop: 0, marginBottom: '1.5rem' }}>
         Updated on {lastUpdated}
         <br />
+        <br />
         Updates daily at midnight
       </p>
 
