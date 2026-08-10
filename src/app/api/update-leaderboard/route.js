@@ -1,26 +1,34 @@
-export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { connectMongo, getMongoClient } from '../../../lib/connect-db';
-const mongoose = require('mongoose');
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-    mongoose.set('strictQuery', false);
-    await mongoose.connect(process.env.MONGODB_URI);
-    await connectMongo()
-    console.log("Connected to Database.")
+  await connectMongo();
+  const client = await getMongoClient();
+  const db = client.db('maimai');
 
-    var client_db = new getMongoClient()
+  const friends = await db.collection('players').find({}).sort({ currentRank: 1 }).toArray();
 
-    var database = client_db.db("maimai");
-    var players = database.collection("players")
+  const targetIds = ["9051086240520", "101049398794479", "101281537035847"];
+  const filteredPlayers = friends.filter(
+    (player) => !targetIds.includes(player.user_id)
+  );
 
-    const friends = await players.find({}).sort({ currentRank: 1 }).toArray();
-  
-    console.log(friends.length + " players found.")
-    return NextResponse.json({ success: true, count: friends.length });
+  // Overwrite snapshot collection with current filtered players
+  await db.collection('daily_leaderboard').deleteMany({});
+  if (filteredPlayers.length > 0) {
+    await db.collection('daily_leaderboard').insertMany(filteredPlayers);
+  }
+
+  // Purge static page cache so Next.js regenerates page.tsx on next visit
+  revalidatePath('/');
+
+  return NextResponse.json({ success: true, count: filteredPlayers.length });
 }

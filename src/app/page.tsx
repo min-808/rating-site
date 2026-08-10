@@ -1,5 +1,8 @@
 import { connectMongo, getMongoClient } from '../lib/connect-db';
 
+// Keep the page static until explicitly revalidated by the cron job
+export const revalidate = false;
+
 interface HistoryEntry {
   rating: number;
   date: string;
@@ -25,7 +28,7 @@ function calculateRankChange(player: PlayerDocument): number {
   if (player.rank_history && player.rank_history.length > 1) {
     const latest = player.rank_history[player.rank_history.length - 1].rank;
     const previous = player.rank_history[player.rank_history.length - 2].rank;
-    return previous - latest; // Positive means moved up in rank
+    return previous - latest;
   }
   return player.previousRank - player.currentRank;
 }
@@ -44,8 +47,9 @@ export default async function LeaderboardPage() {
   const client = await getMongoClient();
   const db = client.db('maimai');
 
+  // Read from the processed daily snapshot collection
   const rawPlayers = await db
-    .collection('players')
+    .collection('daily_leaderboard')
     .find({})
     .sort({ currentRank: 1 })
     .toArray();
@@ -54,7 +58,7 @@ export default async function LeaderboardPage() {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>Maimai Leaderboard</h1>
+      <h1>Hawaii Maimai Leaderboard</h1>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
         <thead>
           <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
