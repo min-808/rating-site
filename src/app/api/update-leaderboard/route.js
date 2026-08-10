@@ -21,5 +21,6 @@ export async function GET(request) {
 
     const friends = await players.find({}).sort({ currentRank: 1 });
   
+    console.log(friends.length + " players found.")
     return NextResponse.json({ success: true, count: friends.length });
 }
