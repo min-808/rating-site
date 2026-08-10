@@ -24,7 +24,6 @@ interface PlayerDocument {
   old_names?: string[];
 }
 
-// Converts full-width characters (ＡＢＣ１２３) and spaces to standard width (ABC123)
 function toNormalWidth(str: string): string {
   if (!str) return '';
   return str
@@ -62,6 +61,18 @@ export default async function LeaderboardPage() {
     .toArray();
 
   const players = rawPlayers as unknown as PlayerDocument[];
+
+  // Evaluated when revalidatePath('/') is triggered by the cron job
+  const lastUpdated = new Date().toLocaleString('en-US', {
+    timeZone: 'Pacific/Honolulu',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short',
+  });
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
@@ -105,19 +116,23 @@ export default async function LeaderboardPage() {
         }
       `}</style>
 
-      <h1>Hawaii Maimai Leaderboard</h1>
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
+      <h1 style={{ marginBottom: '0.25rem' }}>Hawaii Maimai Leaderboard</h1>
+      <p style={{ fontSize: '0.8rem', color: '#777', marginTop: 0, marginBottom: '1.5rem' }}>
+        Updated on {lastUpdated}
+      </p>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
             <th style={{ padding: '8px' }}>Rank</th>
             <th style={{ padding: '8px' }}>Name</th>
             <th style={{ padding: '8px' }}>Rating</th>
-            <th style={{ padding: '8px' }}>Rank Change</th>
-            <th style={{ padding: '8px' }}>Rating Change</th>
+            <th style={{ padding: '8px' }}>Rank Change (24hr)</th>
+            <th style={{ padding: '8px' }}>Rating Change (24hr)</th>
           </tr>
         </thead>
         <tbody>
-          {players.map((player) => {
+          {players.map((player, index) => {
             const rankChange = calculateRankChange(player);
             const ratingChange = calculateRatingChange(player);
             
@@ -127,7 +142,7 @@ export default async function LeaderboardPage() {
 
             return (
               <tr key={player._id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '8px' }}>#{player.currentRank}</td>
+                <td style={{ padding: '8px' }}>#{index + 1}</td>
 
                 {/* Hoverable Name Column */}
                 <td style={{ padding: '8px', fontWeight: 'bold' }}>
@@ -136,7 +151,6 @@ export default async function LeaderboardPage() {
                       <span>{displayName}</span>
                       <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: '6px' }}>📜</span>
                       
-                      {/* Tooltip Content */}
                       <div className="tooltip-box">
                         <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid #444', paddingBottom: '2px', color: '#aaa' }}>
                           Past Names
