@@ -1,6 +1,5 @@
 import { connectMongo, getMongoClient } from '../lib/connect-db';
 
-// Keep the page static until explicitly revalidated by the cron job
 export const revalidate = false;
 
 interface HistoryEntry {
@@ -28,7 +27,7 @@ function calculateRankChange(player: PlayerDocument): number {
   if (player.rank_history && player.rank_history.length > 1) {
     const latest = player.rank_history[player.rank_history.length - 1].rank;
     const previous = player.rank_history[player.rank_history.length - 2].rank;
-    return previous - latest;
+    return previous - latest; // Positive = moved up in rank
   }
   return player.previousRank - player.currentRank;
 }
@@ -47,7 +46,6 @@ export default async function LeaderboardPage() {
   const client = await getMongoClient();
   const db = client.db('maimai');
 
-  // Read from the processed daily snapshot collection
   const rawPlayers = await db
     .collection('daily_leaderboard')
     .find({})
@@ -79,20 +77,24 @@ export default async function LeaderboardPage() {
                 <td style={{ padding: '8px' }}>#{player.currentRank}</td>
                 <td style={{ padding: '8px', fontWeight: 'bold' }}>{player.name}</td>
                 <td style={{ padding: '8px' }}>{player.rating.toLocaleString()}</td>
+                
+                {/* Rank Change Column */}
                 <td style={{ padding: '8px' }}>
                   {rankChange > 0 ? (
-                    <span style={{ color: 'green' }}>▲ +{rankChange}</span>
+                    <span style={{ color: 'green', fontWeight: '500' }}>▲ +{rankChange}</span>
                   ) : rankChange < 0 ? (
-                    <span style={{ color: 'red' }}>▼ {rankChange}</span>
+                    <span style={{ color: 'red', fontWeight: '500' }}>▼ {Math.abs(rankChange)}</span>
                   ) : (
                     <span style={{ color: '#888' }}>-</span>
                   )}
                 </td>
+
+                {/* Rating Change Column */}
                 <td style={{ padding: '8px' }}>
                   {ratingChange > 0 ? (
-                    <span style={{ color: 'green' }}>+{ratingChange}</span>
+                    <span style={{ color: 'green', fontWeight: '500' }}>+{ratingChange.toLocaleString()}</span>
                   ) : ratingChange < 0 ? (
-                    <span style={{ color: 'red' }}>{ratingChange}</span>
+                    <span style={{ color: 'red', fontWeight: '500' }}>{ratingChange.toLocaleString()}</span>
                   ) : (
                     <span style={{ color: '#888' }}>0</span>
                   )}
