@@ -1,4 +1,10 @@
 import { connectMongo, getMongoClient } from '../lib/connect-db';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Hawaii Maimai Rating Leaderboard',
+  description: 'A website to track the rating and ranks of Hawaii Maimai players.',
+};
 
 export const revalidate = false;
 
@@ -116,9 +122,9 @@ export default async function LeaderboardPage() {
         }
       `}</style>
 
-      <h1 style={{ marginBottom: '0.25rem' }}>Hawaii Maimai Leaderboard</h1>
+      <h1 style={{ marginBottom: '0.25rem' }}>Hawaii Maimai Rating Leaderboard</h1>
       <p style={{ fontSize: '0.8rem', color: '#777', marginTop: 0, marginBottom: '1.5rem' }}>
-        Updated on {lastUpdated}
+        Last updated on {lastUpdated}
         <br />
         Daily updates at midnight
       </p>
