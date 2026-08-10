@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/update-leaderboard",
-      "schedule": "24 9 * * *" 
+      "path": "/src/app/api/update-leaderboard",
+      "schedule": "0 0 * * *" 
     }
   ]
 }
