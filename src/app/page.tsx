@@ -21,13 +21,22 @@ interface PlayerDocument {
   previousRank: number;
   history?: HistoryEntry[];
   rank_history?: RankHistoryEntry[];
+  old_names?: string[];
+}
+
+// Converts full-width characters (ＡＢＣ１２３) and spaces to standard width (ABC123)
+function toNormalWidth(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/[\uff01-\uff5e]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
+    .replace(/\u3000/g, ' ');
 }
 
 function calculateRankChange(player: PlayerDocument): number {
   if (player.rank_history && player.rank_history.length > 1) {
     const latest = player.rank_history[player.rank_history.length - 1].rank;
     const previous = player.rank_history[player.rank_history.length - 2].rank;
-    return previous - latest; // Positive = moved up in rank
+    return previous - latest;
   }
   return player.previousRank - player.currentRank;
 }
@@ -56,6 +65,46 @@ export default async function LeaderboardPage() {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+      <style>{`
+        .tooltip-container {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          cursor: pointer;
+        }
+        .tooltip-box {
+          visibility: hidden;
+          opacity: 0;
+          position: absolute;
+          bottom: 130%;
+          left: 0;
+          background-color: #222;
+          color: #fff;
+          padding: 8px 12px;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          font-weight: normal;
+          white-space: nowrap;
+          z-index: 20;
+          box-shadow: 0px 4px 12px rgba(0,0,0,0.25);
+          transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out;
+          pointer-events: none;
+        }
+        .tooltip-box::after {
+          content: "";
+          position: absolute;
+          top: 100%;
+          left: 15px;
+          border-width: 5px;
+          border-style: solid;
+          border-color: #222 transparent transparent transparent;
+        }
+        .tooltip-container:hover .tooltip-box {
+          visibility: visible;
+          opacity: 1;
+        }
+      `}</style>
+
       <h1>Hawaii Maimai Leaderboard</h1>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
         <thead>
@@ -71,13 +120,39 @@ export default async function LeaderboardPage() {
           {players.map((player) => {
             const rankChange = calculateRankChange(player);
             const ratingChange = calculateRatingChange(player);
+            
+            const displayName = toNormalWidth(player.name);
+            const rawPastNames = player.old_names || [];
+            const pastNames = rawPastNames.map(toNormalWidth);
 
             return (
               <tr key={player._id} style={{ borderBottom: '1px solid #eee' }}>
                 <td style={{ padding: '8px' }}>#{player.currentRank}</td>
-                <td style={{ padding: '8px', fontWeight: 'bold' }}>{player.name}</td>
+
+                {/* Hoverable Name Column */}
+                <td style={{ padding: '8px', fontWeight: 'bold' }}>
+                  {pastNames.length > 0 ? (
+                    <div className="tooltip-container">
+                      <span>{displayName}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: '6px' }}>📜</span>
+                      
+                      {/* Tooltip Content */}
+                      <div className="tooltip-box">
+                        <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid #444', paddingBottom: '2px', color: '#aaa' }}>
+                          Past Names
+                        </div>
+                        {pastNames.map((name, idx) => (
+                          <div key={idx} style={{ padding: '2px 0' }}>• {name}</div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    displayName
+                  )}
+                </td>
+
                 <td style={{ padding: '8px' }}>{player.rating.toLocaleString()}</td>
-                
+
                 {/* Rank Change Column */}
                 <td style={{ padding: '8px' }}>
                   {rankChange > 0 ? (
