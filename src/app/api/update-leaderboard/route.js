@@ -19,7 +19,7 @@ export async function GET(request) {
     var database = client_db.db("maimai");
     var players = database.collection("players")
 
-    const friends = await players.find({}).sort({ currentRank: 1 });
+    const friends = await players.find({}).sort({ currentRank: 1 }).toArray();
   
     console.log(friends.length + " players found.")
     return NextResponse.json({ success: true, count: friends.length });
