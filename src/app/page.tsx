@@ -119,6 +119,8 @@ export default async function LeaderboardPage() {
       <h1 style={{ marginBottom: '0.25rem' }}>Hawaii Maimai Leaderboard</h1>
       <p style={{ fontSize: '0.8rem', color: '#777', marginTop: 0, marginBottom: '1.5rem' }}>
         Updated on {lastUpdated}
+        <br />
+        Updates daily at midnight
       </p>
 
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
