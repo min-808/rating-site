@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectMongo, getMongoClient } from '@/lib/connect-db';
+import { connectMongo, getMongoClient } from '../../../lib/connect-db';
 const mongoose = require('mongoose');
 
 export async function GET(request) {
