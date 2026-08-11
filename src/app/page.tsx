@@ -126,7 +126,7 @@ export default async function LeaderboardPage() {
       <p style={{ fontSize: '0.8rem', color: '#777', marginTop: 0, marginBottom: '1.5rem' }}>
         Last updated on {lastUpdated}
         <br />
-        Daily updates at midnight
+        Automatically updates every day at midnight
       </p>
 
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
