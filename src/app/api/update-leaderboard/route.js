@@ -16,7 +16,7 @@ export async function GET(request) {
 
   const friends = await db.collection('players').find({}).sort({ currentRank: 1 }).toArray();
 
-  const targetIds = ["9051086240520", "101049398794479", "101281537035847"];
+  const targetIds = ["9051086240520", "101049398794479", "101281537035847", "102710053188031"];
   const filteredPlayers = friends.filter(
     (player) => !targetIds.includes(player.user_id)
   );
