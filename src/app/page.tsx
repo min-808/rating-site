@@ -55,6 +55,23 @@ function calculateRatingChange(player: PlayerDocument): number {
   return 0;
 }
 
+function isNewPlayer(player: PlayerDocument, updateDate: Date): boolean {
+  if (!player.rank_history || player.rank_history.length === 0) {
+    return false;
+  }
+  
+  // Get the date of their very first appearance on the leaderboard
+  const firstEntryDate = new Date(player.rank_history[0].date);
+  
+  if (isNaN(firstEntryDate.getTime())) return false; // Fallback for invalid dates
+  
+  // Calculate the difference in hours
+  const diffMs = updateDate.getTime() - firstEntryDate.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  
+  return diffHours <= 24;
+}
+
 export default async function LeaderboardPage() {
   await connectMongo();
   const client = await getMongoClient();
@@ -151,6 +168,9 @@ export default async function LeaderboardPage() {
             const rankChange = calculateRankChange(player);
             const ratingChange = calculateRatingChange(player);
             
+            // NEW: Check if the player was added in the last 24 hours
+            const isNew = isNewPlayer(player, updateDate);
+            
             const displayName = toNormalWidth(player.name);
             const rawPastNames = player.old_names || [];
             const pastNames = rawPastNames.map(toNormalWidth);
@@ -161,23 +181,41 @@ export default async function LeaderboardPage() {
 
                 {/* Hoverable Name Column */}
                 <td style={{ padding: '8px', fontWeight: 'bold' }}>
-                  {pastNames.length > 0 ? (
-                    <div className="tooltip-container">
-                      <span>{displayName}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: '6px' }}>📜</span>
-                      
-                      <div className="tooltip-box">
-                        <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid #444', paddingBottom: '2px', color: '#aaa' }}>
-                          Past Names
+                  <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    {pastNames.length > 0 ? (
+                      <div className="tooltip-container">
+                        <span>{displayName}</span>
+                        <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: '6px' }}>📜</span>
+                        
+                        <div className="tooltip-box">
+                          <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid #444', paddingBottom: '2px', color: '#aaa' }}>
+                            Past Names
+                          </div>
+                          {pastNames.map((name, idx) => (
+                            <div key={idx} style={{ padding: '2px 0' }}>• {name}</div>
+                          ))}
                         </div>
-                        {pastNames.map((name, idx) => (
-                          <div key={idx} style={{ padding: '2px 0' }}>• {name}</div>
-                        ))}
                       </div>
-                    </div>
-                  ) : (
-                    displayName
-                  )}
+                    ) : (
+                      <span>{displayName}</span>
+                    )}
+
+                    {/* NEW: Render the badge if the player is new */}
+                    {isNew && (
+                      <span style={{
+                        marginLeft: '8px',
+                        backgroundColor: '#ff4757',
+                        color: 'white',
+                        fontSize: '0.65rem',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontWeight: 'bold',
+                        letterSpacing: '0.5px'
+                      }}>
+                        NEW!
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 <td style={{ padding: '8px' }}>{player.rating.toLocaleString()}</td>
