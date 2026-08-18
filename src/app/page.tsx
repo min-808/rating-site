@@ -60,6 +60,7 @@ export default async function LeaderboardPage() {
   const client = await getMongoClient();
   const db = client.db('maimai');
 
+  // Fetch the players
   const rawPlayers = await db
     .collection('daily_leaderboard')
     .find({})
@@ -68,14 +69,20 @@ export default async function LeaderboardPage() {
 
   const players = rawPlayers as unknown as PlayerDocument[];
 
-  // Evaluated when revalidatePath('/') is triggered by the cron job
-  const lastUpdated = new Date().toLocaleString('en-US', {
+  // NEW: Fetch the exact update time from the database
+  const metadata = await db.collection('metadata').findOne({ _id: 'leaderboard_update' });
+  
+  // Fallback to current time only if the metadata document doesn't exist yet
+  const updateDate = metadata?.lastUpdated ? new Date(metadata.lastUpdated) : new Date();
+
+  const lastUpdated = updateDate.toLocaleString('en-US', {
     timeZone: 'Pacific/Honolulu',
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    second: '2-digit',
     hour12: true,
     timeZoneName: 'short',
   });
