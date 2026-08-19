@@ -31,6 +31,27 @@ interface PlayerDocument {
   old_names?: string[];
 }
 
+// You can define this outside your component or in a separate file
+const ratingFrames = [
+  { threshold: 16000, frame: '/frames/rainbow_kiwami.png' },
+  { threshold: 15000, frame: '/frames/rainbow.png' },
+  { threshold: 14500, frame: '/frames/platinum.png' },
+  { threshold: 14000, frame: '/frames/gold.png' },
+  { threshold: 13000, frame: '/frames/silver.png' },
+  { threshold: 12000, frame: '/frames/bronze.png' },
+  { threshold: 10000, frame: '/frames/purple.png' },
+  { threshold: 7000, frame: '/frames/red.png' },
+  { threshold: 4000, frame: '/frames/orange.png' },
+  { threshold: 2000, frame: '/frames/green.png' },
+  { threshold: 0, frame: '/frames/blue.png' }, // default 0 to blue
+];
+
+function getFrameForRating(rating: number) {
+  // Finds the first threshold the player's rating is greater than or equal to
+  const match = ratingFrames.find(r => rating >= r.threshold);
+  return match ? match.frame : '/frames/white.png'; // Fallback just in case
+}
+
 function toNormalWidth(str: string): string {
   if (!str) return '';
   return str
@@ -219,7 +240,26 @@ export default async function LeaderboardPage() {
                   </div>
                 </td>
 
-                <td style={{ padding: '8px' }}>{player.rating.toLocaleString()}</td>
+                <td style={{ padding: '8px' }}>
+  <div 
+    style={{
+      backgroundImage: `url(${getFrameForRating(player.rating)})`,
+      backgroundSize: 'contain',     // Makes sure the whole frame is visible
+      backgroundPosition: 'center',  // Centers the image
+      backgroundRepeat: 'no-repeat', // Prevents tiling
+      width: '80px',                 // Set this to match your frame's proportions
+      height: '35px',                // Set this to match your frame's proportions
+      display: 'inline-flex',
+      alignItems: 'center',          // Vertically centers the number
+      justifyContent: 'center',      // Horizontally centers the number
+      color: '#fff',                 // Use a text color that contrasts your frames
+      fontWeight: 'bold',
+      textShadow: '1px 1px 2px rgba(0,0,0,0.8)' // Adds a shadow so text is readable on any color
+    }}
+  >
+    {player.rating.toLocaleString()}
+  </div>
+</td>
 
                 {/* Rank Change Column */}
                 <td style={{ padding: '8px' }}>
