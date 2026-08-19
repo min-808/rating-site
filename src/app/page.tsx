@@ -1,5 +1,6 @@
 import { connectMongo, getMongoClient } from '../lib/connect-db';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Hawaii Maimai Rating Leaderboard',

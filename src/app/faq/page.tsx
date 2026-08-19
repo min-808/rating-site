@@ -1,8 +1,7 @@
 "use client";
+import Link from 'next/link';
 
-import { useState } from "react";
-
-export default function FAQ() {
+export default function faq() {
   // 2. Reusable style for your discord code blocks
   const codeStyle = {
     backgroundColor: "#f4f4f5",
@@ -19,7 +18,7 @@ export default function FAQ() {
       question: "how does this website work?",
       answer: (
         <>
-          a backend server grabs the users from the maimai site by scraping each page of my friends list. it then stores rating and user information into a database, which is then fetched by this website every day at midnight. past ratings are also tracked in the database so you can see the rating difference for each player every 24hrs.
+          every day at 11:55pm, my backend server grabs the users from the maimai site by scraping each page of my friends list. it then stores rating and user information into a database, which is then fetched by this website every day at midnight. past ratings are also tracked in the database so you can see the rating difference for each player every 24hrs.
         </>
       ),
     },
@@ -35,7 +34,15 @@ export default function FAQ() {
       question: "i don't want to be listed here!",
       answer: (
         <>
-          please contact me via discord <code style={codeStyle}>@waitaamin</code> if you would not like to be shown on the website. i'll remove your listing asap!
+          please contact me via discord <code style={codeStyle}>@waitaamin</code> if you would not like to be shown on the website. i'll remove your listing asap.
+        </>
+      ),
+    },
+    {
+      question: "easiest 14?",
+      answer: (
+        <>
+          probably infinite enerzy overdoze
         </>
       ),
     },
