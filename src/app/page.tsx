@@ -247,17 +247,18 @@ export default async function LeaderboardPage() {
       backgroundSize: 'contain',     // Makes sure the whole frame is visible
       backgroundPosition: 'center',  // Centers the image
       backgroundRepeat: 'no-repeat', // Prevents tiling
-      width: '80px',                 // Set this to match your frame's proportions
-      height: '35px',                // Set this to match your frame's proportions
+      width: '98px',                 // Set this to match your frame's proportions
+      height: '28px',                // Set this to match your frame's proportions
       display: 'inline-flex',
       alignItems: 'center',          // Vertically centers the number
-      justifyContent: 'center',      // Horizontally centers the number
+      justifyContent: 'flex-end',      // Horizontally centers the number
       color: '#fff',                 // Use a text color that contrasts your frames
       fontWeight: 'bold',
-      textShadow: '1px 1px 2px rgba(0,0,0,0.8)' // Adds a shadow so text is readable on any color
+      textShadow: '1px 1px 2px rgba(0,0,0,0.8)', // Adds a shadow so text is readable on any color
+      paddingRight: '16px'
     }}
   >
-    {player.rating.toLocaleString()}
+    {player.rating}
   </div>
 </td>
 
