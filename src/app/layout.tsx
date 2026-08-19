@@ -10,7 +10,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {/* We wrap the header in a container to match your page widths */}
-        <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '0.5rem' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '0.5rem', fontFamily: 'sans-serif' }}>
           <header style={{ 
             display: 'flex', 
             justifyContent: 'center', // This centers the buttons
