@@ -1,26 +1,80 @@
-// page.tsx
+"use client";
 
-export default function faq() {
-  // Placeholder data for your FAQs
+import { useState } from "react";
+
+// 1. Custom component to handle the click-to-copy logic
+function FriendCode({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    // Revert the tooltip back to "click to copy" after 2 seconds
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <span
+      onClick={handleCopy}
+      title={copied ? "copied!" : "click to copy"}
+      style={{
+        cursor: "pointer",
+        backgroundColor: "#e0f2fe", // Light blue background to make it stand out
+        color: "#0369a1",
+        padding: "0.2rem 0.4rem",
+        borderRadius: "4px",
+        fontWeight: "bold",
+        transition: "all 0.2s",
+      }}
+    >
+      {code}
+    </span>
+  );
+}
+
+export default function FAQ() {
+  // 2. Reusable style for your discord code blocks
+  const codeStyle = {
+    backgroundColor: "#f4f4f5",
+    padding: "0.2rem 0.4rem",
+    borderRadius: "4px",
+    fontFamily: "monospace",
+    fontSize: "0.9em",
+    border: "1px solid #e4e4e7"
+  };
+
+  // 3. Changed answers to JSX (<>...</>) to embed the components
   const faqs = [
     {
       question: "how does this website work?",
-      answer: "a backend server grabs my friends list from the maimai site by scraping each page of my friends list. it then stores rating and user information into a database, which is then fetched by this website every day at midnight. past ratings are also tracked in the database so you can see the rating difference for each player every 24hrs.",
+      answer: (
+        <>
+          a backend server grabs the users from the maimai site by scraping each page of my friends list. it then stores rating and user information into a database, which is then fetched by this website every day at midnight. past ratings are also tracked in the database so you can see the rating difference for each player every 24hrs.
+        </>
+      ),
     },
     {
-      question: "how do i get listed on this website?",
-      answer: "first, add me as a friend on maimai either by playing with me irl, or with my friend code: xxx. then, you can optionally let me know that you added me by messaging me on discord @waitaamin. you'll then be scraped into the site on the next refresh.",
+      question: "i'm a maimai player from hawaii. how do i get listed on this website?",
+      answer: (
+        <>
+          first, add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/">friend site</a> and adding me with my friend code: <FriendCode code="101142379434455" />. optionally, you can let me know that you friend requested me by messaging me on discord <code style={codeStyle}>@waitaamin</code>. once you've been added to my friends list, you'll then be scraped into the site on the next refresh.
+        </>
+      ),
     },
     {
       question: "i don't want to be listed here!",
-      answer: "please contact me via discord @waitaamin if you would not like to be shown on the website. i'll remove your listing asap!",
+      answer: (
+        <>
+          please contact me via discord <code style={codeStyle}>@waitaamin</code> if you would not like to be shown on the website. i'll remove your listing asap!
+        </>
+      ),
     },
   ];
 
   return (
     <main style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
       <h1 style={{ borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>
-       faq
+        faq
       </h1>
 
       <div style={{ marginTop: '2rem' }}>
