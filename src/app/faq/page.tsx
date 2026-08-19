@@ -1,5 +1,11 @@
 "use client";
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'HI Maimai - FAQ',
+  description: 'Frequently asked questions about the rating leaderboard.',
+};
 
 export default function faq() {
   // 2. Reusable style for your discord code blocks

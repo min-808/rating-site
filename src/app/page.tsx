@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Hawaii Maimai Rating Leaderboard',
+  title: 'HI Maimai Rating Leaderboard',
   description: 'A website to track the rating and ranks of Hawaii Maimai players.',
 };
 
