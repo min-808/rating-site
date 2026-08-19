@@ -18,7 +18,7 @@ export default function faq() {
       question: "how does this website work?",
       answer: (
         <>
-          every day at 11:55pm, my backend server grabs the users from the maimai site by scraping each page of my friends list. it then stores rating and user information into a database, which is then fetched by this website every day at midnight. past ratings are also tracked in the database so you can see the rating difference for each player every 24hrs.
+          every day at 11:55pm, my backend server grabs the users from the maimai site by scraping each page of my friends list. it then stores rating and user information into a database, which is then fetched by this website every day at midnight. past ratings are also tracked in the database so you can see the rating difference for each player every 24hrs
         </>
       ),
     },
@@ -26,7 +26,7 @@ export default function faq() {
       question: "i'm a maimai player from hawaii. how do i get listed on this website?",
       answer: (
         <>
-          first, add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/">friend site</a> and adding me with my friend code: <code style={codeStyle}>101142379434455</code>. optionally, you can let me know that you friend requested me by messaging me on discord <code style={codeStyle}>@waitaamin</code>. once you've been added to my friends list, you'll then be scraped into the site on the next refresh.
+          first, add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/">friend site</a> and adding me with my friend code: <code style={codeStyle}>101142379434455</code>. optionally, you can let me know that you friend requested me by messaging me on discord <code style={codeStyle}>@waitaamin</code>. once you've been added to my friends list, you'll then be scraped into the site on the next refresh
         </>
       ),
     },
@@ -34,7 +34,7 @@ export default function faq() {
       question: "i don't want to be listed here!",
       answer: (
         <>
-          please contact me via discord <code style={codeStyle}>@waitaamin</code> if you would not like to be shown on the website. i'll remove your listing asap.
+          please contact me via discord <code style={codeStyle}>@waitaamin</code> if you would not like to be shown on the website. i'll remove your listing asap
         </>
       ),
     },
