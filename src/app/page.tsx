@@ -128,7 +128,7 @@ export default async function LeaderboardPage() {
   });
 
   return (
-    <main style={{ padding: '0 2rem 2rem 2rem', fontFamily: 'sans-serif' }}>
+    <main style={{ padding: '0 2rem 2rem 2rem', maxWidth: '1000px', margin: '0 auto', fontFamily: 'sans-serif' }}>
       <style>{`
         .tooltip-container {
           position: relative;
@@ -171,6 +171,9 @@ export default async function LeaderboardPage() {
 
       <h1 style={{ marginBottom: '0.25rem' }}>HI Maimai Rating Leaderboard</h1>
       <p style={{ fontSize: '0.8rem', color: '#777', marginTop: 0, marginBottom: '1.5rem' }}>
+        There are currently <b>{players.length}</b> players on the leaderboard
+        <br />
+        <br />
         Last updated on {lastUpdated}
         <br />
         Automatically updates every day at midnight
@@ -179,11 +182,11 @@ export default async function LeaderboardPage() {
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
-            <th style={{ padding: '8px' }}>Rank</th>
-            <th style={{ padding: '8px' }}>Name</th>
-            <th style={{ padding: '8px' }}>Rating</th>
-            <th style={{ padding: '8px' }}>Rank Change (24hr)</th>
-            <th style={{ padding: '8px' }}>Rating Change (24hr)</th>
+            <th style={{ padding: '10px 8px' }}>Rank</th>
+            <th style={{ padding: '10px 8px' }}>Name</th>
+            <th style={{ padding: '10px 8px', textAlign: 'center' }}>Rating</th>
+            <th style={{ padding: '10px 8px', textAlign: 'center' }}>Rank Change (24hr)</th>
+            <th style={{ padding: '10px 8px', textAlign: 'center' }}>Rating Change (24hr)</th>
           </tr>
         </thead>
         <tbody>
@@ -191,7 +194,6 @@ export default async function LeaderboardPage() {
             const rankChange = calculateRankChange(player);
             const ratingChange = calculateRatingChange(player);
             
-            // NEW: Check if the player was added in the last 24 hours
             const isNew = isNewPlayer(player, updateDate);
             
             const displayName = toNormalWidth(player.name);
@@ -200,10 +202,10 @@ export default async function LeaderboardPage() {
 
             return (
               <tr key={player._id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '8px' }}>#{index + 1}</td>
+                <td style={{ padding: '10px 8px' }}>#{index + 1}</td>
 
                 {/* Hoverable Name Column */}
-                <td style={{ padding: '8px', fontWeight: 'bold' }}>
+                <td style={{ padding: '10px 8px', fontWeight: 'bold' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center' }}>
                     {pastNames.length > 0 ? (
                       <div className="tooltip-container">
@@ -223,7 +225,6 @@ export default async function LeaderboardPage() {
                       <span>{displayName}</span>
                     )}
 
-                    {/* NEW: Render the badge if the player is new */}
                     {isNew && (
                       <span style={{
                         marginLeft: '8px',
@@ -241,30 +242,31 @@ export default async function LeaderboardPage() {
                   </div>
                 </td>
 
-                <td style={{ padding: '8px' }}>
-  <div 
-    style={{
-      backgroundImage: `url(${getFrameForRating(player.rating)})`,
-      backgroundSize: 'contain',     // Makes sure the whole frame is visible
-      backgroundPosition: 'center',  // Centers the image
-      backgroundRepeat: 'no-repeat', // Prevents tiling
-      width: '98px',                 // Set this to match your frame's proportions
-      height: '28px',                // Set this to match your frame's proportions
-      display: 'inline-flex',
-      alignItems: 'center',          // Vertically centers the number
-      justifyContent: 'flex-end',      // Horizontally centers the number
-      color: '#fff',                 // Use a text color that contrasts your frames
-      fontWeight: 'bold',
-      textShadow: '1px 1px 2px rgba(0,0,0,0.8)', // Adds a shadow so text is readable on any color
-      paddingRight: '16px'
-    }}
-  >
-    {player.rating}
-  </div>
-</td>
+                {/* Rating Badge (Centered) */}
+                <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                  <div 
+                    style={{
+                      backgroundImage: `url(${getFrameForRating(player.rating)})`,
+                      backgroundSize: 'contain',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      width: '98px',
+                      height: '28px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                      paddingRight: '16px'
+                    }}
+                  >
+                    {player.rating}
+                  </div>
+                </td>
 
-                {/* Rank Change Column */}
-                <td style={{ padding: '8px' }}>
+                {/* Rank Change Column (Centered) */}
+                <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                   {rankChange > 0 ? (
                     <span style={{ color: 'green', fontWeight: '500' }}>▲ +{rankChange}</span>
                   ) : rankChange < 0 ? (
@@ -274,8 +276,8 @@ export default async function LeaderboardPage() {
                   )}
                 </td>
 
-                {/* Rating Change Column */}
-                <td style={{ padding: '8px' }}>
+                {/* Rating Change Column (Centered) */}
+                <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                   {ratingChange > 0 ? (
                     <span style={{ color: 'green', fontWeight: '500' }}>+{ratingChange.toLocaleString()}</span>
                   ) : ratingChange < 0 ? (

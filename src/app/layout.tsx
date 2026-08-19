@@ -21,7 +21,7 @@ export default function RootLayout({
               href="/" 
               style={{ padding: '0.4rem 1rem', backgroundColor: '#f4f4f5', border: '1px solid #e4e4e7', borderRadius: '6px', textDecoration: 'none', color: '#333', fontWeight: 'bold' }}
             >
-              home
+              leaderboard
             </Link>
             <Link 
               href="/faq" 
