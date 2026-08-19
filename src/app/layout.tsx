@@ -10,7 +10,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {/* We wrap the header in a container to match your page widths */}
-        <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '2rem' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '0.5rem' }}>
           <header style={{ 
             display: 'flex', 
             justifyContent: 'center', // This centers the buttons
@@ -31,8 +31,6 @@ export default function RootLayout({
             </Link>
           </header>
         </div>
-
-        {/* This is where your page.tsx files render */}
       {children}
       </body>
     </html>
