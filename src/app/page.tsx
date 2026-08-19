@@ -106,7 +106,7 @@ export default async function LeaderboardPage() {
   });
 
   return (
-    <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+    <main style={{ padding: '0 2rem 2rem 2rem', fontFamily: 'sans-serif' }}>
       <style>{`
         .tooltip-container {
           position: relative;

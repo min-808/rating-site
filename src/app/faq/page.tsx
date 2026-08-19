@@ -49,7 +49,7 @@ export default function faq() {
   ];
 
   return (
-    <main style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+    <main style={{ padding: '0 2rem 2rem 2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
       <h1 style={{ borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>
         faq
       </h1>
