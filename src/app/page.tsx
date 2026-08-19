@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'HI Maimai Rating Leaderboard',
+  title: 'HI Maimai - Rating Leaderboard',
   description: 'A website to track the rating and ranks of Hawaii Maimai players.',
 };
 
@@ -147,7 +147,7 @@ export default async function LeaderboardPage() {
         }
       `}</style>
 
-      <h1 style={{ marginBottom: '0.25rem' }}>Hawaii Maimai Rating Leaderboard</h1>
+      <h1 style={{ marginBottom: '0.25rem' }}>HI Maimai Rating Leaderboard</h1>
       <p style={{ fontSize: '0.8rem', color: '#777', marginTop: 0, marginBottom: '1.5rem' }}>
         Last updated on {lastUpdated}
         <br />
