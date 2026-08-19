@@ -2,36 +2,6 @@
 
 import { useState } from "react";
 
-// 1. Custom component to handle the click-to-copy logic
-function FriendCode({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    // Revert the tooltip back to "click to copy" after 2 seconds
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <span
-      onClick={handleCopy}
-      title={copied ? "copied!" : "click to copy"}
-      style={{
-        cursor: "pointer",
-        backgroundColor: "#e0f2fe", // Light blue background to make it stand out
-        color: "#0369a1",
-        padding: "0.2rem 0.4rem",
-        borderRadius: "4px",
-        fontWeight: "bold",
-        transition: "all 0.2s",
-      }}
-    >
-      {code}
-    </span>
-  );
-}
-
 export default function FAQ() {
   // 2. Reusable style for your discord code blocks
   const codeStyle = {
@@ -57,7 +27,7 @@ export default function FAQ() {
       question: "i'm a maimai player from hawaii. how do i get listed on this website?",
       answer: (
         <>
-          first, add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/">friend site</a> and adding me with my friend code: <FriendCode code="101142379434455" />. optionally, you can let me know that you friend requested me by messaging me on discord <code style={codeStyle}>@waitaamin</code>. once you've been added to my friends list, you'll then be scraped into the site on the next refresh.
+          first, add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/">friend site</a> and adding me with my friend code: 101142379434455. optionally, you can let me know that you friend requested me by messaging me on discord <code style={codeStyle}>@waitaamin</code>. once you've been added to my friends list, you'll then be scraped into the site on the next refresh.
         </>
       ),
     },
