@@ -31,7 +31,7 @@ export default function faq() {
       question: "i'm a maimai player from hawaii. how do i get listed on this website?",
       answer: (
         <>
-          add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/">friend site</a> and adding me with my friend code: <code style={codeStyle}>101142379434455</code>. optionally, you can let me know that you friend requested me by messaging me on discord <code style={codeStyle}>@waitaamin</code>. once you've been added to my friends list, you'll then be scraped into the site on the next refresh
+          add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/" target="_blank" rel="noopener noreferrer">friend site</a> and adding me with my friend code: <code style={codeStyle}>101142379434455</code>. optionally, you can let me know that you friend requested me by messaging me on discord <code style={codeStyle}>@waitaamin</code>. once you've been added to my friends list, you'll then be scraped into the site on the next refresh
         </>
       ),
     },
