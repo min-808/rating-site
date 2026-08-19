@@ -43,7 +43,8 @@ const ratingFrames = [
   { threshold: 7000, frame: '/frames/red.png' },
   { threshold: 4000, frame: '/frames/orange.png' },
   { threshold: 2000, frame: '/frames/green.png' },
-  { threshold: 0, frame: '/frames/blue.png' }, // default 0 to blue
+  { threshold: 1000, frame: '/frames/blue.png' },
+  { threshold: 0, frame: '/frames/white.png' },
 ];
 
 function getFrameForRating(rating: number) {
