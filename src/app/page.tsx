@@ -182,8 +182,8 @@ export default async function LeaderboardPage() {
             <th style={{ padding: '8px' }}>Rank</th>
             <th style={{ padding: '8px' }}>Name</th>
             <th style={{ padding: '8px' }}>Rating</th>
-            <th style={{ padding: '8px' }}>Rating Change (24hr)</th>
             <th style={{ padding: '8px' }}>Rank Change (24hr)</th>
+            <th style={{ padding: '8px' }}>Rating Change (24hr)</th>
           </tr>
         </thead>
         <tbody>
@@ -263,17 +263,6 @@ export default async function LeaderboardPage() {
   </div>
 </td>
 
-                {/* Rating Change Column */}
-                <td style={{ padding: '8px' }}>
-                  {ratingChange > 0 ? (
-                    <span style={{ color: 'green', fontWeight: '500' }}>+{ratingChange.toLocaleString()}</span>
-                  ) : ratingChange < 0 ? (
-                    <span style={{ color: 'red', fontWeight: '500' }}>{ratingChange.toLocaleString()}</span>
-                  ) : (
-                    <span style={{ color: '#888' }}>0</span>
-                  )}
-                </td>
-
                 {/* Rank Change Column */}
                 <td style={{ padding: '8px' }}>
                   {rankChange > 0 ? (
@@ -284,7 +273,17 @@ export default async function LeaderboardPage() {
                     <span style={{ color: '#888' }}>-</span>
                   )}
                 </td>
-                
+
+                {/* Rating Change Column */}
+                <td style={{ padding: '8px' }}>
+                  {ratingChange > 0 ? (
+                    <span style={{ color: 'green', fontWeight: '500' }}>+{ratingChange.toLocaleString()}</span>
+                  ) : ratingChange < 0 ? (
+                    <span style={{ color: 'red', fontWeight: '500' }}>{ratingChange.toLocaleString()}</span>
+                  ) : (
+                    <span style={{ color: '#888' }}>0</span>
+                  )}
+                </td>
               </tr>
             );
           })}

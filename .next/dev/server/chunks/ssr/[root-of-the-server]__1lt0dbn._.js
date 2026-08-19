@@ -287,7 +287,7 @@ async function LeaderboardPage() {
                                     style: {
                                         padding: '8px'
                                     },
-                                    children: "Rating Change (24hr)"
+                                    children: "Rank Change (24hr)"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/page.tsx",
                                     lineNumber: 185,
@@ -297,7 +297,7 @@ async function LeaderboardPage() {
                                     style: {
                                         padding: '8px'
                                     },
-                                    children: "Rank Change (24hr)"
+                                    children: "Rating Change (24hr)"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/page.tsx",
                                     lineNumber: 186,
@@ -485,26 +485,29 @@ async function LeaderboardPage() {
                                         style: {
                                             padding: '8px'
                                         },
-                                        children: ratingChange > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        children: rankChange > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                             style: {
                                                 color: 'green',
                                                 fontWeight: '500'
                                             },
                                             children: [
-                                                "+",
-                                                ratingChange.toLocaleString()
+                                                "▲ +",
+                                                rankChange
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/page.tsx",
                                             lineNumber: 269,
                                             columnNumber: 21
-                                        }, this) : ratingChange < 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        }, this) : rankChange < 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                             style: {
                                                 color: 'red',
                                                 fontWeight: '500'
                                             },
-                                            children: ratingChange.toLocaleString()
-                                        }, void 0, false, {
+                                            children: [
+                                                "▼ ",
+                                                Math.abs(rankChange)
+                                            ]
+                                        }, void 0, true, {
                                             fileName: "[project]/src/app/page.tsx",
                                             lineNumber: 271,
                                             columnNumber: 21
@@ -512,7 +515,7 @@ async function LeaderboardPage() {
                                             style: {
                                                 color: '#888'
                                             },
-                                            children: "0"
+                                            children: "-"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/page.tsx",
                                             lineNumber: 273,
@@ -527,29 +530,26 @@ async function LeaderboardPage() {
                                         style: {
                                             padding: '8px'
                                         },
-                                        children: rankChange > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        children: ratingChange > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                             style: {
                                                 color: 'green',
                                                 fontWeight: '500'
                                             },
                                             children: [
-                                                "▲ +",
-                                                rankChange
+                                                "+",
+                                                ratingChange.toLocaleString()
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/page.tsx",
                                             lineNumber: 280,
                                             columnNumber: 21
-                                        }, this) : rankChange < 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        }, this) : ratingChange < 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                             style: {
                                                 color: 'red',
                                                 fontWeight: '500'
                                             },
-                                            children: [
-                                                "▼ ",
-                                                Math.abs(rankChange)
-                                            ]
-                                        }, void 0, true, {
+                                            children: ratingChange.toLocaleString()
+                                        }, void 0, false, {
                                             fileName: "[project]/src/app/page.tsx",
                                             lineNumber: 282,
                                             columnNumber: 21
@@ -557,7 +557,7 @@ async function LeaderboardPage() {
                                             style: {
                                                 color: '#888'
                                             },
-                                            children: "-"
+                                            children: "0"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/page.tsx",
                                             lineNumber: 284,
