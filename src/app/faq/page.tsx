@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'HI Maimai - FAQ',
-  description: 'Frequently asked questions about the rating leaderboard.',
+  description: 'frequently asked questions about the rating leaderboard.',
 };
 
 export default function faq() {
