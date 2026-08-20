@@ -31,7 +31,19 @@ export default function RootLayout({
             </Link>
           </header>
         </div>
-      {children}
+        
+        {children}
+
+        {/* Footer section added here */}
+        <footer style={{
+          textAlign: 'center',
+          color: 'gray',
+          padding: '2rem 0 1rem',
+          fontSize: '0.875rem',
+          fontFamily: 'sans-serif'
+        }}>
+          made by min
+        </footer>
       </body>
     </html>
   );
