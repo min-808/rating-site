@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -6,8 +5,7 @@ export const metadata: Metadata = {
   description: 'frequently asked questions about the rating leaderboard.',
 };
 
-export default function faq() {
-  // 2. Reusable style for your discord code blocks
+export default function Faq() {
   const codeStyle = {
     backgroundColor: "#f4f4f5",
     padding: "0.2rem 0.4rem",
@@ -17,16 +15,27 @@ export default function faq() {
     border: "1px solid #e4e4e7"
   };
 
-  // 3. Changed answers to JSX (<>...</>) to embed the components
   const faqs = [
     {
-      question: "how does this website work?",
+      question: "why?",
       answer: (
         <>
-        <details>
-            <summary>magic</summary>
-            every day at 11:55pm HST, the backend grabs users from the maimaidx-eng site by scraping each page of my friends list. it then stores rating and user information into a db, which is then fetched by this website every day at midnight. past ratings are also tracked in the db so you can see the rating difference for each player every 24hrs
-        </details>
+            <p className="mb-4">
+                i thought it would be pretty neat to have a rating leaderboard just for local hawaii maimai players. the goal is to foster friendly competition by finding new rivals around similar rating ranges and to encourage players to improve their skills. it's fun to see the rating number go up and have it reflect on the leaderboards imo
+            </p>
+            <p>
+                since this site is unofficial, don't take the rankings as 100% accurate, but it's at least a decent approximation of where you stand in the local scene
+            </p>
+        </>
+      ),
+    },
+    {
+      question: "how?",
+      answer: (
+        <>
+            <p>
+                the backend first grabs users from the maimaidx-eng site by scraping each page of my friends list. it then stores rating and user information into a db, which is then fetched by this website every day at midnight. past ratings are also tracked in the db so you can see the rating difference for each player every 24hrs
+            </p>
         </>
       ),
     },
@@ -34,15 +43,19 @@ export default function faq() {
       question: "i'm a maimai player from hawaii. how do i get listed on the leaderboard?",
       answer: (
         <>
-          add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/" target="_blank" rel="noopener noreferrer">friend site</a> and adding me with my friend code: <code style={codeStyle}>101142379434455</code>. optionally, you can let me know that you friend requested me by messaging me on discord <code style={codeStyle}>@waitaamin</code>. once you've been added to my friends list, you'll then be automatically put into the site on the next refresh
+            <p>
+                add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/" target="_blank" rel="noopener noreferrer">friend site</a> and adding me with my friend code: <code style={codeStyle}>101142379434455</code>. optionally, you can let me know that you friend requested me by messaging me on discord <code style={codeStyle}>@waitaamin</code>. once you've been added to my friends list, you'll then be automatically put into the site on the next refresh
+            </p>
         </>
       ),
     },
     {
-      question: "i don't want to be listed here!",
+      question: "i don't want to be listed here",
       answer: (
         <>
-          please contact me via discord if you don't want to be shown on the website. i'll remove your listing asap
+            <p>
+                please contact me via discord if you don't want to be shown on the website. i'll remove your listing asap
+            </p>
         </>
       ),
     },
@@ -50,7 +63,29 @@ export default function faq() {
       question: "how many players can be on the leaderboard?",
       answer: (
         <>
-          realistically, there can only be ≤100 players on the leaderboard due to the limitations of the maimai friend system. if i reach this limit, i won't be able to add any new players
+            <p>
+                realistically, there can only be ≤100 players on the leaderboard due to the limitations of the maimai friend system. if i reach this limit, i won't be able to add any new players
+            </p>
+        </>
+      ),
+    },
+    {
+      question: "why doesn't the leaderboard update at exactly midnight?",
+      answer: (
+        <>
+            <p>
+                unfortunately, vercel is not very good about executing cron jobs for the hobby tier. however, it's at least guaranteed that the leaderboard will update sometime between 12:00am and 12:59am
+            </p>
+        </>
+      ),
+    },
+    {
+      question: "something is broken or i have a cool new idea",
+      answer: (
+        <>
+            <p>
+                reach out to me on discord plz
+            </p>
         </>
       ),
     },
@@ -58,7 +93,9 @@ export default function faq() {
       question: "easiest 14?",
       answer: (
         <>
-          probably infinite enerzy overdoze
+            <p>
+                probably infinite enerzy overdoze
+            </p>
         </>
       ),
     },
