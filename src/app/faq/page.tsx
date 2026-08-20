@@ -42,7 +42,7 @@ export default function faq() {
       question: "i don't want to be listed here!",
       answer: (
         <>
-          please contact me via discord if you don't to be shown on the website. i'll remove your listing asap
+          please contact me via discord if you don't want to be shown on the website. i'll remove your listing asap
         </>
       ),
     },
