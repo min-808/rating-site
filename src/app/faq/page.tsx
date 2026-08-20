@@ -74,7 +74,7 @@ export default function Faq() {
       answer: (
         <>
             <p>
-                unfortunately, vercel is not very good about executing cron jobs for the hobby tier. however, it's at least guaranteed that the leaderboard will update sometime between 12:00am and 12:59am
+                unfortunately, vercel is not very good about executing cron jobs on time for the hobby tier. however, it's at least guaranteed that the leaderboard will update sometime between 12:00am and 12:59am
             </p>
         </>
       ),
