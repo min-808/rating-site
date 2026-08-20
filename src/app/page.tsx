@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'HI Maimai - Rating Leaderboard',
-  description: 'A website to track the rating and ranks of Hawaii Maimai players.',
+  description: 'a rating tracker and leaderboard for hawaii maimai players',
 };
 
 export const revalidate = false;
