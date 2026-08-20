@@ -42,7 +42,7 @@ export default function faq() {
       question: "i don't want to be listed here!",
       answer: (
         <>
-          please contact me via discord <code style={codeStyle}>@waitaamin</code> if you don't to be shown on the website. i'll remove your listing asap
+          please contact me via discord if you don't to be shown on the website. i'll remove your listing asap
         </>
       ),
     },
@@ -50,7 +50,7 @@ export default function faq() {
       question: "how many players can be on the leaderboard?",
       answer: (
         <>
-          realistically, there can only be ≤100 players on the hawaii leaderboard due to the limitations of the maimai friend system. if i reach this limit (unlikely), i won't be able to add any new players
+          realistically, there can only be ≤100 players on the hawaii leaderboard due to the limitations of the maimai friend system. if i reach this limit, i won't be able to add any new players
         </>
       ),
     },
