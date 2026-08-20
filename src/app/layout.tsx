@@ -9,13 +9,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {/* We wrap the header in a container to match your page widths */}
         <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '0.5rem', fontFamily: 'sans-serif' }}>
           <header style={{ 
             display: 'flex', 
-            justifyContent: 'center', // This centers the buttons
+            justifyContent: 'center', // centers the buttons
             gap: '1rem', 
-            marginBottom: '0.5rem'    // Reduced from 2rem to save space
+            marginBottom: '0.5rem'
           }}>
             <Link 
               href="/" 
@@ -34,7 +33,6 @@ export default function RootLayout({
         
         {children}
 
-        {/* Footer section added here */}
         <footer style={{
           textAlign: 'center',
           color: 'gray',
@@ -43,6 +41,11 @@ export default function RootLayout({
           fontFamily: 'sans-serif'
         }}>
           made by min
+          <br />
+          discord/twt: @waitaamin
+          <br />
+          <br />
+          &lt;3
         </footer>
       </body>
     </html>

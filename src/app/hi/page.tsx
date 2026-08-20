@@ -11,7 +11,11 @@ export default function hi() {
   return (
     <main style={{ padding: '0 2rem 2rem 2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
       <p style={{ margin: 0, lineHeight: '1.5', color: '#333' }}>
-        hi
+        hi there
+        <br />
+        r u crawling this site lol
+        <br />
+        #lmk
       </p>
     </main>
   );
