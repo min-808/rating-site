@@ -1,6 +1,5 @@
 import { connectMongo, getMongoClient } from '../lib/connect-db';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'HI Maimai - Rating Leaderboard',
@@ -31,7 +30,6 @@ interface PlayerDocument {
   old_names?: string[];
 }
 
-// You can define this outside your component or in a separate file
 const ratingFrames = [
   { threshold: 16000, frame: '/frames/rainbow_kiwami.png' },
   { threshold: 15000, frame: '/frames/rainbow.png' },
@@ -48,9 +46,8 @@ const ratingFrames = [
 ];
 
 function getFrameForRating(rating: number) {
-  // Finds the first threshold the player's rating is greater than or equal to
   const match = ratingFrames.find(r => rating >= r.threshold);
-  return match ? match.frame : '/frames/white.png'; // Fallback just in case
+  return match ? match.frame : '/frames/white.png'; // fallback
 }
 
 function toNormalWidth(str: string): string {
@@ -83,12 +80,10 @@ function isNewPlayer(player: PlayerDocument, updateDate: Date): boolean {
     return false;
   }
   
-  // Get the date of their very first appearance on the leaderboard
   const firstEntryDate = new Date(player.rank_history[0].date);
   
-  if (isNaN(firstEntryDate.getTime())) return false; // Fallback for invalid dates
+  if (isNaN(firstEntryDate.getTime())) return false; // fallback
   
-  // Calculate the difference in hours
   const diffMs = updateDate.getTime() - firstEntryDate.getTime();
   const diffHours = diffMs / (1000 * 60 * 60);
   
@@ -100,7 +95,7 @@ export default async function LeaderboardPage() {
   const client = await getMongoClient();
   const db = client.db('maimai');
 
-  // Fetch the players
+  // fetch
   const rawPlayers = await db
     .collection('daily_leaderboard')
     .find({})
@@ -109,10 +104,10 @@ export default async function LeaderboardPage() {
 
   const players = rawPlayers as unknown as PlayerDocument[];
 
-  // NEW: Fetch the exact update time from the database
+  // update exact time to db
   const metadata = await db.collection('metadata').findOne({ _id: 'leaderboard_update' });
   
-  // Fallback to current time only if the metadata document doesn't exist yet
+  // fallback to current time
   const updateDate = metadata?.lastUpdated ? new Date(metadata.lastUpdated) : new Date();
 
   const lastUpdated = updateDate.toLocaleString('en-US', {
@@ -204,7 +199,6 @@ export default async function LeaderboardPage() {
               <tr key={player._id} style={{ borderBottom: '1px solid #eee' }}>
                 <td style={{ padding: '10px 8px' }}>#{index + 1}</td>
 
-                {/* Hoverable Name Column */}
                 <td style={{ padding: '10px 8px', fontWeight: 'bold' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center' }}>
                     {pastNames.length > 0 ? (
@@ -242,7 +236,6 @@ export default async function LeaderboardPage() {
                   </div>
                 </td>
 
-                {/* Rating Badge (Centered) */}
                 <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                   <div 
                     style={{
@@ -265,7 +258,6 @@ export default async function LeaderboardPage() {
                   </div>
                 </td>
 
-                {/* Rank Change Column (Centered) */}
                 <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                   {rankChange > 0 ? (
                     <span style={{ color: 'green', fontWeight: '500' }}>▲ +{rankChange}</span>
@@ -276,7 +268,6 @@ export default async function LeaderboardPage() {
                   )}
                 </td>
 
-                {/* Rating Change Column (Centered) */}
                 <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                   {ratingChange > 0 ? (
                     <span style={{ color: 'green', fontWeight: '500' }}>+{ratingChange.toLocaleString()}</span>
