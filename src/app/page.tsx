@@ -123,8 +123,43 @@ export default async function LeaderboardPage() {
   });
 
   return (
-    <main style={{ padding: '0 2rem 2rem 2rem', maxWidth: '1000px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+    <main className="main-container">
       <style>{`
+        /* Desktop Defaults */
+        .main-container {
+          padding: 0 2rem 2rem 2rem;
+          max-width: 1000px;
+          margin: 0 auto;
+          font-family: sans-serif;
+        }
+        .leaderboard-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        .leaderboard-table th, .leaderboard-table td {
+          padding: 10px 8px;
+        }
+        .rating-badge {
+          background-size: contain;
+          background-position: center;
+          background-repeat: no-repeat;
+          width: 98px;
+          height: 28px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-end;
+          color: #fff;
+          font-weight: bold;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+          padding-right: 16px;
+        }
+        .header-subtext {
+          font-weight: normal;
+          font-size: 0.8rem;
+          color: #666;
+        }
+        
+        /* Tooltip CSS */
         .tooltip-container {
           position: relative;
           display: inline-flex;
@@ -162,6 +197,27 @@ export default async function LeaderboardPage() {
           visibility: visible;
           opacity: 1;
         }
+
+        /* Mobile Responsive Adjustments */
+        @media (max-width: 600px) {
+          .main-container {
+            padding: 0 0.5rem 1rem 0.5rem; /* Reclaim horizontal space */
+          }
+          .leaderboard-table th, .leaderboard-table td {
+            padding: 8px 3px; /* Tighter cells */
+            font-size: 0.8rem; /* Slightly smaller text */
+          }
+          .rating-badge {
+            width: 70px; /* Shrink the frame image */
+            height: 20px;
+            padding-right: 10px;
+            font-size: 0.75rem;
+          }
+          .header-subtext {
+            display: block; /* Forces the (24hr) text to a new line */
+            font-size: 0.7rem;
+          }
+        }
       `}</style>
 
       <h1 style={{ marginBottom: '0.25rem' }}>HI Maimai Rating Leaderboard</h1>
@@ -174,14 +230,18 @@ export default async function LeaderboardPage() {
         Automatically updates every day at midnight
       </p>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className="leaderboard-table">
         <thead>
           <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
-            <th style={{ padding: '10px 8px' }}>Rank</th>
-            <th style={{ padding: '10px 8px' }}>Name</th>
-            <th style={{ padding: '10px 8px', textAlign: 'center' }}>Rating</th>
-            <th style={{ padding: '10px 8px', textAlign: 'center' }}>Rank Change (24hr)</th>
-            <th style={{ padding: '10px 8px', textAlign: 'center' }}>Rating Change (24hr)</th>
+            <th>Rank</th>
+            <th>Name</th>
+            <th style={{ textAlign: 'center' }}>Rating</th>
+            <th style={{ textAlign: 'center' }}>
+              Rank Change <span className="header-subtext">(24hr)</span>
+            </th>
+            <th style={{ textAlign: 'center' }}>
+              Rating Change <span className="header-subtext">(24hr)</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -197,9 +257,9 @@ export default async function LeaderboardPage() {
 
             return (
               <tr key={player._id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '10px 8px' }}>#{index + 1}</td>
+                <td>#{index + 1}</td>
 
-                <td style={{ padding: '10px 8px', fontWeight: 'bold' }}>
+                <td style={{ fontWeight: 'bold' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center' }}>
                     {pastNames.length > 0 ? (
                       <div className="tooltip-container">
@@ -236,29 +296,16 @@ export default async function LeaderboardPage() {
                   </div>
                 </td>
 
-                <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                <td style={{ textAlign: 'center' }}>
                   <div 
-                    style={{
-                      backgroundImage: `url(${getFrameForRating(player.rating)})`,
-                      backgroundSize: 'contain',
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat',
-                      width: '98px',
-                      height: '28px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      color: '#fff',
-                      fontWeight: 'bold',
-                      textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-                      paddingRight: '16px'
-                    }}
+                    className="rating-badge"
+                    style={{ backgroundImage: `url(${getFrameForRating(player.rating)})` }}
                   >
                     {player.rating}
                   </div>
                 </td>
 
-                <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                <td style={{ textAlign: 'center' }}>
                   {rankChange > 0 ? (
                     <span style={{ color: 'green', fontWeight: '500' }}>▲ +{rankChange}</span>
                   ) : rankChange < 0 ? (
@@ -268,7 +315,7 @@ export default async function LeaderboardPage() {
                   )}
                 </td>
 
-                <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                <td style={{ textAlign: 'center' }}>
                   {ratingChange > 0 ? (
                     <span style={{ color: 'green', fontWeight: '500' }}>+{ratingChange.toLocaleString()}</span>
                   ) : ratingChange < 0 ? (
