@@ -24,7 +24,7 @@ export default function Faq() {
                 i thought it would be pretty neat to have a rating leaderboard just for local hawaii maimai players. the goal is to foster friendly competition by finding new rivals around similar rating ranges and to encourage players to improve their skills. it's fun to see the rating number go up and have it reflect on the leaderboards imo
             </p>
             <p>
-                since this site is unofficial, don't take the rankings as 100% accurate, but it's at least a decent approximation of where you stand in the local scene
+                since this site is unofficial, don't take the rankings as 100% accurate, but it's at least a decent approximation of where you stand in the local scene. it's also important to consider that rating is not the only metric of skill, so having more rating than one player doesn't necessarily mean you're better than them
             </p>
         </>
       ),
