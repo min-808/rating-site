@@ -2,7 +2,7 @@ import { connectMongo, getMongoClient } from '../lib/connect-db';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'HI Maimai - Rating Leaderboard',
+  title: 'Rating Leaderboard - HI Maimai',
   description: 'a rating tracker and leaderboard for hawaii maimai players',
 };
 

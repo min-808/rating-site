@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'HI Maimai - FAQ',
+  title: 'FAQ - HI Maimai',
   description: 'frequently asked questions about the rating leaderboard.',
 };
 
