@@ -253,7 +253,7 @@ export default async function LeaderboardPage() {
             
             const displayName = toNormalWidth(player.name);
             const rawPastNames = player.old_names || [];
-            const pastNames = rawPastNames.map(toNormalWidth);
+            const pastNames = [...new Set(rawPastNames.map(toNormalWidth))];
 
             return (
               <tr key={player._id} style={{ borderBottom: '1px solid #eee' }}>
