@@ -1,5 +1,6 @@
 import './globals.css';
 import Link from 'next/link';
+import { Analytics } from "@vercel/analytics/next"
 
 export default function RootLayout({
   children,
@@ -32,6 +33,7 @@ export default function RootLayout({
         </div>
         
         {children}
+        <Analytics />
 
         <footer style={{
           textAlign: 'center',
