@@ -234,7 +234,7 @@ export default async function LeaderboardPage() {
         <thead>
           <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
             <th>Rank</th>
-            <th>Name</th>
+            <th>Player</th>
             <th style={{ textAlign: 'center' }}>Rating</th>
             <th style={{ textAlign: 'center' }}>
               Rank Change <span className="header-subtext">(24hr)</span>
@@ -253,7 +253,8 @@ export default async function LeaderboardPage() {
             
             const displayName = toNormalWidth(player.name);
             const rawPastNames = player.old_names || [];
-            const pastNames = [...new Set(rawPastNames.map(toNormalWidth))];
+            var pastNames = [...new Set(rawPastNames.map(toNormalWidth))];
+            // pastNames = pastNames.filter(name => name.toLowerCase() !== displayName.toLowerCase()); // filter out casing name changes, idk if ill include this
 
             return (
               <tr key={player._id} style={{ borderBottom: '1px solid #eee' }}>
@@ -267,8 +268,8 @@ export default async function LeaderboardPage() {
                         <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: '6px' }}>📜</span>
                         
                         <div className="tooltip-box">
-                          <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid #444', paddingBottom: '2px', color: '#aaa' }}>
-                            Past Names
+                          <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid #444', paddingBottom: '2px', color: '#aaa', fontSize: '0.75rem' }}>
+                            formerly known as
                           </div>
                           {pastNames.map((name, idx) => (
                             <div key={idx} style={{ padding: '2px 0' }}>• {name}</div>
