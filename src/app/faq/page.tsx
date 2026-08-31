@@ -54,7 +54,7 @@ export default function Faq() {
       answer: (
         <>
             <p>
-                please contact me via discord if you don't want to be shown on the website. i'll remove your listing asap
+                please contact me via discord if you don't want to be shown on the website. i'll remove your listing
             </p>
         </>
       ),
@@ -64,7 +64,7 @@ export default function Faq() {
       answer: (
         <>
             <p>
-                realistically, there can only be ≤100 players on the leaderboard due to the limitations of the maimai friend system. if i reach this limit, i won't be able to add any new players
+                realistically, there can only be ≤100 players on the leaderboard due to the limitations of the maimai friend system. however, if i reach this limit and more players would like to be on the leaderboard, i can create another maimai account to accept any future friend requests
             </p>
         </>
       ),
@@ -111,7 +111,7 @@ export default function Faq() {
         {faqs.map((faq, index) => (
           <div key={index} style={{ marginBottom: '2rem' }}>
             <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
-              {faq.question}
+                {faq.question}
             </h2>
             <div style={{ margin: 0, lineHeight: '1.5', color: '#333' }}>
                 {faq.answer}
