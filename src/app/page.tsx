@@ -310,7 +310,7 @@ export default async function LeaderboardPage() {
                   {rankChange > 0 ? (
                     <span style={{ color: 'green', fontWeight: '500' }}>▲ +{rankChange}</span>
                   ) : rankChange < 0 ? (
-                    <span style={{ color: 'red', fontWeight: '500' }}>▼ {Math.abs(rankChange)}</span>
+                    <span style={{ color: 'red', fontWeight: '500' }}>▼ -{Math.abs(rankChange)}</span>
                   ) : (
                     <span style={{ color: '#888' }}>-</span>
                   )}
