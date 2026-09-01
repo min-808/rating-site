@@ -125,7 +125,6 @@ export default async function LeaderboardPage() {
   return (
     <main className="main-container">
       <style>{`
-        /* Desktop Defaults */
         .main-container {
           padding: 0 2rem 2rem 2rem;
           max-width: 1000px;
@@ -159,7 +158,6 @@ export default async function LeaderboardPage() {
           color: #666;
         }
         
-        /* Tooltip CSS */
         .tooltip-container {
           position: relative;
           display: inline-flex;
@@ -198,23 +196,22 @@ export default async function LeaderboardPage() {
           opacity: 1;
         }
 
-        /* Mobile Responsive Adjustments */
         @media (max-width: 600px) {
           .main-container {
-            padding: 0 0.5rem 1rem 0.5rem; /* Reclaim horizontal space */
+            padding: 0 0.5rem 1rem 0.5rem;
           }
           .leaderboard-table th, .leaderboard-table td {
-            padding: 8px 3px; /* Tighter cells */
-            font-size: 0.8rem; /* Slightly smaller text */
+            padding: 8px 3px;
+            font-size: 0.8rem;
           }
           .rating-badge {
-            width: 70px; /* Shrink the frame image */
+            width: 70px;
             height: 20px;
             padding-right: 10px;
             font-size: 0.75rem;
           }
           .header-subtext {
-            display: block; /* Forces the (24hr) text to a new line */
+            display: block;
             font-size: 0.7rem;
           }
         }
