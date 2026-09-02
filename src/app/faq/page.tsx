@@ -44,7 +44,7 @@ export default function Faq() {
       answer: (
         <>
             <p>
-                add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/" target="_blank" rel="noopener noreferrer">friend site</a> and adding me with my friend code: <code style={codeStyle}>101142379434455</code>. once you've been added to my friends list, you'll then be automatically put into the site on the next refresh
+                add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/" target="_blank" rel="noopener noreferrer">friend site</a> and adding me with my friend code: <code style={codeStyle}>101142379434455</code>. i get notified whenever i get sent a friend request, so i'll accept it as soon as i can. once you've been added to my friends list, you'll then be automatically put into the site on the next refresh
             </p>
         </>
       ),
