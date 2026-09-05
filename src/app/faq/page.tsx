@@ -41,6 +41,7 @@ export default function Faq() {
     },
     {
       question: "i'm a maimai player from hawaii. how do i get listed on the leaderboard?",
+      highlight: true,
       answer: (
         <>
             <p>
@@ -109,8 +110,24 @@ export default function Faq() {
 
       <div style={{ marginTop: '2rem' }}>
         {faqs.map((faq, index) => (
-          <div key={index} style={{ marginBottom: '2rem' }}>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+          <div 
+            key={index} 
+            style={{ 
+              marginBottom: '2rem',
+                ...(faq.highlight ? {
+                backgroundColor: '#f0f9ff',
+                borderLeft: '4px solid #2563eb',
+                padding: '1rem',
+                borderRadius: '0 4px 4px 0',
+                marginLeft: '-1.25rem',
+                } : {})
+            }}
+          >
+            <h2 style={{ 
+                fontSize: '1.2rem', 
+                marginBottom: '0.5rem',
+                color: faq.highlight ? '#1e40af' : 'inherit'
+              }}>
                 {faq.question}
             </h2>
             <div style={{ margin: 0, lineHeight: '1.5', color: '#333' }}>
