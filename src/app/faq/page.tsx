@@ -126,7 +126,7 @@ export default function Faq() {
             <h2 style={{ 
                 fontSize: '1.2rem', 
                 marginBottom: '0.5rem',
-                color: faq.highlight ? '#1e40af' : 'inherit'
+                color: faq.highlight ? '#193797' : 'inherit'
               }}>
                 {faq.question}
             </h2>
