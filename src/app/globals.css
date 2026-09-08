@@ -1,0 +1,62 @@
+:root {
+  --bg-color: #ffffff;
+  --text-main: #000000;
+  --text-muted: #777777;
+  --text-sub: #666666;
+  --border-light: #eeeeee;
+  --border-strong: #cccccc;
+
+  --faq-sub: #333;
+  --faq-highlight-bg: #f0f9ff;
+  --faq-highlight-text: #1e40af;
+  
+  /* Buttons */
+  --btn-bg: #f4f4f5;
+  --btn-border: #e4e4e7;
+  --btn-text: #333333;
+
+  /* Tooltip */
+  --tooltip-bg: #222222;
+  --tooltip-text: #ffffff;
+  --tooltip-border: #444444;
+
+  --badge-filter: brightness(1);
+
+  --rating-gain: #008000;
+  --rating-loss: #ff0000;
+}
+
+
+[data-theme='dark'] {
+  --bg-color: #121212;
+  --text-main: #ffffff;
+  --text-muted: #aaaaaa;
+  --text-sub: #ffffff;
+  --border-light: #2a2a2a;
+  --border-strong: #444444;
+
+  --faq-sub: #aaaaaa;
+  --faq-highlight-bg: #172554;
+  --faq-highlight-text: #3b82f6;
+  
+  /* Buttons */
+  --btn-bg: #1e1e1e;
+  --btn-border: #333333;
+  --btn-text: #eeeeee;
+
+  /* Tooltip */
+  --tooltip-bg: #eeeeee;
+  --tooltip-text: #121212;
+  --tooltip-border: #cccccc;
+
+  --badge-filter: brightness(0.8) contrast(1.05);
+
+  --rating-gain: #82ff9f;
+  --rating-loss: #ff8282;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}

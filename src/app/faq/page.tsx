@@ -45,7 +45,7 @@ export default function Faq() {
       answer: (
         <>
             <p>
-                add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/" target="_blank" rel="noopener noreferrer">friend site</a> and adding me with my friend code: <code style={codeStyle}>101142379434455</code>. i get notified whenever i get sent a friend request, so i'll accept it as soon as i can. once you've been added to my friends list, you'll then be automatically put into the site on the next refresh
+                add me as a friend on maimai either by playing with me irl, or by going to the <a href="https://maimaidx-eng.com/maimai-mobile/friend/search/" target="_blank" rel="noopener noreferrer">friend site</a> and adding me with my friend code: <b>101142379434455</b>. i get notified whenever i get sent a friend request, so i'll accept it as soon as i can. once you've been added to my friends list, you'll then be automatically put into the site on the next refresh
             </p>
         </>
       ),
@@ -115,7 +115,7 @@ export default function Faq() {
             style={{ 
               marginBottom: '2rem',
                 ...(faq.highlight ? {
-                backgroundColor: '#f0f9ff',
+                backgroundColor: 'var(--faq-highlight-bg)',
                 borderLeft: '4px solid #2563eb',
                 padding: '1rem',
                 borderRadius: '0 4px 4px 0',
@@ -126,11 +126,11 @@ export default function Faq() {
             <h2 style={{ 
                 fontSize: '1.2rem', 
                 marginBottom: '0.5rem',
-                color: faq.highlight ? '#1e40af' : 'inherit'
+                color: faq.highlight ? 'var(--faq-highlight-text)' : 'inherit'
               }}>
                 {faq.question}
             </h2>
-            <div style={{ margin: 0, lineHeight: '1.5', color: '#333' }}>
+            <div style={{ margin: 0, lineHeight: '1.5', color: 'var(--faq-sub)' }}>
                 {faq.answer}
             </div>
           </div>

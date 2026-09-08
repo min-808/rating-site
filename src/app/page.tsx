@@ -151,11 +151,12 @@ export default async function LeaderboardPage() {
           font-weight: bold;
           text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
           padding-right: 16px;
+          filter: var(--badge-filter) drop-shadow(0px 0px 5px rgba(255, 255, 255, 0.3));
         }
         .header-subtext {
           font-weight: normal;
           font-size: 0.8rem;
-          color: #666;
+          color: var(--text-sub);;
         }
         
         .tooltip-container {
@@ -170,8 +171,8 @@ export default async function LeaderboardPage() {
           position: absolute;
           bottom: 130%;
           left: 0;
-          background-color: #222;
-          color: #fff;
+          background-color: var(--tooltip-bg);
+          color: var(--tooltip-text);
           padding: 8px 12px;
           border-radius: 6px;
           font-size: 0.8rem;
@@ -189,7 +190,7 @@ export default async function LeaderboardPage() {
           left: 15px;
           border-width: 5px;
           border-style: solid;
-          border-color: #222 transparent transparent transparent;
+          border-color: var(--tooltip-bg) transparent transparent transparent;
         }
         .tooltip-container:hover .tooltip-box {
           visibility: visible;
@@ -218,7 +219,7 @@ export default async function LeaderboardPage() {
       `}</style>
 
       <h1 style={{ marginBottom: '0.25rem' }}>HI Maimai Rating Leaderboard</h1>
-      <p style={{ fontSize: '0.8rem', color: '#777', marginTop: 0, marginBottom: '1.5rem' }}>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 0, marginBottom: '1.5rem' }}>
         There are currently <b>{players.length}</b> players on the leaderboard
         <br />
         <br />
@@ -229,7 +230,7 @@ export default async function LeaderboardPage() {
 
       <table className="leaderboard-table">
         <thead>
-          <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
+          <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-strong)' }}>
             <th>Rank</th>
             <th>Player</th>
             <th style={{ textAlign: 'center' }}>Rating</th>
@@ -254,7 +255,7 @@ export default async function LeaderboardPage() {
             // pastNames = pastNames.filter(name => name.toLowerCase() !== displayName.toLowerCase()); // filter out casing name changes, idk if ill include this
 
             return (
-              <tr key={player._id} style={{ borderBottom: '1px solid #eee' }}>
+              <tr key={player._id} style={{ borderBottom: '1px solid var(--border-light)' }}>
                 <td>#{index + 1}</td>
 
                 <td style={{ fontWeight: 'bold' }}>
@@ -262,10 +263,10 @@ export default async function LeaderboardPage() {
                     {pastNames.length > 0 ? (
                       <div className="tooltip-container">
                         <span>{displayName}</span>
-                        <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: '6px' }}>📜</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-sub)', marginLeft: '6px' }}>📜</span>
                         
                         <div className="tooltip-box">
-                          <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid #444', paddingBottom: '2px', color: '#aaa', fontSize: '0.75rem' }}>
+                          <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid var(--tooltip-border)', paddingBottom: '2px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                             formerly known as
                           </div>
                           {pastNames.map((name, idx) => (
@@ -280,7 +281,7 @@ export default async function LeaderboardPage() {
                     {isNew && (
                       <span style={{
                         marginLeft: '8px',
-                        backgroundColor: '#ff4757',
+                        backgroundColor: 'var(--rating-loss)',
                         color: 'white',
                         fontSize: '0.65rem',
                         padding: '2px 6px',
@@ -305,21 +306,21 @@ export default async function LeaderboardPage() {
 
                 <td style={{ textAlign: 'center' }}>
                   {rankChange > 0 ? (
-                    <span style={{ color: 'green', fontWeight: '500' }}>▲ +{rankChange}</span>
+                    <span style={{ color: 'var(--rating-gain)', fontWeight: '500' }}>▲ +{rankChange}</span>
                   ) : rankChange < 0 ? (
-                    <span style={{ color: 'red', fontWeight: '500' }}>▼ -{Math.abs(rankChange)}</span>
+                    <span style={{ color: 'var(--rating-loss)', fontWeight: '500' }}>▼ -{Math.abs(rankChange)}</span>
                   ) : (
-                    <span style={{ color: '#888' }}>-</span>
+                    <span style={{ color: 'var(--text-sub)' }}>-</span>
                   )}
                 </td>
 
                 <td style={{ textAlign: 'center' }}>
                   {ratingChange > 0 ? (
-                    <span style={{ color: 'green', fontWeight: '500' }}>+{ratingChange.toLocaleString()}</span>
+                    <span style={{ color: 'var(--rating-gain)', fontWeight: '500' }}>+{ratingChange.toLocaleString()}</span>
                   ) : ratingChange < 0 ? (
-                    <span style={{ color: 'red', fontWeight: '500' }}>{ratingChange.toLocaleString()}</span>
+                    <span style={{ color: 'var(--rating-loss)', fontWeight: '500' }}>{ratingChange.toLocaleString()}</span>
                   ) : (
-                    <span style={{ color: '#888' }}>0</span>
+                    <span style={{ color: 'var(--text-sub)' }}>0</span>
                   )}
                 </td>
               </tr>
