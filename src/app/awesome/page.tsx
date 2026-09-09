@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'hi',
-  description: 'hi',
+  title: 'awesome',
+  description: 'hehe',
 };
 
 export default function Awesome() {
