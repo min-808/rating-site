@@ -63,9 +63,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             fontSize: '0.875rem',
             fontFamily: 'sans-serif'
           }}>
-            made with &lt;3 by min
+            made by min
             <br />
             discord/twt: @waitaamin
+            <br />
+            <br />
+            &lt;3
           </footer>
         </ThemeProvider>
       </body>

@@ -1,12 +1,12 @@
 export interface HistoryEntry {
   rating: number;
-  date: string;
+  date: Date | string;
 }
 
 export interface RankHistoryEntry {
   rank: number;
   rating: number;
-  date: string;
+  date: Date | string;
 }
 
 export interface PlayerDocument {
@@ -18,6 +18,10 @@ export interface PlayerDocument {
   rating: number;
   currentRank: number;
   previousRank: number;
+  pfp?: string; // profile picture url
+  dan?: string; // dan badge image url
+  title_name?: string; // title text
+  title_bg?: string; // title background class, e.g. "trophy_Bronze"
   history?: HistoryEntry[];
   rank_history?: RankHistoryEntry[];
   old_names?: string[];
@@ -72,13 +76,13 @@ export function isNewPlayer(player: PlayerDocument, updateDate: Date): boolean {
   if (!player.rank_history || player.rank_history.length === 0) {
     return false;
   }
-  
+
   const firstEntryDate = new Date(player.rank_history[0].date);
-  
+
   if (isNaN(firstEntryDate.getTime())) return false; // fallback
-  
+
   const diffMs = updateDate.getTime() - firstEntryDate.getTime();
   const diffHours = diffMs / (1000 * 60 * 60);
-  
+
   return diffHours <= 24;
 }
