@@ -290,7 +290,7 @@ const css = `
     filter: var(--badge-filter) drop-shadow(0px 0px 5px rgba(255, 255, 255, 0.3));
   }
   .rating-value {
-    margin-right: 7px;
+    margin-right: 7%;
   }
   .updated {
     margin-top: 1.5rem;
