@@ -9,14 +9,14 @@ export const metadata: Metadata = {
 export default function NotFound() {
 
   return (
-    <main style={{ padding: '0 2rem 2rem 2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      <p style={{ margin: 0, lineHeight: '1.5', color: '#333', marginBottom: '1rem' }}>
+    <main style={{ padding: '0 2rem 2rem 2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', color: 'var(--text-main)' }}>
+      <p style={{ margin: 0, lineHeight: '1.5', marginBottom: '1rem' }}>
         404 not found
       </p>
-      <p style={{ margin: 0, lineHeight: '1.5', color: '#333', marginBottom: '1rem' }}>
+      <p style={{ margin: 0, lineHeight: '1.5', marginBottom: '1rem' }}>
         you stumbled on a page that doesn't exist!
       </p>
-      <p style={{ margin: 0, lineHeight: '1.5', color: '#333' }}>
+      <p style={{ margin: 0, lineHeight: '1.5' }}>
         <Link href="/">go back to the leaderboard</Link>
       </p>
     </main>
