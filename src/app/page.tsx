@@ -8,8 +8,6 @@ export const metadata: Metadata = {
   description: 'a rating tracker and leaderboard for hawaii maimai players',
 };
 
-export const revalidate = false;
-
 export default async function LeaderboardPage() {
   await connectMongo();
   const client = await getMongoClient();

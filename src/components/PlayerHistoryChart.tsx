@@ -13,6 +13,7 @@ import {
 import type { RankHistoryEntry } from '../lib/leaderboard';
 
 type Metric = 'rating' | 'rank';
+type Bound = number | ((n: number) => number);
 
 interface ChartPoint {
   label: string;
@@ -23,6 +24,32 @@ interface ChartPoint {
 
 const ACCENT = '#2563eb'; // same blue as the faq highlight
 const TZ = 'Pacific/Honolulu'; // fixed tz so server and client render the same dates
+
+// rating axis spacing, largest first. the first step that fits at least
+// MIN_INTERVALS gaps across the player's rating spread gets used
+const RATING_STEPS = [50, 25, 10, 1];
+const MIN_INTERVALS = 2;
+
+function getRatingAxis(values: number[]) {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min;
+
+  const step = RATING_STEPS.find((s) => range >= s * MIN_INTERVALS) ?? 1;
+
+  // snap the axis ends to multiples of the step so every tick is a clean number
+  let lo = Math.floor(min / step) * step;
+  let hi = Math.ceil(max / step) * step;
+  if (lo === hi) {
+    lo -= step;
+    hi += step;
+  }
+
+  const ticks: number[] = [];
+  for (let t = lo; t <= hi; t += step) ticks.push(t);
+
+  return { domain: [lo, hi] as [Bound, Bound], ticks };
+}
 
 const css = `
   .chart-card {
@@ -165,11 +192,19 @@ export default function PlayerHistoryChart({ data = [] }: { data?: RankHistoryEn
     };
   });
 
-  // integer bounds so the axis never lands on half-steps; rank can't go below #1
-  const yDomain: [(n: number) => number, (n: number) => number] =
-    metric === 'rank'
-      ? [(min) => Math.max(1, Math.floor(min) - 1), (max) => Math.ceil(max) + 1]
-      : [(min) => Math.floor(min) - 10, (max) => Math.ceil(max) + 10];
+  // rating: explicit ticks at 50 / 25 / 10 / 1 spacing
+  // rank: integer bounds, never below #1
+  let yDomain: [Bound, Bound];
+  let yTicks: number[] | undefined;
+
+  if (metric === 'rating' && chartData.length > 0) {
+    const axis = getRatingAxis(chartData.map((p) => p.rating));
+    yDomain = axis.domain;
+    yTicks = axis.ticks;
+  } else {
+    yDomain = [(min) => Math.max(1, Math.floor(min) - 1), (max) => Math.ceil(max) + 1];
+    yTicks = undefined;
+  }
 
   const showDots = chartData.length <= 30;
 
@@ -218,6 +253,7 @@ export default function PlayerHistoryChart({ data = [] }: { data?: RankHistoryEn
                 allowDecimals={false}
                 reversed={metric === 'rank'}
                 domain={yDomain}
+                ticks={yTicks}
                 tickFormatter={(v) => (metric === 'rank' ? `#${v}` : `${v}`)}
               />
               <Tooltip
