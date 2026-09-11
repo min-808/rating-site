@@ -16,7 +16,7 @@ type Metric = 'rating' | 'rank';
 type Bound = number | ((n: number) => number);
 
 interface ChartPoint {
-  label: string;
+  ts: number;
   fullDate: string;
   rating: number;
   rank: number;
@@ -49,6 +49,34 @@ function getRatingAxis(values: number[]) {
   for (let t = lo; t <= hi; t += step) ticks.push(t);
 
   return { domain: [lo, hi] as [Bound, Bound], ticks };
+}
+
+// date axis: points are placed by real time, and labels are spaced evenly
+// counting back from the newest day, so the latest date always gets a label
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DATE_STEPS = [1, 2, 3, 7, 14, 30, 60, 90, 180, 365]; // days between labels
+const MAX_DATE_LABELS = 6; // keeps labels from crowding on phones
+
+function formatDay(ts: number) {
+  return new Date(ts).toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric' });
+}
+
+function getDateAxis(timestamps: number[]) {
+  const first = Math.min(...timestamps);
+  const last = Math.max(...timestamps);
+  const spanDays = (last - first) / DAY_MS;
+
+  const step =
+    DATE_STEPS.find((s) => Math.floor(spanDays / s) + 1 <= MAX_DATE_LABELS) ??
+    DATE_STEPS[DATE_STEPS.length - 1];
+
+  const ticks: number[] = [];
+  for (let t = last; t >= first; t -= step * DAY_MS) ticks.unshift(t);
+
+  // a single point needs some width around it
+  const domain: [number, number] = first === last ? [first - DAY_MS, last + DAY_MS] : [first, last];
+
+  return { domain, ticks };
 }
 
 const css = `
@@ -180,7 +208,7 @@ export default function PlayerHistoryChart({ data = [] }: { data?: RankHistoryEn
   const chartData: ChartPoint[] = data.map((entry) => {
     const d = new Date(entry.date);
     return {
-      label: d.toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric' }),
+      ts: d.getTime(),
       fullDate: d.toLocaleDateString('en-US', {
         timeZone: TZ,
         month: 'short',
@@ -205,6 +233,8 @@ export default function PlayerHistoryChart({ data = [] }: { data?: RankHistoryEn
     yDomain = [(min) => Math.max(1, Math.floor(min) - 1), (max) => Math.ceil(max) + 1];
     yTicks = undefined;
   }
+
+  const xAxis = chartData.length > 0 ? getDateAxis(chartData.map((p) => p.ts)) : null;
 
   const showDots = chartData.length <= 30;
 
@@ -234,16 +264,23 @@ export default function PlayerHistoryChart({ data = [] }: { data?: RankHistoryEn
       ) : (
         <div className="chart-wrap">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <LineChart
+              data={chartData}
+              // right margin leaves room for the last date label, which is centered on the final point
+              margin={{ top: 8, right: 24, left: 0, bottom: 0 }}
+            >
               <CartesianGrid vertical={false} stroke="var(--border-light)" />
               <XAxis
-                dataKey="label"
+                dataKey="ts"
+                type="number"
+                domain={xAxis?.domain}
+                ticks={xAxis?.ticks}
+                interval={0}
+                tickFormatter={(v) => formatDay(Number(v))}
                 tickLine={false}
                 axisLine={false}
                 tick={{ fill: 'var(--text-sub)', fontSize: 11 }}
                 tickMargin={8}
-                minTickGap={24}
-                interval="preserveStartEnd"
               />
               <YAxis
                 tickLine={false}
