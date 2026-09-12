@@ -18,8 +18,10 @@ export interface PlayerDocument {
   rating: number;
   currentRank: number;
   previousRank: number;
-  pfp?: string; // profile picture url
-  dan?: string; // dan badge image url
+  pfp?: string; // profile picture url on maimai (fallback)
+  dan?: string; // dan badge image url on maimai (fallback)
+  pfp_blob?: string; // profile picture mirrored into vercel blob
+  dan_blob?: string; // dan badge mirrored into vercel blob
   title_name?: string; // title text
   title_bg?: string; // title background class, e.g. "trophy_Bronze"
   history?: HistoryEntry[];

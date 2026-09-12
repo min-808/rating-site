@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import PlayerHistoryChart from '../../../components/PlayerHistoryChart';
+import FallbackImage from '../../../components/FallbackImage';
 import { connectMongo, getMongoClient } from '../../../lib/connect-db';
 import {
   type PlayerDocument,
@@ -59,9 +60,9 @@ function Delta({ value, arrows = false, zeroText = '-' }: { value: number; arrow
   );
 }
 
-function Avatar({ src, name }: { src?: string; name: string }) {
+function Avatar({ src, fallbackSrc, name }: { src?: string; fallbackSrc?: string; name: string }) {
   // no icon saved yet: show the first letter of their name instead
-  if (!src) {
+  if (!src && !fallbackSrc) {
     return (
       <div className="user-avatar user-avatar-fallback" aria-hidden="true">
         {Array.from(name)[0] ?? '?'}
@@ -69,33 +70,24 @@ function Avatar({ src, name }: { src?: string; name: string }) {
     );
   }
 
-  // plain <img> so remote icon urls work without next.config image setup.
   // alt is empty because the name is right next to it
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <FallbackImage
       src={src}
+      fallbackSrc={fallbackSrc}
       alt=""
       className="user-avatar"
       width={64}
       height={64}
-      referrerPolicy="no-referrer"
     />
   );
 }
 
-function DanBadge({ src }: { src?: string }) {
-  if (!src) return null;
+function DanBadge({ src, fallbackSrc }: { src?: string; fallbackSrc?: string }) {
+  if (!src && !fallbackSrc) return null;
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt="dan badge"
-      className="user-dan"
-      height={28}
-      referrerPolicy="no-referrer"
-    />
+    <FallbackImage src={src} fallbackSrc={fallbackSrc} alt="dan badge" className="user-dan" height={28} />
   );
 }
 
@@ -176,47 +168,27 @@ const css = `
   .title-plate.tier-normal {
     background: linear-gradient(180deg, #fafafa 0%, #e4e4e7 100%);
     box-shadow: inset 0 0 0 1px #d4d4d8, inset 0 1px 0 1px rgba(255,255,255,0.7);
-    color: #fff;
-    text-shadow: -1px -1px 0 black,  
-               1px -1px 0 black,
-               -1px 1px 0 black,
-                1px 1px 0 black;
+    color: #27272a;
   }
   .title-plate.tier-bronze {
     background: linear-gradient(180deg, #f6d2ae 0%, #dc9f68 55%, #b8733d 100%);
     box-shadow: inset 0 0 0 1px #9a5b2a, inset 0 1px 0 1px rgba(255,255,255,0.35);
-    color: #fff;
-    text-shadow: -1px -1px 0 black,  
-               1px -1px 0 black,
-               -1px 1px 0 black,
-                1px 1px 0 black;
+    color: #3b2414;
   }
   .title-plate.tier-silver {
     background: linear-gradient(180deg, #ffffff 0%, #d3dae3 55%, #9aa6b5 100%);
     box-shadow: inset 0 0 0 1px #7b8797, inset 0 1px 0 1px rgba(255,255,255,0.6);
-    color: #fff;
-    text-shadow: -1px -1px 0 black,  
-               1px -1px 0 black,
-               -1px 1px 0 black,
-                1px 1px 0 black;
+    color: #1e293b;
   }
   .title-plate.tier-gold {
     background: linear-gradient(180deg, #fff4b8 0%, #f6c945 55%, #d4a017 100%);
     box-shadow: inset 0 0 0 1px #a67c00, inset 0 1px 0 1px rgba(255,255,255,0.5);
-    color: #fff;
-    text-shadow: -1px -1px 0 black,  
-               1px -1px 0 black,
-               -1px 1px 0 black,
-                1px 1px 0 black;
+    color: #3d2e00;
   }
   .title-plate.tier-rainbow {
     background: linear-gradient(90deg, #ffb3ba, #ffdfba, #ffffba, #baffc9, #bae1ff, #d7baff);
     box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.35), inset 0 1px 0 1px rgba(255,255,255,0.6);
-    color: #fff;
-    text-shadow: -1px -1px 0 black,  
-               1px -1px 0 black,
-               -1px 1px 0 black,
-                1px 1px 0 black;
+    color: #1f2937;
   }
 
   /* name + dan badge on one line, dan drops below if the name is long */
@@ -290,7 +262,7 @@ const css = `
     filter: var(--badge-filter) drop-shadow(0px 0px 5px rgba(255, 255, 255, 0.3));
   }
   .rating-value {
-    margin-right: 7%;
+    margin-right: 7px;
   }
   .updated {
     margin-top: 1.5rem;
@@ -369,7 +341,6 @@ export default async function UserPage({ params }: UserPageProps) {
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    second: '2-digit',
     hour12: true,
     timeZoneName: 'short',
   });
@@ -398,12 +369,12 @@ export default async function UserPage({ params }: UserPageProps) {
       </Link>
 
       <header className="user-header">
-        <Avatar src={player.pfp} name={displayName} />
+        <Avatar src={player.pfp_blob} fallbackSrc={player.pfp} name={displayName} />
         <div className="user-heading">
           <TitlePlate name={player.title_name} bg={player.title_bg} />
           <div className="user-name-row">
             <h1 className="user-name">{displayName}</h1>
-            <DanBadge src={player.dan} />
+            <DanBadge src={player.dan_blob} fallbackSrc={player.dan} />
           </div>
           {pastNames.length > 0 && (
             <p className="user-aka">formerly known as {pastNames.join(', ')}</p>
