@@ -23,7 +23,7 @@ export interface PlayerDocument {
   pfp_blob?: string; // profile picture mirrored into vercel blob
   dan_blob?: string; // dan badge mirrored into vercel blob
   title_name?: string; // title text
-  title_bg?: string; // title background class, e.g. "trophy_Bronze"
+  title_blob?: string; // title plate image url in vercel blob
   history?: HistoryEntry[];
   rank_history?: RankHistoryEntry[];
   old_names?: string[];

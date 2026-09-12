@@ -19,14 +19,6 @@ interface UserPageProps {
 
 const TZ = 'Pacific/Honolulu';
 
-// title_bg comes in as "trophy_Bronze" etc. anything unknown falls back to normal
-const TITLE_TIERS = new Set(['normal', 'bronze', 'silver', 'gold', 'rainbow']);
-
-function getTitleTier(bg?: string) {
-  const tier = (bg ?? '').replace(/^trophy_/, '').toLowerCase();
-  return TITLE_TIERS.has(tier) ? tier : 'normal';
-}
-
 // cached so generateMetadata and the page share one db lookup per request
 const getPlayer = cache(async (id: string) => {
   const webId = parseInt(id, 10);
@@ -91,13 +83,17 @@ function DanBadge({ src, fallbackSrc }: { src?: string; fallbackSrc?: string }) 
   );
 }
 
-function TitlePlate({ name, bg }: { name?: string; bg?: string }) {
+function TitlePlate({ name, plate }: { name?: string; plate?: string }) {
   if (!name) return null;
 
   const text = toNormalWidth(name);
 
   return (
-    <div className={`title-plate tier-${getTitleTier(bg)}`} title={text}>
+    <div
+      className={`title-plate${plate ? '' : ' title-plate-bare'}`}
+      style={plate ? { borderImageSource: `url(${plate})` } : undefined}
+      title={text}
+    >
       {text}
     </div>
   );
@@ -149,14 +145,27 @@ const css = `
     flex: 1;
   }
 
-  /* title plate, sits above the name */
+  /* title plate, sits above the name.
+     the plate art is drawn with border-image so the rounded caps keep their
+     shape at any width and only the middle stretches.
+     --plate-cap is how many pixels of the source png each cap takes up:
+     raise it if the curve still looks cut off, lower it if the ends look fat */
   .title-plate {
+    --plate-cap: 10;
     display: inline-block;
     max-width: 100%;
     box-sizing: border-box;
-    padding: 3px 12px;
     margin-bottom: 0.35rem;
-    border-radius: 4px;
+    padding: 4px 2px;
+
+    border-style: solid;
+    border-width: 0 calc(var(--plate-cap) * 1px);
+    border-color: transparent;
+    border-image-source: none;
+    border-image-slice: 0 var(--plate-cap) fill;
+    border-image-width: 0 calc(var(--plate-cap) * 1px);
+    border-image-repeat: stretch;
+
     font-size: 0.8rem;
     font-weight: bold;
     line-height: 1.3;
@@ -164,31 +173,20 @@ const css = `
     overflow: hidden;
     text-overflow: ellipsis;
     vertical-align: top;
+    color: #fff;
+    text-shadow: -1px -1px 0 black,
+                  1px -1px 0 black,
+                 -1px  1px 0 black,
+                  1px  1px 0 black;
   }
-  .title-plate.tier-normal {
-    background: linear-gradient(180deg, #fafafa 0%, #e4e4e7 100%);
-    box-shadow: inset 0 0 0 1px #d4d4d8, inset 0 1px 0 1px rgba(255,255,255,0.7);
-    color: #27272a;
-  }
-  .title-plate.tier-bronze {
-    background: linear-gradient(180deg, #f6d2ae 0%, #dc9f68 55%, #b8733d 100%);
-    box-shadow: inset 0 0 0 1px #9a5b2a, inset 0 1px 0 1px rgba(255,255,255,0.35);
-    color: #3b2414;
-  }
-  .title-plate.tier-silver {
-    background: linear-gradient(180deg, #ffffff 0%, #d3dae3 55%, #9aa6b5 100%);
-    box-shadow: inset 0 0 0 1px #7b8797, inset 0 1px 0 1px rgba(255,255,255,0.6);
-    color: #1e293b;
-  }
-  .title-plate.tier-gold {
-    background: linear-gradient(180deg, #fff4b8 0%, #f6c945 55%, #d4a017 100%);
-    box-shadow: inset 0 0 0 1px #a67c00, inset 0 1px 0 1px rgba(255,255,255,0.5);
-    color: #3d2e00;
-  }
-  .title-plate.tier-rainbow {
-    background: linear-gradient(90deg, #ffb3ba, #ffdfba, #ffffba, #baffc9, #bae1ff, #d7baff);
-    box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.35), inset 0 1px 0 1px rgba(255,255,255,0.6);
-    color: #1f2937;
+  /* no plate image saved: plain neutral chip so the text stays readable */
+  .title-plate-bare {
+    border-width: 0;
+    padding: 4px 12px;
+    border-radius: 4px;
+    background-color: var(--faq-highlight-bg);
+    color: var(--text-sub);
+    text-shadow: none;
   }
 
   /* name + dan badge on one line, dan drops below if the name is long */
@@ -285,9 +283,13 @@ const css = `
       font-size: 1.2rem;
     }
     .title-plate {
+      --plate-cap: 16;
       font-size: 0.7rem;
-      padding: 2px 8px;
+      padding: 3px 2px;
       margin-bottom: 0.25rem;
+    }
+    .title-plate-bare {
+      padding: 3px 10px;
     }
     .user-name {
       font-size: 1.5rem;
@@ -371,7 +373,7 @@ export default async function UserPage({ params }: UserPageProps) {
       <header className="user-header">
         <Avatar src={player.pfp_blob} fallbackSrc={player.pfp} name={displayName} />
         <div className="user-heading">
-          <TitlePlate name={player.title_name} bg={player.title_bg} />
+          <TitlePlate name={player.title_name} plate={player.title_blob} />
           <div className="user-name-row">
             <h1 className="user-name">{displayName}</h1>
             <DanBadge src={player.dan_blob} fallbackSrc={player.dan} />
