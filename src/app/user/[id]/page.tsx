@@ -19,6 +19,9 @@ interface UserPageProps {
 
 const TZ = 'Pacific/Honolulu';
 
+// user_id of whoever gets the heart in their header
+const HEART_USER_ID = '102106637992476';
+
 // cached so generateMetadata and the page share one db lookup per request
 const getPlayer = cache(async (id: string) => {
   const webId = parseInt(id, 10);
@@ -62,7 +65,7 @@ function Avatar({ src, fallbackSrc, name }: { src?: string; fallbackSrc?: string
     );
   }
 
-  // alt is empty because the name is right next to it
+  // alt is empty cuz the name is right next to it
   return (
     <FallbackImage
       src={src}
@@ -145,7 +148,25 @@ const css = `
     flex: 1;
   }
 
-  /* title plate, sits above the name.
+  .user-heart {
+    flex-shrink: 0;
+    align-self: center;
+    margin-left: 0.5rem;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #e11d48;
+    animation: heart-beat 1.8s ease-in-out infinite;
+  }
+  @keyframes heart-beat {
+    0%, 70%, 100% { transform: scale(1); }
+    35% { transform: scale(1.15); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .user-heart {
+      animation: none;
+    }
+  }
+
      the plate art is drawn with border-image so the rounded caps keep their
      shape at any width and only the middle stretches.
      --plate-cap is how many pixels of the source png each cap takes up:
@@ -179,7 +200,7 @@ const css = `
                  -1px  1px 0 black,
                   1px  1px 0 black;
   }
-  /* no plate image saved: plain neutral chip so the text stays readable */
+
   .title-plate-bare {
     border-width: 0;
     padding: 4px 12px;
@@ -189,7 +210,6 @@ const css = `
     text-shadow: none;
   }
 
-  /* name + dan badge on one line, dan drops below if the name is long */
   .user-name-row {
     display: flex;
     align-items: center;
@@ -282,8 +302,12 @@ const css = `
     .user-avatar-fallback {
       font-size: 1.2rem;
     }
+    .user-heart {
+      font-size: 1.25rem;
+      margin-left: 0.35rem;
+    }
     .title-plate {
-      --plate-cap: 16;
+      --plate-cap: 8;
       font-size: 0.7rem;
       padding: 3px 2px;
       margin-bottom: 0.25rem;
@@ -382,6 +406,11 @@ export default async function UserPage({ params }: UserPageProps) {
             <p className="user-aka">formerly known as {pastNames.join(', ')}</p>
           )}
         </div>
+        {String(player.user_id) === HEART_USER_ID && (
+          <span className="user-heart" role="img" aria-label="heart">
+            ♡ ༘˚·⑅
+          </span>
+        )}
       </header>
 
       <section className="stat-grid">

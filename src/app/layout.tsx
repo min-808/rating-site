@@ -10,8 +10,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
         <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '0.5rem', fontFamily: 'sans-serif', position: 'relative' }}>
-            
-            {/* Toggle positioned to the top right of the 800px container */}
             <div style={{ position: 'absolute', right: '1rem', top: '0.5rem' }}>
               <ThemeToggle />
             </div>

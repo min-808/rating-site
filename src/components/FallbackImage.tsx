@@ -11,7 +11,7 @@ interface FallbackImageProps {
   height?: number;
 }
 
-// tries the blob url first, and quietly swaps to maimai's url if it 404s
+// tries the blob url first, then swaps to maimai's url if it 404s
 export default function FallbackImage({
   src,
   fallbackSrc,
@@ -26,7 +26,6 @@ export default function FallbackImage({
   if (!current) return null;
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={current}
       alt={alt}
@@ -35,7 +34,6 @@ export default function FallbackImage({
       height={height}
       referrerPolicy="no-referrer"
       onError={() => {
-        // only worth retrying if there's a different url to try
         if (!failed && fallbackSrc && fallbackSrc !== src) setFailed(true);
       }}
     />

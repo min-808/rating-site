@@ -87,7 +87,6 @@ export default async function LeaderboardPage() {
           color: var(--text-sub);
         }
 
-        /* clickable rows */
         .lb-row {
           border-bottom: 1px solid var(--border-light);
           cursor: pointer;
@@ -117,7 +116,7 @@ export default async function LeaderboardPage() {
           opacity: 0.45;
           transition: opacity 0.12s ease, color 0.12s ease, transform 0.12s ease;
         }
-        /* hover styles only on devices that actually hover, so taps don't leave rows stuck highlighted */
+
         @media (hover: hover) {
           .lb-row:hover {
             background-color: rgba(37, 99, 235, 0.06);

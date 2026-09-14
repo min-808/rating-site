@@ -22,11 +22,9 @@ interface ChartPoint {
   rank: number;
 }
 
-const ACCENT = '#2563eb'; // same blue as the faq highlight
-const TZ = 'Pacific/Honolulu'; // fixed tz so server and client render the same dates
+const ACCENT = '#2563eb';
+const TZ = 'Pacific/Honolulu';
 
-// rating axis spacing, largest first. the first step that fits at least
-// MIN_INTERVALS gaps across the player's rating spread gets used
 const RATING_STEPS = [50, 25, 10, 1];
 const MIN_INTERVALS = 2;
 
@@ -37,7 +35,6 @@ function getRatingAxis(values: number[]) {
 
   const step = RATING_STEPS.find((s) => range >= s * MIN_INTERVALS) ?? 1;
 
-  // snap the axis ends to multiples of the step so every tick is a clean number
   let lo = Math.floor(min / step) * step;
   let hi = Math.ceil(max / step) * step;
   if (lo === hi) {
@@ -51,11 +48,9 @@ function getRatingAxis(values: number[]) {
   return { domain: [lo, hi] as [Bound, Bound], ticks };
 }
 
-// date axis: points are placed by real time, and labels are spaced evenly
-// counting back from the newest day, so the latest date always gets a label
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DATE_STEPS = [1, 2, 3, 7, 14, 30, 60, 90, 180, 365]; // days between labels
-const MAX_DATE_LABELS = 6; // keeps labels from crowding on phones
+const DATE_STEPS = [1, 2, 3, 7, 14, 30, 60, 90, 180, 365];
+const MAX_DATE_LABELS = 6;
 
 function formatDay(ts: number) {
   return new Date(ts).toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric' });
@@ -220,8 +215,6 @@ export default function PlayerHistoryChart({ data = [] }: { data?: RankHistoryEn
     };
   });
 
-  // rating: explicit ticks at 50 / 25 / 10 / 1 spacing
-  // rank: integer bounds, never below #1
   let yDomain: [Bound, Bound];
   let yTicks: number[] | undefined;
 
@@ -266,7 +259,6 @@ export default function PlayerHistoryChart({ data = [] }: { data?: RankHistoryEn
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}
-              // right margin leaves room for the last date label, which is centered on the final point
               margin={{ top: 8, right: 24, left: 0, bottom: 0 }}
             >
               <CartesianGrid vertical={false} stroke="var(--border-light)" />

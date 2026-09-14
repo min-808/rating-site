@@ -11,15 +11,12 @@ const EXT_BY_TYPE = {
   'image/gif': '.gif',
 };
 
-// same source url always maps to the same key, so shared images (dan badges,
-// default icons) are stored once and re-used by every player who has them
 function keyFor(prefix, url) {
   const hash = crypto.createHash('sha1').update(url).digest('hex').slice(0, 16);
   const ext = (url.split('?')[0].match(/\.(png|jpe?g|webp|gif)$/i) || [, 'png'])[1].toLowerCase();
   return `${prefix}/${hash}.${ext === 'jpeg' ? 'jpg' : ext}`;
 }
 
-// pulls every key already in the store so a run doesn't re-upload what's there
 async function loadExistingBlobs(prefix) {
   const existing = new Map();
   let cursor;
@@ -35,7 +32,7 @@ async function loadExistingBlobs(prefix) {
 
 function createBlobMirror({ httpClient, headers, prefixes = ['pfp', 'dan'] }) {
   let existing = null;
-  const inFlight = new Map(); // key -> promise, so one image is only fetched once per run
+  const inFlight = new Map();
   const stats = { reused: 0, uploaded: 0, failed: 0 };
 
   async function ready() {
@@ -48,8 +45,6 @@ function createBlobMirror({ httpClient, headers, prefixes = ['pfp', 'dan'] }) {
     console.log(`Blob store: ${existing.size} image(s) already saved.`);
   }
 
-  // returns the blob url for a scraped image url, uploading it if it's new.
-  // returns null on failure so the caller can fall back to the source url
   async function mirror(prefix, sourceUrl) {
     if (!sourceUrl) return null;
     await ready();
@@ -80,7 +75,6 @@ function createBlobMirror({ httpClient, headers, prefixes = ['pfp', 'dan'] }) {
         const body = Buffer.from(response.data);
         if (body.length === 0) throw new Error('empty response');
 
-        // keep the extension honest if the url lied about the format
         const ext = EXT_BY_TYPE[contentType];
         const finalKey = ext && !key.endsWith(ext) ? key.replace(/\.[^.]+$/, ext) : key;
 

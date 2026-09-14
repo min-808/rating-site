@@ -14,14 +14,12 @@ export async function GET(request) {
   const client = await getMongoClient();
   const db = client.db('maimai');
 
-  // NEW: Save the exact timestamp of this update to the database
   await db.collection('metadata').updateOne(
     { _id: 'leaderboard_update' },
     { $set: { lastUpdated: new Date() } },
     { upsert: true }
   );
 
-  // Purge static page cache so Next.js regenerates page.tsx on next visit
   revalidatePath('/');
 
   return NextResponse.json({ success: true });
