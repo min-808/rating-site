@@ -167,10 +167,6 @@ const css = `
     }
   }
 
-     the plate art is drawn with border-image so the rounded caps keep their
-     shape at any width and only the middle stretches.
-     --plate-cap is how many pixels of the source png each cap takes up:
-     raise it if the curve still looks cut off, lower it if the ends look fat */
   .title-plate {
     --plate-cap: 10;
     display: inline-block;
