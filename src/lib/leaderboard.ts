@@ -27,7 +27,7 @@ export interface PlayerDocument {
   history?: HistoryEntry[];
   rank_history?: RankHistoryEntry[];
   old_names?: string[];
-  songs: Song[];
+  songs?: Song[];
 }
 
 export interface Song {
