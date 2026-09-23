@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import PlayerHistoryChart from '../../../components/PlayerHistoryChart';
+import BestFifty from '../../../components/BestFifty';
 import FallbackImage from '../../../components/FallbackImage';
 import { connectMongo, getMongoClient } from '../../../lib/connect-db';
 import {
@@ -19,10 +20,9 @@ interface UserPageProps {
 
 const TZ = 'Pacific/Honolulu';
 
-// user_id of whoever gets the heart in their header
+// keani's user_id
 const HEART_USER_ID = '102106637992476';
 
-// cached so generateMetadata and the page share one db lookup per request
 const getPlayer = cache(async (id: string) => {
   const webId = parseInt(id, 10);
   if (Number.isNaN(webId)) return null;
@@ -433,6 +433,8 @@ export default async function UserPage({ params }: UserPageProps) {
       </section>
 
       <PlayerHistoryChart data={history} />
+
+      <BestFifty data={player.songs} />
 
       <p className="updated">last updated on {lastUpdated}</p>
     </main>

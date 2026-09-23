@@ -27,6 +27,19 @@ export interface PlayerDocument {
   history?: HistoryEntry[];
   rank_history?: RankHistoryEntry[];
   old_names?: string[];
+  songs: Song[];
+}
+
+export interface Song {
+  genre: string;
+  kind: string;
+  level: string;
+  title: string;
+  achievement: number;
+  difficulty: string;
+  internal_difficulty: number;
+  new_pool: boolean;
+  rating: number;
 }
 
 const ratingFrames = [
