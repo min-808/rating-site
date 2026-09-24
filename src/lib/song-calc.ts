@@ -1,8 +1,8 @@
 import type { Song } from './leaderboard';
 
-const RATING_CAP = 100.5; // % above this doesn't add rating
+export const RATING_CAP = 100.5; // % above this doesn't add rating
 
-const RANK_CUTOFFS = [
+export const RANK_CUTOFFS = [
   { min: 100.5, rank: 'SSS+', factor: 0.224 },
   { min: 100.0, rank: 'SSS', factor: 0.216 },
   { min: 99.5, rank: 'SS+', factor: 0.211 },
