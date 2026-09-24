@@ -27,7 +27,7 @@ export function rateSong(song: Song): number {
   if (!cutoff) return 0; // below A earns nothing
 
   const capped = Math.min(song.achievement, RATING_CAP);
-  return Math.floor(song.internal_difficulty * cutoff.factor * capped); // calculation for rating (CC * factor * achievement)
+  return Math.floor(song.internal_difficulty * cutoff.factor * capped) + (song.ap ? 1 : 0); // calculation for rating (CC * factor * achievement)
 }
 
 // returns copies with a rating attached, best first

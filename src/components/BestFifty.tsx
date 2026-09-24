@@ -28,6 +28,7 @@ export default function BestFifty({ data = [] }: { data?: Song[] }) {
                 <th>Rating</th>
                 <th>Song</th>
                 <th style={{ textAlign: 'right' }}>Achievement</th>
+                <th>AP?</th>
             </tr>
             </thead>
             <tbody>
@@ -40,6 +41,7 @@ export default function BestFifty({ data = [] }: { data?: Song[] }) {
                 <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                     {song.achievement == null ? '—' : `${song.achievement.toFixed(4)}%`}
                 </td>
+                <td>{(song.ap).toString()}</td>
                 </tr>
             ))}
             </tbody>
@@ -53,6 +55,7 @@ export default function BestFifty({ data = [] }: { data?: Song[] }) {
                 <th>Rating</th>
                 <th>Song</th>
                 <th style={{ textAlign: 'right' }}>Achievement</th>
+                <th>AP?</th>
             </tr>
             </thead>
             <tbody>
@@ -65,6 +68,7 @@ export default function BestFifty({ data = [] }: { data?: Song[] }) {
                 <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                     {song.achievement == null ? '—' : `${song.achievement.toFixed(4)}%`}
                 </td>
+                <td>{(song.ap).toString()}</td>
                 </tr>
             ))}
             </tbody>

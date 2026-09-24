@@ -40,6 +40,7 @@ export interface Song {
   internal_difficulty: number;
   new_pool: boolean;
   rating: number;
+  ap: boolean;
 }
 
 const ratingFrames = [
