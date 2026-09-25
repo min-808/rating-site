@@ -41,6 +41,15 @@ export interface Song {
   new_pool: boolean;
   rating: number;
   ap: boolean;
+  jacket?: string;
+  jacket_blob?: string;
+  artist?: string;
+  bpm?: number;
+  version?: string;
+  fc?: string;
+  fs?: string;
+  dx_score?: number;
+  dx_max?: number;
 }
 
 const ratingFrames = [
