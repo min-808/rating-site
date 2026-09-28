@@ -31,30 +31,29 @@ export interface PlayerDocument {
 }
 
 export interface Song {
-  _id: string; // song title
-  blob?: string; // jacket URL in Vercel Blob
+  genre: string;
   kind: string;
   level: string;
   title: string;
   achievement: number;
+  jacket_blob?: string;
+  artist?: string;
+  bpm?: number;
   difficulty: string;
   internal_difficulty: number;
   new_pool: boolean;
   rating: number;
-  jacket?: string;
-  jacket_blob?: string;
+  ap: boolean;
+}
+
+export interface SongMetaDocument {
+  _id: string; // song title
+  blob?: string; // jacket URL in Vercel Blob
   artist?: string;
   bpm?: number;
   genre?: string;
   version?: string;
   version_code?: string;
-  fc?: string;
-  fs?: string;
-  dx_score?: number;
-  dx_max?: number;
-  notes_url?: string;
-  video_url?: string;
-  ap: boolean;
 }
 
 const ratingFrames = [
