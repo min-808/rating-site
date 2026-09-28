@@ -16,7 +16,7 @@ const css = `
   .bf-section h2 { margin: 0; }
   .bf-section > span { font-size: 0.8rem; color: var(--text-sub); }
   .bf-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .bf-empty { color: var(--text-muted); font-size: 0.85rem; }
 
     /* ============ CARD ============ */
@@ -54,7 +54,7 @@ const css = `
       rgba(0,0,0,1) 0%, rgba(0,0,0,0.96) 15%, rgba(0,0,0,0.70) 30%,
       rgba(0,0,0,0.65) 70%, rgba(0,0,0,0.2) 95%, rgba(0,0,0,0) 100%); }
   .bf-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
-  .bf-rating { font-size: 1.1rem; font-weight: 800; color: #fff; line-height: 1.1;
+  .bf-rating { font-size: 1.3rem; font-weight: 800; color: #fff; line-height: 1.1;
     text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-variant-numeric: tabular-nums; }
   .bf-ach { font-size: 0.85rem; font-weight: 700; color: #e9e9e9; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .bf-title { flex: 1; min-width: 0; font-size: 0.78rem; font-weight: 700;
@@ -103,6 +103,7 @@ const css = `
   .bf-chip-diff { background: var(--diff); color: #fff; border: none; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
   .bf-dlg-title { margin: 0 0 0.3rem; font-size: 1.25rem; font-weight: 800; overflow-wrap: anywhere; }
   .bf-dlg-artist { margin: 0; font-size: 0.8rem; color: #9a9a9e; }
+  .bf-dlg-artist + .bf-dlg-artist { margin-top: 0.8rem; }
   .bf-divider { height: 1px; background: #232326; margin: 0.85rem 0; }
   .bf-score { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 0.4rem; }
   .bf-rank-pill { font-size: 0.85rem; font-weight: 800; padding: 4px 12px; border-radius: 999px; }
@@ -115,7 +116,7 @@ const css = `
   .bf-combo-applus { background: #d94f9c; }
   .bf-sync { background: #2f8f6f; color: #fff; border-radius: 999px; padding: 3px 10px; font-weight: 800; font-size: 0.78rem; }
   .bf-dxscore { margin: 0 0 0.25rem; font-size: 0.85rem; color: #cfcfcf; font-variant-numeric: tabular-nums; }
-  .bf-dlg-meta { margin: 0 0 0.9rem; font-size: 0.75rem; color: #7a7a7e; }
+  .bf-dlg-meta { margin: 0 0 0.2rem; font-size: 0.75rem; color: #7a7a7e; }
   .bf-icon-row { display: flex; gap: 10px; }
   .bf-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;
     border-radius: 9px; background: #19191c; border: 1px solid #2a2a2e; color: #e5484d; }
@@ -321,11 +322,8 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
                                 <span className="bf-chip bf-chip-diff">{diff.label} {song.internal_difficulty?.toFixed(1)}</span>
                             </div>
                             <h3 className="bf-dlg-title">{song.title}</h3>
-                            {(song.artist || song.bpm) && (
-                                <p className="bf-dlg-artist">
-                                    {[song.artist, song.bpm ? `${song.bpm} BPM` : null].filter(Boolean).join(', ')}
-                                </p>
-                            )}
+                            {song.artist && <p className="bf-dlg-artist">{song.artist}</p>}
+                        {song.bpm && <p className="bf-dlg-artist">{song.bpm} BPM</p>}
                         </div>
                     </div>
 
@@ -340,7 +338,8 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
                     {hasDxScore && (
                         <p className="bf-dxscore">{song.dx_score!.toLocaleString()} / {song.dx_max!.toLocaleString()} ({dxPct}%)</p>
                     )}
-                    <p className="bf-dlg-meta">{song.rating} pt &middot; {entry.list} #{entry.position} of {entry.size}</p>
+                    <p className="bf-dlg-meta"><b>{song.rating} rating</b></p>
+                    <p className="bf-dlg-meta">{entry.list}: #{entry.position} of {entry.size}</p>
 
                     <div className="bf-icon-row">
                         {/* keep your three <a className="bf-icon-btn"> links (YouTube, mai-notes, MV) exactly as they were */}
@@ -364,12 +363,14 @@ export default function BestFifty({ data }: { data?: Song[] | null }) {
             <style>{css}</style>
 
             <div className="bf-head">
-                <h1>Rating: {total}</h1>
-                <span className="bf-sub-total">{sum(b15)} from B15 and {sum(b35)} from B35</span>
+                <h1>Best 50 Charts</h1>
             </div>
 
-            <Section title="B15" note="newest songs" songs={b15} onOpen={setSelected} />
-            <Section title="B35" note="older songs" songs={b35} onOpen={setSelected} />
+            <Section title="B15" note="new songs (CiRCLE PLUS and CiRCLE)" songs={b15} onOpen={setSelected} />
+
+           <hr className="divider" />
+
+            <Section title="B35" note="old songs (PRiSM PLUS and below)" songs={b35} onOpen={setSelected} />
 
             <SongDetail entry={selected} onClose={() => setSelected(null)} />
         </div>

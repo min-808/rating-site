@@ -105,7 +105,7 @@ function TitlePlate({ name, plate }: { name?: string; plate?: string }) {
 
 const css = `
   .user-container {
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 2rem 2rem 3rem 2rem;
     font-family: sans-serif;
@@ -284,6 +284,13 @@ const css = `
     font-size: 0.8rem;
     color: var(--text-muted);
   }
+  .bf-hidden {
+    margin: 1.5rem 0;
+    text-align: center;
+    font-size: 0.9rem;
+    font-style: italic;
+    color: var(--text-muted);
+  }
 
   @media (max-width: 600px) {
     .user-container {
@@ -383,6 +390,10 @@ export default async function UserPage({ params }: UserPageProps) {
   const rankChange = calculateRankChange(player);
   const ratingChange = calculateRatingChange(player);
 
+  const optedOut = Boolean(player.scores_opt_out);
+
+  let songs: PlayerDocument['songs'] = [];
+  if (!optedOut) {
   const titles = [...new Set((player.songs ?? []).map((s) => s.title))];
   const metaDocs = await client
       .db('maimai')
@@ -390,10 +401,11 @@ export default async function UserPage({ params }: UserPageProps) {
       .find({ _id: { $in: titles } })
       .toArray();
   const meta = new Map<string, SongMetaDocument>(metaDocs.map((m) => [m._id, m]));
-  const songs = (player.songs ?? []).map((s) => {
-    const m = meta.get(s.title);
-    return m ? { ...s, jacket_blob: m.blob, artist: m.artist, bpm: m.bpm, version: m.version } : s;
+  songs = (player.songs ?? []).map((s) => {
+      const m = meta.get(s.title);
+      return m ? { ...s, jacket_blob: m.blob, artist: m.artist, bpm: m.bpm, version: m.version } : s;
   });
+}
 
   return (
     <main className="user-container">
@@ -447,7 +459,13 @@ export default async function UserPage({ params }: UserPageProps) {
 
       <PlayerHistoryChart data={history} />
 
-      <BestFifty data={songs} />
+        <hr className="divider" />
+
+        {optedOut ? (
+        <p className="bf-hidden">best 50 scores hidden</p>
+        ) : (
+        <BestFifty data={songs} />
+        )}
 
       <p className="updated">last updated on {lastUpdated}</p>
     </main>

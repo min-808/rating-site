@@ -28,6 +28,7 @@ export interface PlayerDocument {
   rank_history?: RankHistoryEntry[];
   old_names?: string[];
   songs?: Song[];
+  scores_opt_out: boolean;
 }
 
 export interface Song {
