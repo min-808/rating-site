@@ -166,6 +166,9 @@ const css = `
     .user-heart {
       animation: none;
     }
+    .user-name-heart {
+      animation: none;
+    }
   }
 
   .title-plate {
@@ -218,6 +221,17 @@ const css = `
     min-width: 0;
     overflow-wrap: anywhere;
   }
+  .user-name-heart {
+  background: linear-gradient(90deg, #ff7eb3, #ffbad5, #ff7eb3);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: name-shimmer 2s linear infinite;
+}
+@keyframes name-shimmer {
+  to { background-position: 200% center; }
+}
   .user-dan {
     height: 28px;
     width: auto;
@@ -376,6 +390,9 @@ export default async function UserPage({ params }: UserPageProps) {
   });
 
   const displayName = toNormalWidth(player.name);
+
+  const isHeartUser = String(player.user_id) === HEART_USER_ID;
+
   const pastNames = [...new Set((player.old_names ?? []).map(toNormalWidth))].filter(
     (n) => n !== displayName,
   );
@@ -420,17 +437,17 @@ export default async function UserPage({ params }: UserPageProps) {
         <div className="user-heading">
           <TitlePlate name={player.title_name} plate={player.title_blob} />
           <div className="user-name-row">
-            <h1 className="user-name">{displayName}</h1>
+            <h1 className={`user-name${isHeartUser ? ' user-name-heart' : ''}`}>{displayName}</h1>
             <DanBadge src={player.dan_blob} fallbackSrc={player.dan} />
           </div>
           {pastNames.length > 0 && (
             <p className="user-aka">formerly known as {pastNames.join(', ')}</p>
           )}
         </div>
-        {String(player.user_id) === HEART_USER_ID && (
-          <span className="user-heart" role="img" aria-label="heart">
-            ♡ ༘˚·⑅
-          </span>
+        {isHeartUser && (
+            <span className="user-heart" role="img" aria-label="heart">
+                ♡ ༘˚·⑅
+            </span>
         )}
       </header>
 
