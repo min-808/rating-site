@@ -40,7 +40,6 @@ export interface Song {
   internal_difficulty: number;
   new_pool: boolean;
   rating: number;
-  ap: boolean;
   jacket?: string;
   jacket_blob?: string;
   artist?: string;
@@ -50,6 +49,9 @@ export interface Song {
   fs?: string;
   dx_score?: number;
   dx_max?: number;
+  notes_url?: string;
+  video_url?: string;
+  ap: boolean;
 }
 
 const ratingFrames = [

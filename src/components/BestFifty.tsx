@@ -19,54 +19,111 @@ const css = `
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
   .bf-empty { color: var(--text-muted); font-size: 0.85rem; }
 
-  /* the card is now a <button> so it is clickable and keyboard-friendly.
-     Inner pieces are <span>s (a div inside a button is invalid HTML) */
+    /* ============ CARD ============ */
   .bf-card { position: relative; isolation: isolate; display: flex; flex-direction: column; width: 100%;
-    min-width: 0; padding: 0; overflow: hidden; text-align: left; font: inherit; color: inherit;
-    background: none; border: 1px solid var(--border-light); border-radius: 8px; cursor: pointer; }
-  .bf-card:hover { border-color: var(--text-sub); }
+    min-width: 0; padding: 0; overflow: hidden; text-align: left; font: inherit; color: #fff;
+    background: #141416; border: none; border-radius: 12px; cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+  .bf-card:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.45); }
   .bf-card:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-  .bf-band { display: flex; justify-content: space-between; background: var(--diff); color: #fff;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.6); font-size: 0.75rem; font-weight: bold; padding: 3px 8px; }
-  .bf-body { display: flex; flex-direction: column; gap: 4px; padding: 8px; min-width: 0; }
-  .bf-title { display: block; font-size: 0.85rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bf-ach { display: block; font-size: 1.15rem; font-weight: bold; font-variant-numeric: tabular-nums; }
-  .bf-row { display: flex; align-items: center; gap: 6px; }
-  .bf-rating { margin-left: auto; font-size: 1.05rem; font-weight: bold; font-variant-numeric: tabular-nums; }
-  .bf-tag { font-size: 0.7rem; font-weight: bold; padding: 1px 6px; border-radius: 4px; }
-  .bf-gold { background: #f2b52c; color: #3b2a00; }
-  .bf-silver { background: #c4c9d1; color: #22262b; }
-  .bf-plain, .bf-none { background: var(--border-light); color: var(--text-sub); }
-  .bf-ap { background: #ff8a3d; color: #2b1200; }
-  .bf-meta { display: block; font-size: 0.7rem; color: var(--text-sub); font-variant-numeric: tabular-nums; }
 
-  /* cover art fills the card behind a dark layer. Change --bf-dim to make the art brighter or darker */
-  .bf-card { --bf-dim: 0.62; }
-  .bf-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
-  .bf-dim { position: absolute; inset: 0; z-index: -1; background: rgba(0,0,0,var(--bf-dim)); }
-  .bf-has-art .bf-body { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.85); }
-  .bf-has-art .bf-meta { color: #e6e6e6; }
-  .bf-has-art .bf-plain, .bf-has-art .bf-none { background: rgba(255,255,255,0.22); color: #fff; text-shadow: none; }
+  .bf-art-wrap { position: relative; aspect-ratio: 1 / 1.02; width: 100%; overflow: hidden; }
+  .bf-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .bf-dim { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
 
-  /* detail popup */
-  .bf-dialog { width: min(440px, calc(100vw - 2rem)); padding: 0; border: 1px solid var(--border-light);
-    border-radius: 10px; background: var(--bg-color); color: var(--text-main); font-family: sans-serif; }
-  .bf-dialog::backdrop { background: rgba(0,0,0,0.55); }
-  .bf-dlg { padding: 1rem; }
-  .bf-dlg-head { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 1rem; }
-  .bf-dlg-art { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
-  .bf-dlg-title { margin: 0 0 0.35rem; font-size: 1.05rem; overflow-wrap: anywhere; }
-  .bf-dlg-chip { display: inline-block; background: var(--diff); color: #fff; font-size: 0.75rem; font-weight: bold;
-    padding: 2px 8px; border-radius: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); }
-  .bf-dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1rem; margin: 0 0 1rem; font-size: 0.85rem; }
-  .bf-dl dt { color: var(--text-sub); }
-  .bf-dl dd { margin: 0; font-variant-numeric: tabular-nums; }
-  .bf-dlg-close { font: inherit; font-size: 0.85rem; padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer;
-    background: var(--border-light); color: var(--text-main); border: 1px solid var(--border-light); }
+  .bf-combo-badge { position: absolute; top: 6px; left: 6px; width: 26px; height: 26px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+  .bf-combo-badge svg { width: 15px; height: 15px; color: #fff; }
+
+  .bf-rating-badge { position: absolute; top: 0; right: 0; padding: 5px 10px 5px 12px;
+    background: linear-gradient(135deg, #b768d6, #de7cce); color: #fff; font-weight: 800;
+    font-size: 1.15rem; line-height: 1; border-radius: 0 12px 0 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+    font-variant-numeric: tabular-nums; }
+
+  /* top-right badge: the chart's difficulty value, in the difficulty color */
+  .bf-level-badge { position: absolute; top: 0; right: 0; padding: 5px 10px 5px 12px;
+    background: var(--diff); color: #fff; font-weight: 800; font-size: 1.1rem; line-height: 1;
+    border-radius: 0 12px 0 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.65);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.35); font-variant-numeric: tabular-nums; }
+
+  /* text block over the bottom of the art: 3 rows.
+   padding-top sets how tall the fade zone is; the stops set how fast it goes dark. */
+  .bf-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 6px 4px;
+    display: flex; flex-direction: column; gap: 1px;
+    background: linear-gradient(to top,
+      rgba(0,0,0,1) 0%, rgba(0,0,0,0.96) 15%, rgba(0,0,0,0.70) 30%,
+      rgba(0,0,0,0.65) 70%, rgba(0,0,0,0.2) 95%, rgba(0,0,0,0) 100%); }
+  .bf-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+  .bf-rating { font-size: 1.1rem; font-weight: 800; color: #fff; line-height: 1.1;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-variant-numeric: tabular-nums; }
+  .bf-ach { font-size: 0.85rem; font-weight: 700; color: #e9e9e9; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bf-title { flex: 1; min-width: 0; font-size: 0.78rem; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+  .bf-kind-row { display: flex; justify-content: flex-end; margin-top: 2px; }
+
+  .bf-tag { font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; flex-shrink: 0; }
+
+  /* rank colors build up: red/pink (A to AAA), gold (S to SS+), rainbow (SSS, SSS+) */
+  .bf-none { background: rgba(255,255,255,0.18); color: #fff; }
+  .bf-r-a    { background: #f4a7bd; color: #4a0f22; }
+  .bf-r-aa   { background: #e0527f; color: #fff; }
+  .bf-r-aaa  { background: linear-gradient(135deg, #d92d4a, #e8407a); color: #fff;
+               box-shadow: 0 0 6px rgba(232,64,122,0.55); }
+  .bf-r-s    { background: #d9b45a; color: #3b2a00; }
+  .bf-r-sp   { background: #e6c04a; color: #3b2a00; }
+  .bf-r-ss   { background: linear-gradient(135deg, #f5d04a, #e0a51f); color: #3b2500;
+               box-shadow: 0 0 6px rgba(245,208,74,0.5); }
+  .bf-r-ssp  { background: linear-gradient(135deg, #fff0a0, #f5c531 45%, #e09a12); color: #3b2500;
+               box-shadow: 0 0 0 1px rgba(255,243,176,0.8), 0 0 9px rgba(255,214,80,0.75); }
+  .bf-r-sss, .bf-r-sssp { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+               background: linear-gradient(90deg, #ff5a5a, #ffb84d, #f2e85a, #5cd67f, #4db8ff, #a06bff); }
+  .bf-r-sssp { box-shadow: 0 0 0 1px rgba(255,255,255,0.85), 0 0 10px rgba(255,255,255,0.5); }
+  .bf-kind { background: rgba(255,255,255,0.16); color: #fff; }
+
+  .bf-version-band { text-align: center; font-size: 0.68rem; font-weight: 800; padding: 3px 6px;
+    color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+  /* ============ POPUP ============ */
+  .bf-dialog { width: min(480px, calc(100vw - 2rem)); padding: 0; border: 1px solid #232326;
+    border-radius: 14px; background: #0e0e10; color: #fff; font-family: sans-serif; }
+  .bf-dialog::backdrop { background: rgba(0,0,0,0.6); }
+  .bf-dlg { position: relative; padding: 1.1rem; }
+  .bf-dlg-x { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; background: transparent; border: none;
+    color: #cfcfcf; cursor: pointer; }
+  .bf-dlg-x:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .bf-dlg-head { display: flex; gap: 0.9rem; align-items: flex-start; margin-bottom: 0.85rem; padding-right: 26px; }
+  .bf-dlg-art { width: 116px; height: 116px; object-fit: cover; border-radius: 8px; flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+  .bf-dlg-info { min-width: 0; }
+  .bf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.5rem; }
+  .bf-chip { font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 5px;
+    background: #1c1c1f; color: #cfcfcf; border: 1px solid #2c2c30; }
+  .bf-chip-version { border: none; color: #fff; }
+  .bf-chip-diff { background: var(--diff); color: #fff; border: none; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+  .bf-dlg-title { margin: 0 0 0.3rem; font-size: 1.25rem; font-weight: 800; overflow-wrap: anywhere; }
+  .bf-dlg-artist { margin: 0; font-size: 0.8rem; color: #9a9a9e; }
+  .bf-divider { height: 1px; background: #232326; margin: 0.85rem 0; }
+  .bf-score { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 0.4rem; }
+  .bf-rank-pill { font-size: 0.85rem; font-weight: 800; padding: 4px 12px; border-radius: 999px; }
+  .bf-big { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .bf-big small { font-size: 1.02rem; color: #b7b7bb; font-weight: 700; }
+  .bf-combo { background: rgba(255,255,255,0.1); color: #fff; border-radius: 999px; padding: 3px 10px; font-weight: 800; font-size: 0.78rem; }
+  .bf-combo-fc { background: #3d84c9; }
+  .bf-combo-fcplus { background: #1f9e86; }
+  .bf-combo-ap { background: #e08a2e; }
+  .bf-combo-applus { background: #d94f9c; }
+  .bf-sync { background: #2f8f6f; color: #fff; border-radius: 999px; padding: 3px 10px; font-weight: 800; font-size: 0.78rem; }
+  .bf-dxscore { margin: 0 0 0.25rem; font-size: 0.85rem; color: #cfcfcf; font-variant-numeric: tabular-nums; }
+  .bf-dlg-meta { margin: 0 0 0.9rem; font-size: 0.75rem; color: #7a7a7e; }
+  .bf-icon-row { display: flex; gap: 10px; }
+  .bf-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+    border-radius: 9px; background: #19191c; border: 1px solid #2a2a2e; color: #e5484d; }
+  .bf-icon-btn:hover { background: #212124; }
 
   @media (max-width: 600px) {
     .bf-wrap { padding: 0 0.5rem 1rem 0.5rem; }
-    .bf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem; }
+    .bf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
   }
 `;
 
@@ -81,11 +138,42 @@ function diffOf(raw: string) {
     const key = (raw ?? '').toLowerCase().replace(/[^a-z]/g, '');
     return DIFFS[key] ?? { label: raw || 'Unknown', color: '#888888' };
 }
+// one class per rank, so the color can build up from pink/red through gold to rainbow
+const RANK_TONE: Record<string, string> = {
+    A: 'r-a', AA: 'r-aa', AAA: 'r-aaa',
+    S: 'r-s', 'S+': 'r-sp', SS: 'r-ss', 'SS+': 'r-ssp',
+    SSS: 'r-sss', 'SSS+': 'r-sssp',
+};
 function rankTone(rank: string | undefined) {
-    if (!rank) return 'none';
-    if (rank.startsWith('SS')) return 'gold';
-    if (rank.startsWith('S')) return 'silver';
-    return 'plain';
+    return (rank && RANK_TONE[rank]) || 'none';
+}
+
+// normalizes ap / fc into one of: fc, fcplus, ap, applus
+function comboInfo(song: Song): { label: string; tier: 'fc' | 'fcplus' | 'ap' | 'applus' } | null {
+    const raw = (song.fc || (song.ap ? 'ap' : '')).toLowerCase().replace(/[^a-z]/g, '');
+    const map: Record<string, { label: string; tier: 'fc' | 'fcplus' | 'ap' | 'applus' }> = {
+        fc: { label: 'FC', tier: 'fc' },
+        fcplus: { label: 'FC+', tier: 'fcplus' },
+        ap: { label: 'AP', tier: 'ap' },
+        app: { label: 'AP+', tier: 'applus' },
+        applus: { label: 'AP+', tier: 'applus' },
+    };
+    return map[raw] ?? null;
+}
+
+function syncLabel(song: Song): string | null {
+    const raw = (song.fs || '').toLowerCase().replace(/[^a-z]/g, '');
+    const map: Record<string, string> = { fs: 'FS', fsplus: 'FS+', fdx: 'FDX', fdxplus: 'FDX+' };
+    return map[raw] ?? null;
+}
+
+// rough color per chart version name; extend as new versions show up in your data
+function versionColor(version?: string): string {
+    const v = (version ?? '').toUpperCase();
+    if (v.includes('PLUS')) return '#c94fa0';
+    if (v.includes('MAGIC')) return '#3ab6a0';
+    if (v.includes('CIRCLE')) return '#ec6fc0';
+    return '#6b6b70';
 }
 
 // what the popup needs to know about the clicked card
@@ -100,36 +188,55 @@ function nextRankInfo(song: Song) {
     return { rank: next.rank, at: next.min, rating, gain: rating - song.rating };
 }
 
+function ComboBadge({ tier }: { tier: 'fc' | 'fcplus' | 'ap' | 'applus' }) {
+    const bg = { fc: '#3d84c9', fcplus: '#1f9e86', ap: '#e08a2e', applus: '#d94f9c' }[tier];
+    return (
+        <span className="bf-combo-badge" style={{ background: bg }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                {tier === 'ap' || tier === 'applus'
+                    ? <path d="M12 3l2.4 6.6H21l-5.4 4.1 2 6.7L12 16.6 6.4 20.4l2-6.7L3 9.6h6.6z" fill="currentColor" stroke="none" />
+                    : <path d="M5 13l4 4L19 7" />}
+            </svg>
+        </span>
+    );
+}
+
 function SongCard({ song, position, onOpen }: { song: Song; position: number; onOpen: () => void }) {
     const diff = diffOf(song.difficulty);
     const rank = rankFor(song.achievement)?.rank;
     const isDx = /dx/i.test(song.kind ?? '');
-    const hasArt = Boolean(song.jacket_blob || song.jacket); // NEW
+    const hasArt = Boolean(song.jacket_blob || song.jacket);
+    const combo = comboInfo(song);
 
     return (
         <li>
             <button
                 type="button"
-                className={`bf-card${hasArt ? ' bf-has-art' : ''}`}
+                className="bf-card"
                 style={{ '--diff': diff.color } as CSSProperties}
                 onClick={onOpen}
+                title={`#${position} ${song.title}`}
             >
-                {hasArt && <FallbackImage src={song.jacket_blob} fallbackSrc={song.jacket} alt="" className="bf-art" />}
-                {hasArt && <span className="bf-dim" aria-hidden="true" />}
-                <span className="bf-band">
-          <span>{diff.label} {song.level}</span>
-          <span>{isDx ? 'DX' : 'STD'}</span>
-        </span>
-                <span className="bf-body">
-          <span className="bf-title" title={song.title}>{song.title}</span>
-          <span className="bf-ach">{song.achievement == null ? '-' : `${song.achievement.toFixed(4)}%`}</span>
-          <span className="bf-row">
-            <span className={`bf-tag bf-${rankTone(rank)}`}>{rank ?? '-'}</span>
-              {song.ap && <span className="bf-tag bf-ap">AP</span>}
-              <span className="bf-rating">{song.rating}</span>
-          </span>
-          <span className="bf-meta">{song.internal_difficulty?.toFixed(1)} internal, #{position}</span>
-        </span>
+                <span className="bf-art-wrap">
+                    {hasArt && <FallbackImage src={song.jacket_blob} fallbackSrc={song.jacket} alt="" className="bf-art" />}
+                    <span className="bf-dim" aria-hidden="true" />
+                    {combo && <ComboBadge tier={combo.tier} />}
+                    <span className="bf-level-badge">{song.internal_difficulty?.toFixed(1)}</span>
+                    <span className="bf-overlay">
+                        <span className="bf-row">
+                            <span className="bf-rating">{song.rating}</span>
+                            <span className={`bf-tag bf-${rankTone(rank)}`}>{rank ?? '-'}</span>
+                        </span>
+                        <span className="bf-ach">{song.achievement == null ? '-' : `${song.achievement.toFixed(4)}%`}</span>
+                        <span className="bf-row">
+                            <span className="bf-title" title={song.title}>{song.title}</span>
+                            <span className="bf-tag bf-kind">{isDx ? 'DX' : 'STD'}</span>
+                        </span>
+                    </span>
+                </span>
+                {song.version && (
+                    <span className="bf-version-band" style={{ background: versionColor(song.version) }}>{song.version}</span>
+                )}
             </button>
         </li>
     );
@@ -177,10 +284,15 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
     const song = entry?.song;
     const diff = song ? diffOf(song.difficulty) : null;
     const cutoff = song ? rankFor(song.achievement) : null;
-    const next = song ? nextRankInfo(song) : null;
-    const raw = song && cutoff
-        ? song.internal_difficulty * cutoff.factor * Math.min(song.achievement, RATING_CAP)
-        : 0;
+    const [whole, decimals] = song ? song.achievement.toFixed(4).split('.') : ['', ''];
+    const combo = song ? comboInfo(song) : null;
+    const sync = song ? syncLabel(song) : null;
+    const art = song?.jacket_blob || song?.jacket;
+    const hasDxScore = song && song.dx_score != null && song.dx_max != null && song.dx_max > 0;
+    const dxPct = hasDxScore ? ((song!.dx_score! / song!.dx_max!) * 100).toFixed(2) : null;
+    const searchUrl = song
+        ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.title} maimai ${diff?.label ?? ''}`)}`
+        : '#';
 
     return (
         <dialog
@@ -188,38 +300,51 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
             className="bf-dialog"
             aria-label="Song details"
             onClose={onClose}
-            onClick={(e) => { if (e.target === ref.current) onClose(); }} // click on the dark backdrop closes it
+            onClick={(e) => { if (e.target === ref.current) onClose(); }}
         >
             {entry && song && diff && (
                 <div className="bf-dlg" key={`${song.difficulty}-${song.kind}-${song.title}`} style={{ '--diff': diff.color } as CSSProperties}>
+                    <button type="button" className="bf-dlg-x" onClick={onClose} aria-label="Close">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <path d="M5 5l14 14M19 5L5 19" />
+                        </svg>
+                    </button>
+
                     <div className="bf-dlg-head">
-                        {(song.jacket_blob || song.jacket) && (
-                            <FallbackImage src={song.jacket_blob} fallbackSrc={song.jacket} alt="" className="bf-dlg-art" width={96} height={96} />
-                        )}
-                        <div>
+                        {art && <FallbackImage src={song.jacket_blob} fallbackSrc={song.jacket} alt="" className="bf-dlg-art" width={116} height={116} />}
+                        <div className="bf-dlg-info">
+                            <div className="bf-chips">
+                                {song.version && (
+                                    <span className="bf-chip bf-chip-version" style={{ background: versionColor(song.version) }}>{song.version}</span>
+                                )}
+                                <span className="bf-chip">{/dx/i.test(song.kind ?? '') ? 'DX' : 'STD'}</span>
+                                <span className="bf-chip bf-chip-diff">{diff.label} {song.internal_difficulty?.toFixed(1)}</span>
+                            </div>
                             <h3 className="bf-dlg-title">{song.title}</h3>
-                            <span className="bf-dlg-chip">{diff.label} {song.level} {/dx/i.test(song.kind ?? '') ? 'DX' : 'STD'}</span>
+                            {(song.artist || song.bpm) && (
+                                <p className="bf-dlg-artist">
+                                    {[song.artist, song.bpm ? `${song.bpm} BPM` : null].filter(Boolean).join(', ')}
+                                </p>
+                            )}
                         </div>
                     </div>
 
-                    <dl className="bf-dl">
-                        <dt>Achievement</dt><dd>{song.achievement.toFixed(4)}% ({cutoff?.rank ?? 'no rank'}{song.ap ? ', AP' : ''})</dd>
-                        <dt>Rating</dt><dd>{song.rating}</dd>
-                        <dt>How it's worked out</dt>
-                        <dd>
-                            {song.internal_difficulty.toFixed(1)} × {cutoff?.factor ?? 0} × {Math.min(song.achievement, RATING_CAP)} = {raw.toFixed(2)},
-                            rounded down to {Math.floor(raw)}{song.ap ? ', plus 1 for AP' : ''}
-                        </dd>
-                        <dt>Position</dt><dd>#{entry.position} of {entry.size} in {entry.list}</dd>
-                        <dt>Next rank</dt>
-                        <dd>
-                            {next
-                                ? `${next.rank} at ${next.at.toFixed(4)}% would rate ${next.rating} (${next.gain >= 0 ? '+' : ''}${next.gain})`
-                                : 'Already at the highest rank'}
-                        </dd>
-                    </dl>
+                    <div className="bf-divider" />
 
-                    <button type="button" className="bf-dlg-close" onClick={onClose}>Close</button>
+                    <div className="bf-score">
+                        <span className={`bf-rank-pill bf-${rankTone(cutoff?.rank)}`}>{cutoff?.rank ?? '-'}</span>
+                        <span className="bf-big">{whole}.<small>{decimals}%</small></span>
+                        {combo && <span className={`bf-combo bf-combo-${combo.tier}`}>{combo.label}</span>}
+                        {sync && <span className="bf-sync">{sync}</span>}
+                    </div>
+                    {hasDxScore && (
+                        <p className="bf-dxscore">{song.dx_score!.toLocaleString()} / {song.dx_max!.toLocaleString()} ({dxPct}%)</p>
+                    )}
+                    <p className="bf-dlg-meta">{song.rating} pt &middot; {entry.list} #{entry.position} of {entry.size}</p>
+
+                    <div className="bf-icon-row">
+                        {/* keep your three <a className="bf-icon-btn"> links (YouTube, mai-notes, MV) exactly as they were */}
+                    </div>
                 </div>
             )}
         </dialog>

@@ -382,6 +382,18 @@ export default async function UserPage({ params }: UserPageProps) {
   const rankChange = calculateRankChange(player);
   const ratingChange = calculateRatingChange(player);
 
+  const titles = [...new Set((player.songs ?? []).map((s) => s.title))];
+  const metaDocs = await client
+      .db('maimai')
+      .collection('songmeta')
+      .find({ _id: { $in: titles } as any })
+      .toArray();
+  const meta = new Map(metaDocs.map((m) => [String(m._id), m]));
+  const songs = (player.songs ?? []).map((s) => {
+    const m = meta.get(s.title);
+    return m ? { ...s, jacket_blob: m.blob, artist: m.artist, bpm: m.bpm, version: m.version } : s;
+  });
+
   return (
     <main className="user-container">
       <style>{css}</style>
@@ -434,7 +446,7 @@ export default async function UserPage({ params }: UserPageProps) {
 
       <PlayerHistoryChart data={history} />
 
-      <BestFifty data={player.songs} />
+      <BestFifty data={songs} />
 
       <p className="updated">last updated on {lastUpdated}</p>
     </main>
