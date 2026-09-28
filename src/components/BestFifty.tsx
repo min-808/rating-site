@@ -75,7 +75,11 @@ const css = `
                box-shadow: 0 0 6px rgba(245,208,74,0.5); }
   .bf-r-ssp  { background: linear-gradient(135deg, #fff0a0, #f5c531 45%, #e09a12); color: #3b2500;
                box-shadow: 0 0 0 1px rgba(255,243,176,0.8), 0 0 9px rgba(255,214,80,0.75); }
-  .bf-r-sss, .bf-r-sssp { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+  .bf-r-sss  { background: linear-gradient(135deg, #fffdf2, #ffeeb0 45%, #f5d56e); color: #4a3200;
+             box-shadow: 0 0 0 1px rgba(255,252,230,0.95), 0 0 10px rgba(255,236,160,0.85); }
+  .bf-r-sssp { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+             background: linear-gradient(90deg, #ff5a5a, #ffb84d, #f2e85a, #5cd67f, #4db8ff, #a06bff);
+             box-shadow: 0 0 0 1px rgba(255,255,255,0.85), 0 0 10px rgba(255,255,255,0.5); }
                background: linear-gradient(90deg, #ff5a5a, #ffb84d, #f2e85a, #5cd67f, #4db8ff, #a06bff); }
   .bf-r-sssp { box-shadow: 0 0 0 1px rgba(255,255,255,0.85), 0 0 10px rgba(255,255,255,0.5); }
   .bf-kind { background: rgba(255,255,255,0.16); color: #fff; }
