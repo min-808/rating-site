@@ -36,14 +36,20 @@ export interface Song {
   level: string;
   title: string;
   achievement: number;
-  jacket_blob?: string;
-  artist?: string;
-  bpm?: number;
   difficulty: string;
   internal_difficulty: number;
   new_pool: boolean;
   rating: number;
   ap: boolean;
+  jacket?: string;
+  jacket_blob?: string;
+  artist?: string;
+  bpm?: number;
+  version?: string;
+  fc?: string;
+  fs?: string;
+  dx_score?: number;
+  dx_max?: number;
 }
 
 export interface SongMetaDocument {
