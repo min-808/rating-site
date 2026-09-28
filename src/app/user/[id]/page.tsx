@@ -8,6 +8,7 @@ import FallbackImage from '../../../components/FallbackImage';
 import { connectMongo, getMongoClient } from '../../../lib/connect-db';
 import {
   type PlayerDocument,
+  type SongMetaDocument,
   getFrameForRating,
   calculateRankChange,
   calculateRatingChange,
@@ -385,10 +386,10 @@ export default async function UserPage({ params }: UserPageProps) {
   const titles = [...new Set((player.songs ?? []).map((s) => s.title))];
   const metaDocs = await client
       .db('maimai')
-      .collection('songmeta')
-      .find({ _id: { $in: titles } as any })
+      .collection<SongMetaDocument>('songmeta')
+      .find({ _id: { $in: titles } })
       .toArray();
-  const meta = new Map(metaDocs.map((m) => [String(m._id), m]));
+  const meta = new Map<string, SongMetaDocument>(metaDocs.map((m) => [m._id, m]));
   const songs = (player.songs ?? []).map((s) => {
     const m = meta.get(s.title);
     return m ? { ...s, jacket_blob: m.blob, artist: m.artist, bpm: m.bpm, version: m.version } : s;

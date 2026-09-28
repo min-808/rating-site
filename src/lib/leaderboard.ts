@@ -31,7 +31,8 @@ export interface PlayerDocument {
 }
 
 export interface Song {
-  genre: string;
+  _id: string; // song title
+  blob?: string; // jacket URL in Vercel Blob
   kind: string;
   level: string;
   title: string;
@@ -44,7 +45,9 @@ export interface Song {
   jacket_blob?: string;
   artist?: string;
   bpm?: number;
+  genre?: string;
   version?: string;
+  version_code?: string;
   fc?: string;
   fs?: string;
   dx_score?: number;
