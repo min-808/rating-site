@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Song } from '../lib/leaderboard';
-import { new15, old35, rankFor, rateSong, RANK_CUTOFFS, RATING_CAP } from '../lib/song-calc';
+import { new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
 import FallbackImage from './FallbackImage';
+import { StatsBadge } from './StatsBadge';
 
 const css = `
   /* page, header, sections, grid */
@@ -92,14 +93,6 @@ const css = `
   .bf-version-band { text-align: center; font-size: 0.68rem; font-weight: 800; padding: 3px 6px;
     color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
   .bf-version-band img { max-width: 100%; max-height: 1.2rem; object-fit: contain; }
-  
-  
-  /* sum / average / projected badge, in the same row as the B15 / B35 heading; margin-left: auto pushes its right edge to the right-most card */
-  .bf-badge { display: inline-flex; align-items: center; justify-content: center; gap: 1rem; margin-left: auto;
-    padding: 4px 16px; border-radius: 999px; background: rgba(127,127,127,0.12); }
-  .bf-badge-stat { display: inline-flex; align-items: baseline; gap: 0.4rem; cursor: help; }
-  .bf-badge-sym { font-size: 0.95rem; font-weight: 800; color: #b96de4; }
-  .bf-badge-val { font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 
   /* ============ POPUP ============ */
   .bf-dialog { width: min(480px, calc(100vw - 2rem)); padding: 0; border: 1px solid #232326;
@@ -135,7 +128,13 @@ const css = `
   .bf-sync { background: #2f8f6f; color: #fff; border-radius: 999px; padding: 3px 10px; font-weight: 800; font-size: 0.78rem; }
   .bf-dxscore { margin: 0 0 0.25rem; font-size: 0.85rem; color: #cfcfcf; font-variant-numeric: tabular-nums; }
   .bf-dlg-meta { margin: 0 0 0.2rem; font-size: 0.75rem; color: #7a7a7e; }
-  .bf-icon-row { display: flex; gap: 10px; }
+  .bf-next { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0.6rem 0 0.2rem;
+    padding: 8px 10px; border-radius: 9px; background: #16161a; border: 1px solid #232326; font-size: 0.8rem; color: #cfcfcf; }
+  .bf-next-label { color: #9a9a9e; font-weight: 700; }
+  .bf-next-need, .bf-next-rating { font-variant-numeric: tabular-nums; }
+  .bf-next-gain { font-weight: 800; color: #82ff9f; font-variant-numeric: tabular-nums; }
+  .bf-next-max { color: #9a9a9e; font-style: italic; }
+  .bf-icon-row { display: flex; gap: 10px; margin-top: 0.6rem; }
   .bf-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;
     border-radius: 9px; background: #19191c; border: 1px solid #2a2a2e; color: #e5484d; }
   .bf-icon-btn:hover { background: #212124; }
@@ -218,36 +217,6 @@ function ComboBadge({ tier }: { tier: 'fc' | 'fcplus' | 'ap' | 'applus' }) {
                     : <path d="M5 13l4 4L19 7" />}
             </svg>
         </span>
-    );
-}
-
-// symbols for the summary; swap any to try another (e.g. 'ρ', 'Ω', 'Ψ')
-const SYMBOLS = { sum: 'Σ', avg: 'μ', projected: 'φ' };
-
-// sum of ratings, average per song, and the total you'd have if all 50 slots averaged that much
-function listStats(songs: Song[]) {
-    const sum = songs.reduce((t, s) => t + Math.floor(s.rating), 0);
-    const avg = songs.length ? sum / songs.length : 0;
-    return { sum, avg, projected: Math.round(avg * 50) };
-}
-
-function StatsBadge({ title, songs }: { title: string; songs: Song[] }) {
-    const { sum, avg, projected } = listStats(songs);
-    return (
-        <div className="bf-badge">
-            <span className="bf-badge-stat" title={`Sum of the ${title} ratings`}>
-                <span className="bf-badge-sym">{SYMBOLS.sum}</span>
-                <span className="bf-badge-val">{sum}</span>
-            </span>
-            <span className="bf-badge-stat" title={`Average rating per song in ${title}`}>
-                <span className="bf-badge-sym">{SYMBOLS.avg}</span>
-                <span className="bf-badge-val">{avg.toFixed(2)}</span>
-            </span>
-            <span className="bf-badge-stat" title={`Your total rating if all 50 songs averaged ${avg.toFixed(2)} (average × 50)`}>
-                <span className="bf-badge-sym">{SYMBOLS.projected}</span>
-                <span className="bf-badge-val">~{projected}</span>
-            </span>
-        </div>
     );
 }
 
@@ -341,6 +310,7 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
     const art = song?.jacket_blob || song?.jacket;
     const hasDxScore = song && song.dx_score != null && song.dx_max != null && song.dx_max > 0;
     const dxPct = hasDxScore ? ((song!.dx_score! / song!.dx_max!) * 100).toFixed(2) : null;
+    const next = song ? nextRankInfo(song) : null;
     const searchUrl = song
         ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.title} maimai ${diff?.label ?? ''}`)}`
         : '#';
@@ -373,7 +343,7 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
                             </div>
                             <h3 className="bf-dlg-title">{song.title}</h3>
                             {song.artist && <p className="bf-dlg-artist">{song.artist}</p>}
-                        {song.bpm && <p className="bf-dlg-artist">{song.bpm} BPM</p>}
+                            {song.bpm && <p className="bf-dlg-artist">{song.bpm} BPM</p>}
                         </div>
                     </div>
 
@@ -390,6 +360,18 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
                     )}
                     <p className="bf-dlg-meta"><b>{song.rating} rating</b></p>
                     <p className="bf-dlg-meta">{entry.list}: #{entry.position} of {entry.size}</p>
+
+                    {next ? (
+                        <div className="bf-next" title="Rating at exactly the next rank's cutoff. Since this chart is in your best 50, the gain adds straight to your total rating.">
+                            <span className="bf-next-label">Next rank</span>
+                            <span className={`bf-rank-pill bf-${rankTone(next.rank)}`}>{next.rank}</span>
+                            <span className="bf-next-need">at {next.at.toFixed(4)}% (+{(next.at - song.achievement).toFixed(4)}%)</span>
+                            <span className="bf-next-rating">→ {next.rating} rating</span>
+                            <span className="bf-next-gain">{next.gain > 0 ? `+${next.gain}` : '+0'}</span>
+                        </div>
+                    ) : cutoff && (
+                        <div className="bf-next"><span className="bf-next-max">Max rank reached, no more rating to gain from this chart</span></div>
+                    )}
 
                     <div className="bf-icon-row">
                         {/* keep your three <a className="bf-icon-btn"> links (YouTube, mai-notes, MV) exactly as they were */}
@@ -417,7 +399,7 @@ export default function BestFifty({ data }: { data?: Song[] | null }) {
 
             <Section title="B15" note="new songs (CiRCLE PLUS and CiRCLE)" songs={b15} onOpen={setSelected} />
 
-           <hr className="divider" />
+            <hr className="divider" />
 
             <Section title="B35" note="old songs (PRiSM PLUS and below)" songs={b35} onOpen={setSelected} />
 

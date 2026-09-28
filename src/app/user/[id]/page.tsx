@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import PlayerHistoryChart from '../../../components/PlayerHistoryChart';
 import BestFifty from '../../../components/BestFifty';
+import { Best50Stats } from '../../../components/StatsBadge';
+import { new15, old35 } from '../../../lib/song-calc';
 import FallbackImage from '../../../components/FallbackImage';
 import { connectMongo, getMongoClient } from '../../../lib/connect-db';
 import {
@@ -49,10 +51,10 @@ function Delta({ value, arrows = false, zeroText = '-' }: { value: number; arrow
   }
   const up = value > 0;
   return (
-    <span style={{ color: up ? 'var(--rating-gain)' : 'var(--rating-loss)', fontWeight: 500 }}>
+      <span style={{ color: up ? 'var(--rating-gain)' : 'var(--rating-loss)', fontWeight: 500 }}>
       {arrows ? (up ? '▲ ' : '▼ ') : ''}
-      {up ? '+' : '-'}
-      {Math.abs(value).toLocaleString()}
+        {up ? '+' : '-'}
+        {Math.abs(value).toLocaleString()}
     </span>
   );
 }
@@ -61,22 +63,22 @@ function Avatar({ src, fallbackSrc, name }: { src?: string; fallbackSrc?: string
   // no icon saved yet: show the first letter of their name instead
   if (!src && !fallbackSrc) {
     return (
-      <div className="user-avatar user-avatar-fallback" aria-hidden="true">
-        {Array.from(name)[0] ?? '?'}
-      </div>
+        <div className="user-avatar user-avatar-fallback" aria-hidden="true">
+          {Array.from(name)[0] ?? '?'}
+        </div>
     );
   }
 
   // alt is empty cuz the name is right next to it
   return (
-    <FallbackImage
-      src={src}
-      fallbackSrc={fallbackSrc}
-      alt=""
-      className="user-avatar"
-      width={64}
-      height={64}
-    />
+      <FallbackImage
+          src={src}
+          fallbackSrc={fallbackSrc}
+          alt=""
+          className="user-avatar"
+          width={64}
+          height={64}
+      />
   );
 }
 
@@ -84,7 +86,7 @@ function DanBadge({ src, fallbackSrc }: { src?: string; fallbackSrc?: string }) 
   if (!src && !fallbackSrc) return null;
 
   return (
-    <FallbackImage src={src} fallbackSrc={fallbackSrc} alt="dan badge" className="user-dan" height={28} />
+      <FallbackImage src={src} fallbackSrc={fallbackSrc} alt="dan badge" className="user-dan" height={28} />
   );
 }
 
@@ -94,13 +96,13 @@ function TitlePlate({ name, plate }: { name?: string; plate?: string }) {
   const text = toNormalWidth(name);
 
   return (
-    <div
-      className={`title-plate${plate ? '' : ' title-plate-bare'}`}
-      style={plate ? { borderImageSource: `url(${plate})` } : undefined}
-      title={text}
-    >
-      {text}
-    </div>
+      <div
+          className={`title-plate${plate ? '' : ' title-plate-bare'}`}
+          style={plate ? { borderImageSource: `url(${plate})` } : undefined}
+          title={text}
+      >
+        {text}
+      </div>
   );
 }
 
@@ -374,9 +376,9 @@ export default async function UserPage({ params }: UserPageProps) {
 
   const client = await getMongoClient();
   const metadata = await client
-    .db('maimai')
-    .collection('metadata')
-    .findOne({ _id: 'leaderboard_update' as any });
+      .db('maimai')
+      .collection('metadata')
+      .findOne({ _id: 'leaderboard_update' as any });
 
   const updateDate = metadata?.lastUpdated ? new Date(metadata.lastUpdated) : new Date();
   const lastUpdated = updateDate.toLocaleString('en-US', {
@@ -395,7 +397,7 @@ export default async function UserPage({ params }: UserPageProps) {
   const isHeartUser = String(player.user_id) === HEART_USER_ID;
 
   const pastNames = [...new Set((player.old_names ?? []).map(toNormalWidth))].filter(
-    (n) => n !== displayName,
+      (n) => n !== displayName,
   );
 
   // plain objects only when crossing into the client component
@@ -412,80 +414,82 @@ export default async function UserPage({ params }: UserPageProps) {
 
   let songs: PlayerDocument['songs'] = [];
   if (!optedOut) {
-  const titles = [...new Set((player.songs ?? []).map((s) => s.title))];
-  const metaDocs = await client
-      .db('maimai')
-      .collection<SongMetaDocument>('songmeta')
-      .find({ _id: { $in: titles } })
-      .toArray();
-  const meta = new Map<string, SongMetaDocument>(metaDocs.map((m) => [m._id, m]));
-  songs = (player.songs ?? []).map((s) => {
+    const titles = [...new Set((player.songs ?? []).map((s) => s.title))];
+    const metaDocs = await client
+        .db('maimai')
+        .collection<SongMetaDocument>('songmeta')
+        .find({ _id: { $in: titles } })
+        .toArray();
+    const meta = new Map<string, SongMetaDocument>(metaDocs.map((m) => [m._id, m]));
+    songs = (player.songs ?? []).map((s) => {
       const m = meta.get(s.title);
       return m ? { ...s, jacket_blob: m.blob, artist: m.artist, bpm: m.bpm, version: m.version ?? versionName(m.version_code) } : s;
-  });
-}
+    });
+  }
 
   return (
-    <main className="user-container">
-      <style>{css}</style>
+      <main className="user-container">
+        <style>{css}</style>
 
-      <Link href="/" className="back-link">
-        ← back to leaderboard
-      </Link>
+        <Link href="/" className="back-link">
+          ← back to leaderboard
+        </Link>
 
-      <header className="user-header">
-        <Avatar src={player.pfp_blob} fallbackSrc={player.pfp} name={displayName} />
-        <div className="user-heading">
-          <TitlePlate name={player.title_name} plate={player.title_blob} />
-          <div className="user-name-row">
-            <h1 className={`user-name${isHeartUser ? ' user-name-heart' : ''}`}>{displayName}</h1>
-            <DanBadge src={player.dan_blob} fallbackSrc={player.dan} />
+        <header className="user-header">
+          <Avatar src={player.pfp_blob} fallbackSrc={player.pfp} name={displayName} />
+          <div className="user-heading">
+            <TitlePlate name={player.title_name} plate={player.title_blob} />
+            <div className="user-name-row">
+              <h1 className={`user-name${isHeartUser ? ' user-name-heart' : ''}`}>{displayName}</h1>
+              <DanBadge src={player.dan_blob} fallbackSrc={player.dan} />
+            </div>
+            {pastNames.length > 0 && (
+                <p className="user-aka">formerly known as {pastNames.join(', ')}</p>
+            )}
           </div>
-          {pastNames.length > 0 && (
-            <p className="user-aka">formerly known as {pastNames.join(', ')}</p>
-          )}
-        </div>
-        {isHeartUser && (
-            <span className="user-heart" role="img" aria-label="heart">
+          {isHeartUser && (
+              <span className="user-heart" role="img" aria-label="heart">
                 ♡ ༘˚·⑅
             </span>
-        )}
-      </header>
+          )}
+        </header>
 
-      <section className="stat-grid">
-        <div className="stat-card">
-          <span className="stat-label">rating</span>
-          <div
-            className="rating-badge"
-            style={{ backgroundImage: `url(${getFrameForRating(player.rating)})` }}
-          >
-            <span className="rating-value">{player.rating}</span>
-          </div>
-          <span className="stat-sub">
+        <section className="stat-grid">
+          <div className="stat-card">
+            <span className="stat-label">rating</span>
+            <div
+                className="rating-badge"
+                style={{ backgroundImage: `url(${getFrameForRating(player.rating)})` }}
+            >
+              <span className="rating-value">{player.rating}</span>
+            </div>
+            <span className="stat-sub">
             <Delta value={ratingChange} zeroText="0" /> today
           </span>
-        </div>
+          </div>
 
-        <div className="stat-card">
-          <span className="stat-label">rank</span>
-          <span className="stat-value">#{player.currentRank ?? '-'}</span>
-          <span className="stat-sub">
+          <div className="stat-card">
+            <span className="stat-label">rank</span>
+            <span className="stat-value">#{player.currentRank ?? '-'}</span>
+            <span className="stat-sub">
             <Delta value={rankChange} arrows /> today
           </span>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <PlayerHistoryChart data={history} />
+        <PlayerHistoryChart data={history} />
+
+        {!optedOut && <Best50Stats b15={new15(songs)} b35={old35(songs)} />}
 
         <hr className="divider" />
 
         {optedOut ? (
-        <p className="bf-hidden">best 50 scores hidden</p>
+            <p className="bf-hidden">best 50 scores hidden</p>
         ) : (
-        <BestFifty data={songs} />
+            <BestFifty data={songs} />
         )}
 
-      <p className="updated">last updated on {lastUpdated}</p>
-    </main>
+        <p className="updated">last updated on {lastUpdated}</p>
+      </main>
   );
 }
