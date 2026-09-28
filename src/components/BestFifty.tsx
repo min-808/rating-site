@@ -46,6 +46,11 @@ const css = `
     border-radius: 0 12px 0 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.65);
     box-shadow: 0 1px 4px rgba(0,0,0,0.35); font-variant-numeric: tabular-nums; }
 
+  /* Re:MASTER only: lavender-to-pink from the in-game result header, pale edge, navy text outline */
+  .bf-level-remaster { background: linear-gradient(135deg, #c592e0 0%, #b96de4 45%, #ff50b9 100%);
+    text-shadow: 0 0 3px #2a3679, 0 1px 2px #2a3679;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.35), inset 0 0 0 1px #ffebff; }
+    
   /* text block over the bottom of the art: 3 rows.
    padding-top sets how tall the fade zone is; the stops set how fast it goes dark. */
   .bf-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 6px 4px;
@@ -86,6 +91,15 @@ const css = `
 
   .bf-version-band { text-align: center; font-size: 0.68rem; font-weight: 800; padding: 3px 6px;
     color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .bf-version-band img { max-width: 100%; max-height: 1.2rem; object-fit: contain; }
+  
+  
+  /* sum / average / projected badge, in the same row as the B15 / B35 heading; margin-left: auto pushes its right edge to the right-most card */
+  .bf-badge { display: inline-flex; align-items: center; justify-content: center; gap: 1rem; margin-left: auto;
+    padding: 4px 16px; border-radius: 999px; background: rgba(127,127,127,0.12); }
+  .bf-badge-stat { display: inline-flex; align-items: baseline; gap: 0.4rem; cursor: help; }
+  .bf-badge-sym { font-size: 0.95rem; font-weight: 800; color: #b96de4; }
+  .bf-badge-val { font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 
   /* ============ POPUP ============ */
   .bf-dialog { width: min(480px, calc(100vw - 2rem)); padding: 0; border: 1px solid #232326;
@@ -128,6 +142,7 @@ const css = `
 
   @media (max-width: 600px) {
     .bf-wrap { padding: 0 0.5rem 1rem 0.5rem; }
+    .bf-section { flex-wrap: wrap; }
     .bf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
   }
 `;
@@ -206,12 +221,43 @@ function ComboBadge({ tier }: { tier: 'fc' | 'fcplus' | 'ap' | 'applus' }) {
     );
 }
 
+// symbols for the summary; swap any to try another (e.g. 'ρ', 'Ω', 'Ψ')
+const SYMBOLS = { sum: 'Σ', avg: 'μ', projected: 'φ' };
+
+// sum of ratings, average per song, and the total you'd have if all 50 slots averaged that much
+function listStats(songs: Song[]) {
+    const sum = songs.reduce((t, s) => t + Math.floor(s.rating), 0);
+    const avg = songs.length ? sum / songs.length : 0;
+    return { sum, avg, projected: Math.round(avg * 50) };
+}
+
+function StatsBadge({ title, songs }: { title: string; songs: Song[] }) {
+    const { sum, avg, projected } = listStats(songs);
+    return (
+        <div className="bf-badge">
+            <span className="bf-badge-stat" title={`Sum of the ${title} ratings`}>
+                <span className="bf-badge-sym">{SYMBOLS.sum}</span>
+                <span className="bf-badge-val">{sum}</span>
+            </span>
+            <span className="bf-badge-stat" title={`Average rating per song in ${title}`}>
+                <span className="bf-badge-sym">{SYMBOLS.avg}</span>
+                <span className="bf-badge-val">{avg.toFixed(2)}</span>
+            </span>
+            <span className="bf-badge-stat" title={`Your total rating if all 50 songs averaged ${avg.toFixed(2)} (average × 50)`}>
+                <span className="bf-badge-sym">{SYMBOLS.projected}</span>
+                <span className="bf-badge-val">~{projected}</span>
+            </span>
+        </div>
+    );
+}
+
 function SongCard({ song, position, onOpen }: { song: Song; position: number; onOpen: () => void }) {
     const diff = diffOf(song.difficulty);
     const rank = rankFor(song.achievement)?.rank;
     const isDx = /dx/i.test(song.kind ?? '');
     const hasArt = Boolean(song.jacket_blob || song.jacket);
     const combo = comboInfo(song);
+    const isRemaster = (song.difficulty ?? '').toLowerCase().replace(/[^a-z]/g, '') === 'remaster';
 
     return (
         <li>
@@ -226,7 +272,7 @@ function SongCard({ song, position, onOpen }: { song: Song; position: number; on
                     {hasArt && <FallbackImage src={song.jacket_blob} fallbackSrc={song.jacket} alt="" className="bf-art" />}
                     <span className="bf-dim" aria-hidden="true" />
                     {combo && <ComboBadge tier={combo.tier} />}
-                    <span className="bf-level-badge">{song.internal_difficulty?.toFixed(1)}</span>
+                    <span className={`bf-level-badge${isRemaster ? ' bf-level-remaster' : ''}`}>{song.internal_difficulty?.toFixed(1)}</span>
                     <span className="bf-overlay">
                         <span className="bf-row">
                             <span className="bf-rating">{song.rating}</span>
@@ -249,13 +295,13 @@ function SongCard({ song, position, onOpen }: { song: Song; position: number; on
 
 // passes a click handler down, and reports which card was opened
 function Section({ title, note, songs, onOpen }: { title: string; note: string; songs: Song[]; onOpen: (s: Selected) => void }) {
-    const total = songs.reduce((sum, s) => sum + Math.floor(s.rating), 0);
 
     return (
         <section>
             <div className="bf-section">
                 <h2>{title}</h2>
-                <span>{note}, {total} rating</span>
+                <span>{note}</span>
+                <StatsBadge title={title} songs={songs} />
             </div>
             {songs.length === 0 ? (
                 <p className="bf-empty">no rated songs here yet</p>
@@ -365,7 +411,6 @@ export default function BestFifty({ data }: { data?: Song[] | null }) {
     return (
         <div className="bf-wrap">
             <style>{css}</style>
-
             <div className="bf-head">
                 <h1>Best 50 Charts</h1>
             </div>

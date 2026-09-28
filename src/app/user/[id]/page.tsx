@@ -14,6 +14,7 @@ import {
   calculateRatingChange,
   toNormalWidth,
 } from '../../../lib/leaderboard';
+import { versionName } from '../../../lib/versions';
 
 interface UserPageProps {
   params: Promise<{ id: string }>;
@@ -420,7 +421,7 @@ export default async function UserPage({ params }: UserPageProps) {
   const meta = new Map<string, SongMetaDocument>(metaDocs.map((m) => [m._id, m]));
   songs = (player.songs ?? []).map((s) => {
       const m = meta.get(s.title);
-      return m ? { ...s, jacket_blob: m.blob, artist: m.artist, bpm: m.bpm, version: m.version } : s;
+      return m ? { ...s, jacket_blob: m.blob, artist: m.artist, bpm: m.bpm, version: m.version ?? versionName(m.version_code) } : s;
   });
 }
 
