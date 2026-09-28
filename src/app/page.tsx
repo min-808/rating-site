@@ -80,14 +80,17 @@ export default async function LeaderboardPage() {
           font-family: sans-serif;
         }
         .page-title {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.25rem;
-        }
-        .title-icon {
-  height: 1.1em;
+  margin-bottom: 0.25rem;
+}
+.title-end {
+  white-space: nowrap;
+}
+.title-icon {
+  display: inline-block;
+  height: 1em;
   width: auto;
+  margin-left: 0.35em;
+  vertical-align: -0.12em;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-drag: none;
@@ -256,9 +259,12 @@ export default async function LeaderboardPage() {
       `}</style>
 
       <h1 className="page-title">
-        HI Maimai Rating Leaderboard
-      <JumpIcon src="/favicon.ico" className="title-icon" />
-      </h1>
+  HI Maimai Rating{' '}
+  <span className="title-end">
+    Leaderboard
+    <JumpIcon src="/favicon.ico" className="title-icon" />
+  </span>
+</h1>
       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 0, marginBottom: '1.5rem' }}>
         There are currently <b>{players.length}</b> players on the leaderboard
         <br />
