@@ -393,9 +393,6 @@ export default function BestFifty({ data }: { data?: Song[] | null }) {
     return (
         <div className="bf-wrap">
             <style>{css}</style>
-            <div className="bf-head">
-                <h1>Best 50 Charts</h1>
-            </div>
 
             <Section title="B15" note="new songs (CiRCLE PLUS and CiRCLE)" songs={b15} onOpen={setSelected} />
 

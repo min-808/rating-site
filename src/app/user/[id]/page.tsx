@@ -480,9 +480,9 @@ export default async function UserPage({ params }: UserPageProps) {
 
         <PlayerHistoryChart data={history} />
 
-        {!optedOut && <Best50Stats b15={new15(songs)} b35={old35(songs)} />}
-
         <hr className="divider" />
+
+        {!optedOut && <Best50Stats b15={new15(songs)} b35={old35(songs)} />}
 
         {optedOut ? (
             <p className="bf-hidden">best 50 scores hidden</p>
