@@ -57,6 +57,9 @@ export default function Faq() {
             <p>
                 please contact me via discord if you don't want to be shown on the website. i'll remove your listing
             </p>
+            <p>
+                additionally, if you want to stay on the leaderboards but you don't want your b50 to be shown, please let me know and i'll hide it from your profile
+            </p>
         </>
       ),
     },
