@@ -27,6 +27,42 @@ export interface PlayerDocument {
   history?: HistoryEntry[];
   rank_history?: RankHistoryEntry[];
   old_names?: string[];
+  songs?: Song[];
+  scores_opt_out: boolean;
+  class_rank: string;
+  class_rank_blob: string;
+}
+
+export interface Song {
+  genre: string;
+  kind: string;
+  level: string;
+  title: string;
+  achievement: number;
+  difficulty: string;
+  internal_difficulty: number;
+  new_pool: boolean;
+  rating: number;
+  ap: boolean;
+  jacket?: string;
+  jacket_blob?: string;
+  artist?: string;
+  bpm?: number;
+  version?: string;
+  fc?: string;
+  fs?: string;
+  dx_score?: number;
+  dx_max?: number;
+}
+
+export interface SongMetaDocument {
+  _id: string; // song title
+  blob?: string; // jacket URL in Vercel Blob
+  artist?: string;
+  bpm?: number;
+  genre?: string;
+  version?: string;
+  version_code?: string;
 }
 
 const ratingFrames = [

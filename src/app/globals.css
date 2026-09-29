@@ -60,3 +60,9 @@ body {
   color: var(--text-main);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+.divider {
+  border: 0;
+  border-top: 1px solid #ccc;
+  margin: 1.5rem 0;
+}

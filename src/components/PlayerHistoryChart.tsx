@@ -79,6 +79,7 @@ const css = `
     border: 1px solid var(--border-light);
     border-radius: 8px;
     padding: 1rem 1rem 0.75rem 1rem;
+    margin-bottom: 1rem;
   }
   .chart-header {
     display: flex;

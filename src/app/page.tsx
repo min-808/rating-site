@@ -10,6 +10,7 @@ import {
   calculateRatingChange,
   isNewPlayer,
 } from '../lib/leaderboard';
+import JumpIcon from '../components/JumpIcon';
 
 export const metadata: Metadata = {
   title: 'Rating Leaderboard - HI Maimai',
@@ -25,10 +26,29 @@ export default async function LeaderboardPage() {
 
   // fetch
   const rawPlayers = await db
-    .collection('players')
-    .find({})
-    .sort({ currentRank: 1 })
-    .toArray();
+  .collection('players')
+  .find(
+    {},
+    {
+      projection: {
+        user_id: 1,
+        web_id: 1,
+        name: 1,
+        rating: 1,
+        currentRank: 1,
+        previousRank: 1,
+        old_names: 1,
+        rank_change: 1,
+        // rank_history is only used for the new badge, so just the first entry
+        rank_history: { $slice: 1 },
+        // history's last two entries drive the rating delta
+        history: { $slice: -2 },
+        // don't fetch songs history lol that'll take way too long
+      },
+    },
+  )
+  .sort({ currentRank: 1 })
+  .toArray();
 
   const players = rawPlayers as unknown as PlayerDocument[];
 
@@ -59,6 +79,38 @@ export default async function LeaderboardPage() {
           margin: 0 auto;
           font-family: sans-serif;
         }
+        .page-title {
+          margin-bottom: 0.25rem;
+        }
+        .title-end {
+          white-space: nowrap;
+        }
+        .title-icon {
+          display: inline-block;
+          height: 1em;
+          width: auto;
+          margin-left: 0.35em;
+          vertical-align: -0.12em;
+          -webkit-tap-highlight-color: transparent;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+        .title-icon.is-jumping {
+          animation: none;
+        }
+
+        @keyframes icon-jump {
+          0%, 100% { transform: translateY(0); }
+          30%      { transform: translateY(-0.3em); }
+          50%      { transform: translateY(0); }
+          65%      { transform: translateY(-0.1em); }
+          80%      { transform: translateY(0); }
+        }
+
+        .title-icon.is-jumping {
+          animation: icon-jump 0.5s ease-out;
+        }
+
         .leaderboard-table {
           width: 100%;
           border-collapse: collapse;
@@ -137,6 +189,9 @@ export default async function LeaderboardPage() {
           .lb-row:hover .row-chevron {
             transform: none;
           }
+          .title-icon.is-jumping {
+            animation: none;
+          }
         }
 
         .tooltip-container {
@@ -203,7 +258,13 @@ export default async function LeaderboardPage() {
         }
       `}</style>
 
-      <h1 style={{ marginBottom: '0.25rem' }}>HI Maimai Rating Leaderboard</h1>
+      <h1 className="page-title">
+        HI Maimai Rating{' '}
+        <span className="title-end">
+          Leaderboard
+          <JumpIcon src="/favicon.ico" className="title-icon" />
+        </span>
+      </h1>
       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 0, marginBottom: '1.5rem' }}>
         There are currently <b>{players.length}</b> players on the leaderboard
         <br />

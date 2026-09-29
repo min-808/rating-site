@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "vercel-build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "sync:jackets": "node --env-file=.env scripts/sync-jackets.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
