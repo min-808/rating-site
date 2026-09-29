@@ -29,6 +29,8 @@ export interface PlayerDocument {
   old_names?: string[];
   songs?: Song[];
   scores_opt_out: boolean;
+  class_rank: string;
+  class_rank_blob: string;
 }
 
 export interface Song {

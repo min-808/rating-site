@@ -442,6 +442,7 @@ export default async function UserPage({ params }: UserPageProps) {
             <div className="user-name-row">
               <h1 className={`user-name${isHeartUser ? ' user-name-heart' : ''}`}>{displayName}</h1>
               <DanBadge src={player.dan_blob} fallbackSrc={player.dan} />
+              <DanBadge src={player.class_rank_blob} fallbackSrc={player.class_rank} />
             </div>
             {pastNames.length > 0 && (
                 <p className="user-aka">formerly known as {pastNames.join(', ')}</p>
