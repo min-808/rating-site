@@ -7,6 +7,25 @@ import { new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc'
 import FallbackImage from './FallbackImage';
 import { StatsBadge } from './StatsBadge';
 
+const BADGE_BASE = 'https://img.himaimai.net/badge';
+
+type ComboTier = 'fc' | 'fcplus' | 'ap' | 'applus';
+type SyncTier = 'sync' | 'fs' | 'fsplus' | 'fdx' | 'fdxplus';
+
+const COMBO_BADGES: Record<ComboTier, string> = {
+    fc: `${BADGE_BASE}/fc.png`,
+    fcplus: `${BADGE_BASE}/fcp.png`,
+    ap: `${BADGE_BASE}/ap.png`,
+    applus: `${BADGE_BASE}/app.png`,
+};
+
+const SYNC_BADGES: Partial<Record<SyncTier, string>> = {
+    fs: `${BADGE_BASE}/fs.png`,
+    fsplus: `${BADGE_BASE}/fsp.png`,
+    fdx: `${BADGE_BASE}/fdx.png`,
+    fdxplus: `${BADGE_BASE}/fdxp.png`,
+};
+
 const css = `
   /* page, header, sections, grid */
   .bf-wrap { padding: 0 2rem 2rem 2rem; max-width: 1000px; margin: 0 auto; font-family: sans-serif; }
@@ -31,10 +50,6 @@ const css = `
   .bf-art-wrap { position: relative; aspect-ratio: 1 / 1.02; width: 100%; overflow: hidden; }
   .bf-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .bf-dim { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
-
-  .bf-combo-badge { position: absolute; top: 6px; left: 6px; width: 26px; height: 26px; border-radius: 7px;
-    display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
-  .bf-combo-badge svg { width: 15px; height: 15px; color: #fff; }
 
   .bf-rating-badge { position: absolute; top: 0; right: 0; padding: 5px 10px 5px 12px;
     background: linear-gradient(135deg, #b768d6, #de7cce); color: #fff; font-weight: 800;
@@ -120,12 +135,6 @@ const css = `
   .bf-rank-pill { font-size: 0.85rem; font-weight: 800; padding: 4px 12px; border-radius: 999px; }
   .bf-big { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
   .bf-big small { font-size: 1.02rem; color: #b7b7bb; font-weight: 700; }
-  .bf-combo { background: rgba(255,255,255,0.1); color: #fff; border-radius: 999px; padding: 3px 10px; font-weight: 800; font-size: 0.78rem; }
-  .bf-combo-fc { background: #3d84c9; }
-  .bf-combo-fcplus { background: #1f9e86; }
-  .bf-combo-ap { background: #e08a2e; }
-  .bf-combo-applus { background: #d94f9c; }
-  .bf-sync { background: #2f8f6f; color: #fff; border-radius: 999px; padding: 3px 10px; font-weight: 800; font-size: 0.78rem; }
   .bf-dxscore { margin: 0 0 0.25rem; font-size: 0.85rem; color: #cfcfcf; font-variant-numeric: tabular-nums; }
   .bf-dlg-meta { margin: 0 0 0.2rem; font-size: 0.75rem; color: #7a7a7e; }
   .bf-next { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0.6rem 0 0.2rem;
@@ -138,6 +147,15 @@ const css = `
   .bf-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;
     border-radius: 9px; background: #19191c; border: 1px solid #2a2a2e; color: #e5484d; }
   .bf-icon-btn:hover { background: #212124; }
+
+  .bf-card-badges { position: absolute; top: 0px; left: 3px; display: flex; gap: 3px; }
+  .bf-card-badges img { height: 38px; width: auto; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+
+  .bf-dlg-badges { display: inline-flex; gap: 6px; align-items: center; }
+  .bf-dlg-badges img { height: 38px; width: auto; }
+
+  .bf-rank-img { height: 26px; width: auto; flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+  .bf-dlg-rank-img { height: 34px; width: auto; }
 
   @media (max-width: 600px) {
     .bf-wrap { padding: 0 0.5rem 1rem 0.5rem; }
@@ -180,9 +198,15 @@ function comboInfo(song: Song): { label: string; tier: 'fc' | 'fcplus' | 'ap' | 
     return map[raw] ?? null;
 }
 
-function syncLabel(song: Song): string | null {
+function syncInfo(song: Song): { label: string; tier: SyncTier } | null {
     const raw = (song.fs || '').toLowerCase().replace(/[^a-z]/g, '');
-    const map: Record<string, string> = { fs: 'FS', fsplus: 'FS+', fdx: 'FDX', fdxplus: 'FDX+' };
+    const map: Record<string, { label: string; tier: SyncTier }> = {
+        sync: { label: 'SYNC', tier: 'sync' },
+        fs: { label: 'FS', tier: 'fs' },
+        fsplus: { label: 'FS+', tier: 'fsplus' },
+        fdx: { label: 'FDX', tier: 'fdx' },
+        fdxplus: { label: 'FDX+', tier: 'fdxplus' },
+    };
     return map[raw] ?? null;
 }
 
@@ -206,17 +230,42 @@ function nextRankInfo(song: Song) {
     const rating = rateSong({ ...song, achievement: next.min });
     return { rank: next.rank, at: next.min, rating, gain: rating - song.rating };
 }
+function Badges({ song, className }: { song: Song; className: string }) {
+    const combo = comboInfo(song);
+    const sync = syncInfo(song);
+    const comboSrc = combo ? COMBO_BADGES[combo.tier] : null;
+    const syncSrc = sync ? SYNC_BADGES[sync.tier] : null;
+    if (!comboSrc && !syncSrc) return null;
 
-function ComboBadge({ tier }: { tier: 'fc' | 'fcplus' | 'ap' | 'applus' }) {
-    const bg = { fc: '#3d84c9', fcplus: '#1f9e86', ap: '#e08a2e', applus: '#d94f9c' }[tier];
     return (
-        <span className="bf-combo-badge" style={{ background: bg }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                {tier === 'ap' || tier === 'applus'
-                    ? <path d="M12 3l2.4 6.6H21l-5.4 4.1 2 6.7L12 16.6 6.4 20.4l2-6.7L3 9.6h6.6z" fill="currentColor" stroke="none" />
-                    : <path d="M5 13l4 4L19 7" />}
-            </svg>
+        <span className={className}>
+            {comboSrc && <img src={comboSrc} alt={combo!.label} title={combo!.label} />}
+            {syncSrc && <img src={syncSrc} alt={sync!.label} title={sync!.label} />}
         </span>
+    );
+}
+
+// "SSS+" -> https://img.himaimai.net/badges/sssp.png
+function rankImage(rank: string) {
+    return `${BADGE_BASE}/${rank.toLowerCase().replace(/\+/g, 'p')}.png`;
+}
+
+// grade image, falling back to the old colored text pill if the image is missing
+function RankBadge({ rank, className }: { rank: string | undefined; className: string }) {
+    const [broken, setBroken] = useState(false);
+
+    if (!rank || broken) {
+        return <span className={`bf-tag bf-${rankTone(rank)}`}>{rank ?? '-'}</span>;
+    }
+
+    return (
+        <img
+            src={rankImage(rank)}
+            alt={rank}
+            title={rank}
+            className={className}
+            onError={() => setBroken(true)}
+        />
     );
 }
 
@@ -240,12 +289,12 @@ function SongCard({ song, position, onOpen }: { song: Song; position: number; on
                 <span className="bf-art-wrap">
                     {hasArt && <FallbackImage src={song.jacket_blob} fallbackSrc={song.jacket} alt="" className="bf-art" />}
                     <span className="bf-dim" aria-hidden="true" />
-                    {combo && <ComboBadge tier={combo.tier} />}
+                    <Badges song={song} className="bf-card-badges" />
                     <span className={`bf-level-badge${isRemaster ? ' bf-level-remaster' : ''}`}>{song.internal_difficulty?.toFixed(1)}</span>
                     <span className="bf-overlay">
                         <span className="bf-row">
                             <span className="bf-rating">{song.rating}</span>
-                            <span className={`bf-tag bf-${rankTone(rank)}`}>{rank ?? '-'}</span>
+                            <RankBadge rank={rank} className="bf-rank-img" />
                         </span>
                         <span className="bf-ach">{song.achievement == null ? '-' : `${song.achievement.toFixed(4)}%`}</span>
                         <span className="bf-row">
@@ -306,7 +355,7 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
     const cutoff = song ? rankFor(song.achievement) : null;
     const [whole, decimals] = song ? song.achievement.toFixed(4).split('.') : ['', ''];
     const combo = song ? comboInfo(song) : null;
-    const sync = song ? syncLabel(song) : null;
+    const sync = song ? syncInfo(song) : null;
     const art = song?.jacket_blob || song?.jacket;
     const hasDxScore = song && song.dx_score != null && song.dx_max != null && song.dx_max > 0;
     const dxPct = hasDxScore ? ((song!.dx_score! / song!.dx_max!) * 100).toFixed(2) : null;
@@ -350,10 +399,9 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
                     <div className="bf-divider" />
 
                     <div className="bf-score">
-                        <span className={`bf-rank-pill bf-${rankTone(cutoff?.rank)}`}>{cutoff?.rank ?? '-'}</span>
+                        <RankBadge rank={cutoff?.rank} className="bf-dlg-rank-img" />
                         <span className="bf-big">{whole}.<small>{decimals}%</small></span>
-                        {combo && <span className={`bf-combo bf-combo-${combo.tier}`}>{combo.label}</span>}
-                        {sync && <span className="bf-sync">{sync}</span>}
+                        <Badges song={song} className="bf-dlg-badges" />
                     </div>
                     {hasDxScore && (
                         <p className="bf-dxscore">{song.dx_score!.toLocaleString()} / {song.dx_max!.toLocaleString()} ({dxPct}%)</p>
