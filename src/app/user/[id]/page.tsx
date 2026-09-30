@@ -387,6 +387,7 @@ export default async function UserPage({ params }: UserPageProps) {
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
+    second: 'numeric',
     minute: '2-digit',
     hour12: true,
     timeZoneName: 'short',
