@@ -101,8 +101,6 @@ const css = `
   .bf-r-sssp { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.7);
              background: linear-gradient(90deg, #ff5a5a, #ffb84d, #f2e85a, #5cd67f, #4db8ff, #a06bff);
              box-shadow: 0 0 0 1px rgba(255,255,255,0.85), 0 0 10px rgba(255,255,255,0.5); }
-               background: linear-gradient(90deg, #ff5a5a, #ffb84d, #f2e85a, #5cd67f, #4db8ff, #a06bff); }
-  .bf-r-sssp { box-shadow: 0 0 0 1px rgba(255,255,255,0.85), 0 0 10px rgba(255,255,255,0.5); }
   .bf-kind { background: rgba(255,255,255,0.16); color: #fff; }
 
   .bf-version-band { text-align: center; font-size: 0.68rem; font-weight: 800; padding: 3px 6px;
@@ -156,6 +154,22 @@ const css = `
 
   .bf-rank-img { height: 26px; width: auto; flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
   .bf-dlg-rank-img { height: 34px; width: auto; }
+
+  .bf-card-badges { position: absolute; top: 0; left: 3px; display: flex; gap: 3px; isolation: isolate; }
+  .bf-card-badges img { height: 38px; width: auto;
+    filter: drop-shadow(0 0 1px rgba(255,255,255,0.9)) drop-shadow(0 2px 4px rgba(0,0,0,0.85)); }
+
+  .bf-card-badges::before { content: ''; position: absolute; z-index: -1; inset: -4px -24px -18px -8px;
+    background: radial-gradient(ellipse at top left, rgba(0,0,0,0.6), transparent 70%); pointer-events: none; }
+
+  .bf-card-badges img { height: 38px; width: auto;
+    filter: saturate(1.15) brightness(1.05)
+          drop-shadow(0 0 1px rgba(255,255,255,0.9)) drop-shadow(0 2px 4px rgba(0,0,0,0.85)); }
+
+  .bf-rank-img { height: 26px; width: auto; flex-shrink: 0;
+    filter: drop-shadow(0 0 1px rgba(255,255,255,0.8)) drop-shadow(0 2px 3px rgba(0,0,0,0.85)); }
+
+  .bf-dlg-badges img, .bf-dlg-rank-img { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
 
   @media (max-width: 600px) {
     .bf-wrap { padding: 0 0.5rem 1rem 0.5rem; }
