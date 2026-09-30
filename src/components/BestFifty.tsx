@@ -155,6 +155,8 @@ const css = `
   .bf-rank-img { height: 26px; width: auto; flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
   .bf-dlg-rank-img { height: 34px; width: auto; }
 
+  .bf-next-rank-img { height: 24px; width: auto; flex-shrink: 0; }
+
   .bf-card-badges { position: absolute; top: 0; left: 3px; display: flex; gap: 3px; isolation: isolate; }
   .bf-card-badges img { height: 38px; width: auto;
     filter: drop-shadow(0 0 1px rgba(255,255,255,0.9)) drop-shadow(0 2px 4px rgba(0,0,0,0.85)); }
@@ -374,6 +376,7 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
     const hasDxScore = song && song.dx_score != null && song.dx_max != null && song.dx_max > 0;
     const dxPct = hasDxScore ? ((song!.dx_score! / song!.dx_max!) * 100).toFixed(2) : null;
     const next = song ? nextRankInfo(song) : null;
+    const hasAp = combo?.tier === 'ap' || combo?.tier === 'applus' || Boolean(song?.ap);
     const searchUrl = song
         ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.title} maimai ${diff?.label ?? ''}`)}`
         : '#';
@@ -426,13 +429,24 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
                     {next ? (
                         <div className="bf-next" title="Rating at exactly the next rank's cutoff. Since this chart is in your best 50, the gain adds straight to your total rating.">
                             <span className="bf-next-label">Next rank</span>
-                            <span className={`bf-rank-pill bf-${rankTone(next.rank)}`}>{next.rank}</span>
+                            <RankBadge rank={next.rank} className="bf-next-rank-img" />
                             <span className="bf-next-need">at {next.at.toFixed(4)}% (+{(next.at - song.achievement).toFixed(4)}%)</span>
                             <span className="bf-next-rating">→ {next.rating} rating</span>
                             <span className="bf-next-gain">{next.gain > 0 ? `+${next.gain}` : '+0'}</span>
                         </div>
                     ) : cutoff && (
-                        <div className="bf-next"><span className="bf-next-max">Max rank reached, no more rating to gain from this chart</span></div>
+                        hasAp ? (
+                            <div className="bf-next">
+                                <span className="bf-next-max">Max rank reached, no more rating to gain from this chart</span>
+                            </div>
+                        ) : (
+                            <div className="bf-next" title="An AP or AP+ adds a 1 rating bonus to this chart. Since it's in your best 50, it adds straight to your total.">
+                                <span className="bf-next-label">Next</span>
+                                <span className="bf-next-need">AP or AP+</span>
+                                <span className="bf-next-rating">→ {song.rating + 1} rating</span>
+                                <span className="bf-next-gain">+1</span>
+                            </div>
+                        )
                     )}
 
                     <div className="bf-icon-row">
