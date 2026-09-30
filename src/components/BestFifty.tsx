@@ -6,6 +6,7 @@ import type { Song } from '../lib/leaderboard';
 import { new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
 import FallbackImage from './FallbackImage';
 import { StatsBadge } from './StatsBadge';
+import { VERSION_NAMES } from '../lib/versions';
 
 const BADGE_BASE = 'https://img.himaimai.net/badge';
 
@@ -25,6 +26,8 @@ const SYNC_BADGES: Partial<Record<SyncTier, string>> = {
     fdx: `${BADGE_BASE}/fdx.png`,
     fdxplus: `${BADGE_BASE}/fdxp.png`,
 };
+
+const NAMES = Object.values(VERSION_NAMES)
 
 const css = `
   /* page, header, sections, grid */
@@ -470,11 +473,11 @@ export default function BestFifty({ data }: { data?: Song[] | null }) {
         <div className="bf-wrap">
             <style>{css}</style>
 
-            <Section title="B15" note="new songs (CiRCLE PLUS and CiRCLE)" songs={b15} onOpen={setSelected} />
+            <Section title="B15" note={`new songs (${NAMES[NAMES.length - 1]} and ${NAMES[NAMES.length - 2]})`} songs={b15} onOpen={setSelected} />
 
             <hr className="divider" />
 
-            <Section title="B35" note="old songs (PRiSM PLUS and below)" songs={b35} onOpen={setSelected} />
+            <Section title="B35" note={`old songs (${NAMES[NAMES.length - 3]} and below)`} songs={b35} onOpen={setSelected} />
 
             <SongDetail entry={selected} onClose={() => setSelected(null)} />
         </div>

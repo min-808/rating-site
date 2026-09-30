@@ -15,6 +15,9 @@ const css = `
     text-align: center; }
   .bf-b50 h2 { margin: 0.5rem; font-size: 2rem; }
   .bf-b50 .bf-badge { margin-left: 0; }
+  .bf-badge-lg { padding: 6px 20px; gap: 1.25rem; margin-bottom: 0.25rem; }
+  .bf-badge-lg .bf-badge-label { font-size: 0.85rem; }
+  .bf-badge-lg .bf-badge-val { font-size: 1.20rem; }
 `;
 
 // total of the ratings and the average per song
@@ -24,10 +27,10 @@ export function listStats(songs: Song[]) {
     return { sum, avg };
 }
 
-function Stats({ songs }: { songs: Song[] }) {
+function Stats({ songs, className = '' }: { songs: Song[]; className?: string }) {
     const { sum, avg } = listStats(songs);
     return (
-        <div className="bf-badge">
+        <div className={`bf-badge ${className}`}>
             <span className="bf-badge-stat">
                 <span className="bf-badge-label">total</span>
                 <span className="bf-badge-val">{sum}</span>
@@ -38,6 +41,21 @@ function Stats({ songs }: { songs: Song[] }) {
             </span>
         </div>
     );
+}
+
+function FloorCeiling({ songs }: { songs: Song[] }) {
+    return (
+        <div className="bf-badge">
+                <span className="bf-badge-stat">
+                    <span className="bf-badge-label">ceiling</span>
+                    <span className="bf-badge-val">{Math.max(...songs.map(s => Math.floor(s.rating)))}</span>
+                </span>
+                <span className="bf-badge-stat">
+                    <span className="bf-badge-label">floor</span>
+                    <span className="bf-badge-val">{Math.min(...songs.map(s => Math.floor(s.rating)))}</span>
+                </span>
+            </div>
+    )
 }
 
 // B15 / B35 version
@@ -58,7 +76,8 @@ export function Best50Stats({ b15, b35 }: { b15: Song[]; b35: Song[] }) {
         <div className="bf-b50">
             <style>{css}</style>
             <h2>Best 50 Charts</h2>
-            <Stats songs={all} />
+            <Stats songs={all} className="bf-badge-lg" />
+            <FloorCeiling songs={all} />
         </div>
     );
 }
