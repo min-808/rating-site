@@ -53,6 +53,10 @@ export interface Song {
   fs?: string;
   dx_score?: number;
   dx_max?: number;
+  improved_at?: string | Date | null;
+  improved?: string[];
+  prev_achievement?: number | null;
+  prev_fc?: string | null;
 }
 
 export interface SongMetaDocument {

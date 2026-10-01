@@ -29,6 +29,43 @@ const SYNC_BADGES: Partial<Record<SyncTier, string>> = {
 
 const NAMES = Object.values(VERSION_NAMES)
 
+// how long a chart counts as "new" after it improves
+const NEW_DAYS = 1;
+
+const COMBO_LABELS: Record<string, string> = { fc: 'FC', fcplus: 'FC+', ap: 'AP', applus: 'AP+' };
+const SYNC_LABELS: Record<string, string> = { sync: 'SYNC', fs: 'FS', fsplus: 'FS+', fdx: 'FDX', fdxplus: 'FDX+' };
+
+/**
+ * Did this chart improve recently, and what changed?
+ * The scraper stamps improved_at / improved / prev_achievement / prev_fc
+ * whenever a chart gets a first play, a higher score, or a better badge.
+ */
+function improvementInfo(song: Song) {
+    if (!song.improved_at || !song.improved?.length) return null;
+
+    const at = new Date(song.improved_at);
+    const ageDays = (Date.now() - at.getTime()) / 86_400_000;
+    if (!Number.isFinite(ageDays) || ageDays > NEW_DAYS) return null;
+
+    const isFirst = song.improved.includes('first');
+    const prevFc = song.prev_fc ?? null;
+
+    // a short description for the popup, e.g. "99.8123% → 100.2045%, FC → AP"
+    const parts: string[] = [];
+    if (isFirst) parts.push('first play');
+    if (song.improved.includes('score') && song.prev_achievement != null) {
+        parts.push(`${song.prev_achievement.toFixed(4)}% → ${song.achievement.toFixed(4)}%`);
+    }
+    if (song.improved.includes('combo')) {
+        parts.push(`${COMBO_LABELS[prevFc ?? ''] ?? 'no combo'} → ${COMBO_LABELS[song.fc ?? ''] ?? '?'}`);
+    }
+    if (song.improved.includes('sync')) {
+        parts.push(`new ${SYNC_LABELS[song.fs ?? ''] ?? 'sync'}`);
+    }
+
+    return { at, isFirst, detail: parts.join(', ') };
+}
+
 const css = `
   /* page, header, sections, grid */
   .bf-wrap { padding: 0 2rem 2rem 2rem; max-width: 1000px; margin: 0 auto; font-family: sans-serif; }
@@ -59,8 +96,12 @@ const css = `
     font-size: 1.15rem; line-height: 1; border-radius: 0 12px 0 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.35);
     font-variant-numeric: tabular-nums; }
 
+  /* top-right corner: the level badge, with the "new" banner hanging underneath it */
+  .bf-corner { position: absolute; top: 0; right: 0; display: flex; flex-direction: column;
+    align-items: flex-end; gap: 3px; }
+
   /* top-right badge: the chart's difficulty value, in the difficulty color */
-  .bf-level-badge { position: absolute; top: 0; right: 0; padding: 5px 10px 5px 12px;
+  .bf-level-badge { padding: 5px 10px 5px 12px;
     background: var(--diff); color: #fff; font-weight: 800; font-size: 1.1rem; line-height: 1;
     border-radius: 0 12px 0 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.65);
     box-shadow: 0 1px 4px rgba(0,0,0,0.35); font-variant-numeric: tabular-nums; }
@@ -191,6 +232,18 @@ const css = `
   .bf-extra-chev.open { transform: rotate(180deg); }
   .bf-extra-note { margin: 0.6rem 0; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
 
+  /* recently improved charts: a ring around the card and a banner under the level badge */
+  .bf-new { background: linear-gradient(135deg, #ff4d8d, #ff8a3d); color: #fff;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.35); box-shadow: 0 0 6px rgba(255,90,120,0.6);
+    font-variant-numeric: tabular-nums; }
+  .bf-card-new { box-shadow: 0 0 0 2px #ff5a87, 0 0 10px rgba(255,90,135,0.45); }
+  .bf-card-new:hover { box-shadow: 0 0 0 2px #ff5a87, 0 4px 14px rgba(255,90,135,0.55); }
+  .bf-new-banner { padding: 2px 8px 2px 10px; border-radius: 8px 0 0 8px; font-size: 0.68rem; font-weight: 800;
+    letter-spacing: 0.04em; line-height: 1.3; white-space: nowrap; }
+  .bf-dlg-new { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 0.5rem 0 0.2rem;
+    font-size: 0.8rem; color: #cfcfcf; font-variant-numeric: tabular-nums; }
+  .bf-dlg-new-date { color: #7a7a7e; margin-left: auto; }
+
   /* tied charts: dimmed so they read as "not counted", brighter on hover so they're still easy to look at */
   .bf-card-muted { opacity: 0.45; transition: opacity 0.15s ease; }
   .bf-card-muted:hover, .bf-card-muted:focus-visible { opacity: 0.85; }
@@ -312,12 +365,13 @@ function SongCard({ song, position, onOpen, muted = false }: {
     const isDx = /dx/i.test(song.kind ?? '');
     const hasArt = Boolean(song.jacket_blob || song.jacket);
     const isRemaster = (song.difficulty ?? '').toLowerCase().replace(/[^a-z]/g, '') === 'remaster';
+    const improvement = improvementInfo(song);
 
     return (
         <li>
             <button
                 type="button"
-                className={`bf-card${muted ? ' bf-card-muted' : ''}`}
+                className={`bf-card${muted ? ' bf-card-muted' : ''}${improvement ? ' bf-card-new' : ''}`}
                 style={{ '--diff': diff.color } as CSSProperties}
                 onClick={onOpen}
                 title={`#${position} ${song.title}`}
@@ -326,7 +380,14 @@ function SongCard({ song, position, onOpen, muted = false }: {
                     {hasArt && <FallbackImage src={song.jacket_blob} fallbackSrc={song.jacket} alt="" className="bf-art" />}
                     <span className="bf-dim" aria-hidden="true" />
                     <Badges song={song} className="bf-card-badges" />
-                    <span className={`bf-level-badge${isRemaster ? ' bf-level-remaster' : ''}`}>{song.internal_difficulty?.toFixed(1)}</span>
+                    <span className="bf-corner">
+                        <span className={`bf-level-badge${isRemaster ? ' bf-level-remaster' : ''}`}>{song.internal_difficulty?.toFixed(1)}</span>
+                        {improvement && (
+                            <span className="bf-new bf-new-banner" title={improvement.detail}>
+                                New PB
+                            </span>
+                        )}
+                    </span>
                     <span className="bf-overlay">
                         <span className="bf-row">
                             <span className="bf-rating">{song.rating}</span>
@@ -439,6 +500,7 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
     const dxPct = hasDxScore ? ((song!.dx_score! / song!.dx_max!) * 100).toFixed(2) : null;
     const next = song ? nextRankInfo(song) : null;
     const hasAp = combo?.tier === 'ap' || combo?.tier === 'applus' || Boolean(song?.ap);
+    const improvement = song ? improvementInfo(song) : null;
     const searchUrl = song
         ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.title} maimai ${diff?.label ?? ''}`)}`
         : '#';
@@ -487,6 +549,16 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
                     )}
                     <p className="bf-dlg-meta"><b>{song.rating} rating</b></p>
                     <p className="bf-dlg-meta">{entry.list}: #{entry.position} of {entry.size}</p>
+
+                    {improvement && (
+                        <div className="bf-dlg-new">
+                            <span className="bf-tag bf-new">New PB</span>
+                            <span>{improvement.detail}</span>
+                            <span className="bf-dlg-new-date">
+                                {improvement.at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                        </div>
+                    )}
 
                     {next ? (
                         <div className="bf-next" title="Rating at exactly the next rank's cutoff. Since this chart is in your best 50, the gain adds straight to your total rating.">
@@ -551,12 +623,12 @@ export default function BestFifty({ data }: { data?: Song[] | null }) {
         <div className="bf-wrap">
             <style>{css}</style>
 
-            <Section title="B15" note="new songs (CiRCLE PLUS and CiRCLE)" songs={b15}
+            <Section title="B15" note={`new songs (${NAMES[NAMES.length - 1]} and ${NAMES[NAMES.length - 2]})`} songs={b15}
                 extras={b15Ties.extras} floor={b15Ties.floor} onOpen={setSelected} />
 
             <hr className="divider" />
 
-            <Section title="B35" note="old songs (PRiSM PLUS and below)" songs={b35}
+            <Section title="B35" note={`old songs (${NAMES[NAMES.length - 3]} and below)`} songs={b35}
                 extras={b35Ties.extras} floor={b35Ties.floor} onOpen={setSelected} />
 
             <SongDetail entry={selected} onClose={() => setSelected(null)} />
