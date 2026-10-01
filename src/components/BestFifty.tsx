@@ -429,7 +429,7 @@ function SongCard({ song, position, onOpen, muted = false, gain = 0 }: {
                         <span className={`bf-level-badge${isRemaster ? ' bf-level-remaster' : ''}`}>{song.internal_difficulty?.toFixed(1)}</span>
                         {improvement && (
                             <span className="bf-new bf-new-banner" title={improvement.detail}>
-                                NEW{gain > 0 ? ` (+${gain})` : ''}
+                                NEW (+{gain})
                             </span>
                         )}
                     </span>
@@ -603,8 +603,8 @@ function SongDetail({ entry, gains, onClose }: {
 
                     {improvement && (
                         <div className="bf-dlg-new">
-                            <span className="bf-tag bf-new" title={gain > 0 ? `Added ${gain} to their total rating` : undefined}>
-                                New PB{gain > 0 ? ` +${gain}` : ''}
+                            <span className="bf-tag bf-new" title={`Added ${gain} to their total rating`}>
+                                NEW (+{gain})
                             </span>
                             <span>{improvement.detail}</span>
                             <span className="bf-dlg-new-date">
