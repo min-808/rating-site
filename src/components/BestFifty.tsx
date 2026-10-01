@@ -181,6 +181,19 @@ const css = `
     .bf-section { flex-wrap: wrap; }
     .bf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
   }
+
+  /* expand / collapse button for the tied charts */
+  .bf-extra-toggle { display: flex; align-items: center; gap: 6px; margin: 0.75rem auto 0; padding: 6px 14px;
+    border-radius: 999px; border: 1px solid var(--border-light); background: transparent;
+    color: var(--text-sub); font: inherit; font-size: 0.8rem; cursor: pointer; }
+  .bf-extra-toggle:hover { color: #2563eb; border-color: #2563eb; }
+  .bf-extra-chev { display: inline-block; transition: transform 0.2s ease; }
+  .bf-extra-chev.open { transform: rotate(180deg); }
+  .bf-extra-note { margin: 0.6rem 0; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
+
+  /* tied charts: dimmed so they read as "not counted", brighter on hover so they're still easy to look at */
+  .bf-card-muted { opacity: 0.45; transition: opacity 0.15s ease; }
+  .bf-card-muted:hover, .bf-card-muted:focus-visible { opacity: 0.85; }
 `;
 
 const DIFFS: Record<string, { label: string; color: string }> = {
@@ -288,19 +301,23 @@ function RankBadge({ rank, className }: { rank: string | undefined; className: s
     );
 }
 
-function SongCard({ song, position, onOpen }: { song: Song; position: number; onOpen: () => void }) {
+function SongCard({ song, position, onOpen, muted = false }: {
+    song: Song;
+    position: number;
+    onOpen: () => void;
+    muted?: boolean;
+}) {
     const diff = diffOf(song.difficulty);
     const rank = rankFor(song.achievement)?.rank;
     const isDx = /dx/i.test(song.kind ?? '');
     const hasArt = Boolean(song.jacket_blob || song.jacket);
-    const combo = comboInfo(song);
     const isRemaster = (song.difficulty ?? '').toLowerCase().replace(/[^a-z]/g, '') === 'remaster';
 
     return (
         <li>
             <button
                 type="button"
-                className="bf-card"
+                className={`bf-card${muted ? ' bf-card-muted' : ''}`}
                 style={{ '--diff': diff.color } as CSSProperties}
                 onClick={onOpen}
                 title={`#${position} ${song.title}`}
@@ -331,7 +348,11 @@ function SongCard({ song, position, onOpen }: { song: Song; position: number; on
 }
 
 // passes a click handler down, and reports which card was opened
-function Section({ title, note, songs, onOpen }: { title: string; note: string; songs: Song[]; onOpen: (s: Selected) => void }) {
+function Section({ title, note, songs, extras, floor, onOpen }: {
+    title: string; note: string; songs: Song[]; extras: Song[]; floor: number | null;
+    onOpen: (s: Selected) => void;
+}) {
+    const [showExtras, setShowExtras] = useState(false);
 
     return (
         <section>
@@ -346,13 +367,51 @@ function Section({ title, note, songs, onOpen }: { title: string; note: string; 
                 <ul className="bf-grid">
                     {songs.map((song, i) => (
                         <SongCard
-                            key={`${song.difficulty}-${song.kind}-${song.title}`}
+                            key={chartKey(song)}
                             song={song}
                             position={i + 1}
                             onOpen={() => onOpen({ song, position: i + 1, list: title, size: songs.length })}
                         />
                     ))}
                 </ul>
+            )}
+
+            {extras.length > 0 && (
+                <>
+                    <button
+                        type="button"
+                        className="bf-extra-toggle"
+                        aria-expanded={showExtras}
+                        onClick={() => setShowExtras((v) => !v)}
+                    >
+                        {showExtras ? 'hide' : 'show'} {extras.length} more chart{extras.length === 1 ? '' : 's'} tied at the floor ({floor})
+                        <span className={`bf-extra-chev${showExtras ? ' open' : ''}`} aria-hidden="true">▾</span>
+                    </button>
+
+                    {showExtras && (
+                        <>
+                            <p className="bf-extra-note">
+                                these tie your lowest {title} rating but don't count toward your total
+                            </p>
+                            <ul className="bf-grid">
+                                {extras.map((song, i) => (
+                                    <SongCard
+                                        key={chartKey(song)}
+                                        song={song}
+                                        position={i + 1}
+                                        muted
+                                        onOpen={() => onOpen({
+                                            song,
+                                            position: i + 1,
+                                            list: `${title} ties (not counted)`,
+                                            size: extras.length,
+                                        })}
+                                    />
+                                ))}
+                            </ul>
+                        </>
+                    )}
+                </>
             )}
         </section>
     );
@@ -461,23 +520,44 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
     );
 }
 
+const chartKey = (s: Song) => `${s.difficulty}-${s.kind}-${s.title}`;
+
+// every chart in the same pool that ties the list's lowest rating but didn't make the cut
+function tiedAtFloor(all: Song[], counted: Song[], inPool: (s: Song) => boolean) {
+    if (counted.length === 0) return { floor: null, extras: [] as Song[] };
+
+    const countedKeys = new Set(counted.map(chartKey));
+    const floor = Math.min(...counted.map((s) => Math.floor(s.rating)));
+
+    const extras = all
+        .filter((s) => inPool(s) && !countedKeys.has(chartKey(s)))
+        // raw songs don't carry a rating yet; work it out the same way new15 / old35 do
+        .map((s) => ({ ...s, rating: s.rating ?? rateSong(s) }))
+        .filter((s) => Math.floor(s.rating) === floor);
+
+    return { floor, extras };
+}
+
 export default function BestFifty({ data }: { data?: Song[] | null }) {
     const [selected, setSelected] = useState<Selected | null>(null);
     const songs = data ?? [];
     const b15 = new15(songs);
     const b35 = old35(songs);
-    const sum = (list: Song[]) => list.reduce((t, s) => t + Math.floor(s.rating), 0);
-    const total = sum(b15) + sum(b35);
+
+    const b15Ties = tiedAtFloor(songs, b15, (s) => Boolean(s.new_pool));
+    const b35Ties = tiedAtFloor(songs, b35, (s) => !s.new_pool);
 
     return (
         <div className="bf-wrap">
             <style>{css}</style>
 
-            <Section title="B15" note={`new songs (${NAMES[NAMES.length - 1]} and ${NAMES[NAMES.length - 2]})`} songs={b15} onOpen={setSelected} />
+            <Section title="B15" note="new songs (CiRCLE PLUS and CiRCLE)" songs={b15}
+                extras={b15Ties.extras} floor={b15Ties.floor} onOpen={setSelected} />
 
             <hr className="divider" />
 
-            <Section title="B35" note={`old songs (${NAMES[NAMES.length - 3]} and below)`} songs={b35} onOpen={setSelected} />
+            <Section title="B35" note="old songs (PRiSM PLUS and below)" songs={b35}
+                extras={b35Ties.extras} floor={b35Ties.floor} onOpen={setSelected} />
 
             <SongDetail entry={selected} onClose={() => setSelected(null)} />
         </div>
