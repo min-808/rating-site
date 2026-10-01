@@ -66,6 +66,50 @@ function improvementInfo(song: Song) {
     return { at, isFirst, detail: parts.join(', ') };
 }
 
+// total rating from a list of charts: best 15 new + best 35 old, each rating rounded down
+function b50Total(list: Song[]) {
+    const sum = (l: Song[]) => l.reduce((t, s) => t + Math.floor(s.rating), 0);
+    return sum(new15(list)) + sum(old35(list));
+}
+
+/**
+ * How much each recent improvement added to the player's total rating.
+ *
+ * For every improved chart, the B50 is worked out again with that one chart
+ * put back the way it was (old score and old combo badge, or removed entirely
+ * for a first play). The difference is what the improvement was worth. A chart
+ * that didn't make the B50 comes out as 0, and an improvement that pushed
+ * another chart out only counts what it gained over the chart it replaced.
+ */
+function ratingGains(songs: Song[]): Map<string, number> {
+    const gains = new Map<string, number>();
+    const improved = songs.filter((s) => improvementInfo(s));
+    if (improved.length === 0) return gains;
+
+    const current = b50Total(songs);
+
+    for (const s of improved) {
+        const key = chartKey(s);
+        const isFirst = s.improved?.includes('first') || s.prev_achievement == null;
+        const prevFc = s.prev_fc ?? null;
+
+        const reverted = isFirst
+            ? songs.filter((x) => chartKey(x) !== key)
+            : songs.map((x) => chartKey(x) !== key ? x : ({
+                ...x,
+                achievement: s.prev_achievement as number,
+                fc: prevFc,
+                ap: prevFc === 'ap' || prevFc === 'applus',
+                app: prevFc === 'applus',
+                rating: undefined, // make new15 / old35 rate it again at the old score
+            } as unknown as Song));
+
+        gains.set(key, Math.max(0, current - b50Total(reverted)));
+    }
+
+    return gains;
+}
+
 const css = `
   /* page, header, sections, grid */
   .bf-wrap { padding: 0 2rem 2rem 2rem; max-width: 1000px; margin: 0 auto; font-family: sans-serif; }
@@ -238,7 +282,7 @@ const css = `
     font-variant-numeric: tabular-nums; }
   .bf-card-new { box-shadow: 0 0 0 2px #ff5a87, 0 0 10px rgba(255,90,135,0.45); }
   .bf-card-new:hover { box-shadow: 0 0 0 2px #ff5a87, 0 4px 14px rgba(255,90,135,0.55); }
-  .bf-new-banner { padding: 2px 8px 2px 10px; border-radius: 8px 0 0 8px; font-size: 0.68rem; font-weight: 800;
+  .bf-new-banner { padding: 2px 4px 2px 6px; border-radius: 8px 0 0 8px; font-size: 0.62rem; font-weight: 800;
     letter-spacing: 0.04em; line-height: 1.3; white-space: nowrap; }
   .bf-dlg-new { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 0.5rem 0 0.2rem;
     font-size: 0.8rem; color: #cfcfcf; font-variant-numeric: tabular-nums; }
@@ -354,11 +398,12 @@ function RankBadge({ rank, className }: { rank: string | undefined; className: s
     );
 }
 
-function SongCard({ song, position, onOpen, muted = false }: {
+function SongCard({ song, position, onOpen, muted = false, gain = 0 }: {
     song: Song;
     position: number;
     onOpen: () => void;
     muted?: boolean;
+    gain?: number;
 }) {
     const diff = diffOf(song.difficulty);
     const rank = rankFor(song.achievement)?.rank;
@@ -384,7 +429,7 @@ function SongCard({ song, position, onOpen, muted = false }: {
                         <span className={`bf-level-badge${isRemaster ? ' bf-level-remaster' : ''}`}>{song.internal_difficulty?.toFixed(1)}</span>
                         {improvement && (
                             <span className="bf-new bf-new-banner" title={improvement.detail}>
-                                New PB
+                                NEW{gain > 0 ? ` (+${gain})` : ''}
                             </span>
                         )}
                     </span>
@@ -409,8 +454,9 @@ function SongCard({ song, position, onOpen, muted = false }: {
 }
 
 // passes a click handler down, and reports which card was opened
-function Section({ title, note, songs, extras, floor, onOpen }: {
+function Section({ title, note, songs, extras, floor, gains, onOpen }: {
     title: string; note: string; songs: Song[]; extras: Song[]; floor: number | null;
+    gains: Map<string, number>;
     onOpen: (s: Selected) => void;
 }) {
     const [showExtras, setShowExtras] = useState(false);
@@ -431,6 +477,7 @@ function Section({ title, note, songs, extras, floor, onOpen }: {
                             key={chartKey(song)}
                             song={song}
                             position={i + 1}
+                            gain={gains.get(chartKey(song))}
                             onOpen={() => onOpen({ song, position: i + 1, list: title, size: songs.length })}
                         />
                     ))}
@@ -461,6 +508,7 @@ function Section({ title, note, songs, extras, floor, onOpen }: {
                                         song={song}
                                         position={i + 1}
                                         muted
+                                        gain={gains.get(chartKey(song))}
                                         onOpen={() => onOpen({
                                             song,
                                             position: i + 1,
@@ -479,7 +527,9 @@ function Section({ title, note, songs, extras, floor, onOpen }: {
 }
 
 // The popup, using the browser's built-in <dialog> (Esc closes it, focus is handled for you)
-function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () => void }) {
+function SongDetail({ entry, gains, onClose }: {
+    entry: Selected | null; gains: Map<string, number>; onClose: () => void;
+}) {
     const ref = useRef<HTMLDialogElement>(null);
 
     useEffect(() => {
@@ -501,6 +551,7 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
     const next = song ? nextRankInfo(song) : null;
     const hasAp = combo?.tier === 'ap' || combo?.tier === 'applus' || Boolean(song?.ap);
     const improvement = song ? improvementInfo(song) : null;
+    const gain = song ? gains.get(chartKey(song)) ?? 0 : 0;
     const searchUrl = song
         ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.title} maimai ${diff?.label ?? ''}`)}`
         : '#';
@@ -552,7 +603,9 @@ function SongDetail({ entry, onClose }: { entry: Selected | null; onClose: () =>
 
                     {improvement && (
                         <div className="bf-dlg-new">
-                            <span className="bf-tag bf-new">New PB</span>
+                            <span className="bf-tag bf-new" title={gain > 0 ? `Added ${gain} to their total rating` : undefined}>
+                                New PB{gain > 0 ? ` +${gain}` : ''}
+                            </span>
                             <span>{improvement.detail}</span>
                             <span className="bf-dlg-new-date">
                                 {improvement.at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -618,20 +671,21 @@ export default function BestFifty({ data }: { data?: Song[] | null }) {
 
     const b15Ties = tiedAtFloor(songs, b15, (s) => Boolean(s.new_pool));
     const b35Ties = tiedAtFloor(songs, b35, (s) => !s.new_pool);
+    const gains = ratingGains(songs);
 
     return (
         <div className="bf-wrap">
             <style>{css}</style>
 
             <Section title="B15" note={`new songs (${NAMES[NAMES.length - 1]} and ${NAMES[NAMES.length - 2]})`} songs={b15}
-                extras={b15Ties.extras} floor={b15Ties.floor} onOpen={setSelected} />
+                extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} />
 
             <hr className="divider" />
 
             <Section title="B35" note={`old songs (${NAMES[NAMES.length - 3]} and below)`} songs={b35}
-                extras={b35Ties.extras} floor={b35Ties.floor} onOpen={setSelected} />
+                extras={b35Ties.extras} floor={b35Ties.floor} gains={gains} onOpen={setSelected} />
 
-            <SongDetail entry={selected} onClose={() => setSelected(null)} />
+            <SongDetail entry={selected} gains={gains} onClose={() => setSelected(null)} />
         </div>
     );
 }
