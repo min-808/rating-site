@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const { put, list } = require('@vercel/blob');
 
 // one year: the file at a given key never changes, so it can cache forever
 const CACHE_SECONDS = 60 * 60 * 24 * 365;
