@@ -6,12 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "vercel-build": "next build",
-    "start": "next start",
-    "sync:jackets": "node --env-file=.env scripts/sync-jackets.mjs"
+    "start": "next start"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
-    "@vercel/blob": "^2.8.0",
     "dotenv": "^17.4.2",
     "mongodb": "^7.6.0",
     "mongoose": "^9.10.0",

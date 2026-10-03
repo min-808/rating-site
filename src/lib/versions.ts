@@ -1,5 +1,4 @@
 // otoge-db stores a song's version as a number code. songmeta already saves it as `version_code`
-// (sync-jackets.mjs does this for every song), so the name is looked up here at render time.
 // Any code missing from this list simply shows no version band, so add new versions as they release.
 // Check which codes your data has with:  db.songmeta.distinct("version_code")
 export const VERSION_NAMES: Record<string, string> = {
