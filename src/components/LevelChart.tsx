@@ -107,7 +107,7 @@ const KEY_BY_VIEW: Record<View, (song: Song) => string> = { rank: rankKey, combo
 const NEW_DAYS = 1;
 
 // levels below this (11+ and lower) are collapsed by default
-const LOW_CUTOFF = 12;
+const LOW_CUTOFF = 10;
 
 // "13+" sorts just above "13" and below "14"
 function levelValue(level: string): number {
@@ -306,10 +306,10 @@ export default function LevelChart({ songs, totals, naExcluded }: {
                     <div className="lc-toggle" role="group" aria-label="Region">
                         <button type="button" className={region === 'na' ? 'active' : ''} aria-pressed={region === 'na'}
                             onClick={() => setRegion('na')}
-                            title="Only songs available in North America">na</button>
+                            title="The international version, with a handful of excluded songs">na</button>
                         <button type="button" className={region === 'intl' ? 'active' : ''} aria-pressed={region === 'intl'}
                             onClick={() => setRegion('intl')}
-                            title="Every song in the international version">international</button>
+                            title="Every song in the international version of Maimai">international</button>
                     </div>
                 </div>
             </div>
