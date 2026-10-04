@@ -13,8 +13,8 @@ import { toNormalWidth } from '../lib/leaderboard';
  *
  * A level is "lamped" once every chart at it has been played with at least an A
  * (80%, a pass). The lamp shows the worst result across the folder, so it climbs
- * as they improve: CLEAR, then S, SS, SSS, SSS+ in the rank view, and CLEAR,
- * FC, FC+, AP, AP+ in the combo view.
+ * as they improve: A, AA, AAA, S, SS, SSS, SSS+ in the rank view, and A (all
+ * passed), FC, FC+, AP, AP+ in the combo view.
  *
  * Each level also shows "+N" when the latest nightly scrape found N charts
  * there that the player had never played before.
@@ -78,11 +78,13 @@ type Lamp = { label: string; color: string; text: string; title: string };
 const RANK_ORDER = RANK_SEGMENTS.map((s) => s.key);
 const COMBO_ORDER = COMBO_SEGMENTS.map((s) => s.key);
 
-const CLEAR_LAMP = { label: 'CLEAR', color: '#22a35a', text: '#fff', what: 'A or better' };
-const RANK_LAMPS: Record<string, typeof CLEAR_LAMP> = {
-    a: CLEAR_LAMP,
-    aa: CLEAR_LAMP,
-    aaa: CLEAR_LAMP,
+// short labels keep the lamp slot narrow, which matters on phones.
+// the pass-level lamps use the same colors as their rank segments in the bars
+const PASS_LAMP = { label: 'A', color: '#f4a7bd', text: '#4a0f22', what: 'A or better' };
+const RANK_LAMPS: Record<string, typeof PASS_LAMP> = {
+    a: PASS_LAMP,
+    aa: { label: 'AA', color: '#e0527f', text: '#fff', what: 'AA or better' },
+    aaa: { label: 'AAA', color: 'linear-gradient(135deg, #d92d4a, #e8407a)', text: '#fff', what: 'AAA or better' },
     s: { label: 'S', color: '#d9b45a', text: '#3b2a00', what: 'S or better' },
     ss: { label: 'SS', color: '#f5c531', text: '#3b2500', what: 'SS or better' },
     sss: { label: 'SSS', color: '#fff0a0', text: '#4a3200', what: 'SSS or better' },
@@ -91,8 +93,8 @@ const RANK_LAMPS: Record<string, typeof CLEAR_LAMP> = {
         color: 'linear-gradient(90deg, #ff5a5a, #ffb84d, #f2e85a, #5cd67f, #4db8ff, #a06bff)',
     },
 };
-const COMBO_LAMPS: Record<string, typeof CLEAR_LAMP> = {
-    played: CLEAR_LAMP,
+const COMBO_LAMPS: Record<string, typeof PASS_LAMP> = {
+    played: PASS_LAMP,
     fc: { label: 'FC', color: '#3d84c9', text: '#fff', what: 'FC or better' },
     fcplus: { label: 'FC+', color: '#1f9e86', text: '#fff', what: 'FC+ or better' },
     ap: { label: 'AP', color: '#e08a2e', text: '#fff', what: 'AP or better' },
@@ -106,7 +108,7 @@ const KEY_BY_VIEW: Record<View, (song: Song) => string> = { rank: rankKey, combo
 // one day covers whatever the latest scrape found (same window as the NEW PB banners)
 const NEW_DAYS = 1;
 
-// levels below this (11+ and lower) are collapsed by default
+// levels below this (9+ and lower) are collapsed by default
 const LOW_CUTOFF = 10;
 
 // "13+" sorts just above "13" and below "14"
@@ -144,16 +146,20 @@ const css = `
   .lc-seg { height: 100%; flex-shrink: 0; }
   .lc-count { font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-  /* the right-hand column is three fixed slots: lamp (left-aligned) | played / total | +new.
-     every row has all three (empty when there's nothing to show), so the counts
-     line up in one column down the chart instead of shifting with the lamp */
-  .lc-end { display: grid; grid-template-columns: 3.3rem 4.6rem 2rem; align-items: center; gap: 6px; }
-  .lc-end-lamp { justify-self: start; }
-  .lc-end-count { text-align: right; }
+  /* the right-hand column is three slots: lamp (left-aligned) | played / total | +new.
+     every row has all three (empty when there's nothing to show), so everything
+     lines up down the chart instead of shifting with the lamp */
+  .lc-end { display: grid; grid-template-columns: 2.6rem auto 2rem; align-items: center; gap: 6px; }
+  .lc-end-lamp { justify-self: start; display: flex; align-items: center; }
+  /* played / total as three tight pieces sized to 3 digits, so the slashes line up
+     and the count sits right next to the lamp instead of floating far to the right */
+  .lc-end-count { display: grid; grid-template-columns: 3ch auto 3ch; column-gap: 0.3em; align-items: center; }
+  .lc-played { text-align: right; }
+  .lc-total { text-align: left; }
   .lc-new { font-size: 0.72rem; font-weight: 800; color: #4ade80; font-variant-numeric: tabular-nums;
     white-space: nowrap; text-align: left; }
-  .lc-lamp { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.03em; padding: 1px 6px; border-radius: 4px;
-    line-height: 1.4; white-space: nowrap; text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
+  .lc-lamp { display: inline-block; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.03em; padding: 1px 6px;
+    border-radius: 4px; line-height: 1.3; white-space: nowrap; text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
   /* a lamped level's bar gets the same soft glow, whatever the lamp is */
   .lc-row-lamped .lc-track { box-shadow: 0 0 0 1px rgba(255, 214, 110, 0.9), 0 0 6px rgba(255, 214, 110, 0.6); }
 
@@ -164,9 +170,12 @@ const css = `
   .lc-chev { display: inline-block; transition: transform 0.2s ease; }
   .lc-chev.open { transform: rotate(180deg); }
 
+  /* phones: tighter right-hand slots and slightly smaller text, so the bar keeps most of the row */
   @media (max-width: 600px) {
     .lc-row { grid-template-columns: 2.2rem 1fr auto; gap: 6px; }
-    .lc-end { grid-template-columns: 2.9rem 4rem 1.7rem; gap: 4px; }
+    .lc-end { grid-template-columns: 2.2rem auto 1.5rem; gap: 4px; }
+    .lc-count, .lc-new { font-size: 0.66rem; }
+    .lc-lamp { font-size: 0.56rem; padding: 1px 4px; }
     .lc-track { height: 12px; }
   }
 `;
@@ -245,7 +254,7 @@ export default function LevelChart({ songs, totals, naExcluded }: {
 
     if (rows.length === 0) return null;
 
-    // 12 and up are always shown; 11+ and below sit behind a toggle
+    // 10 and up are always shown; 9+ and below sit behind a toggle
     const highRows = rows.filter((r) => levelValue(r.level) >= LOW_CUTOFF);
     const lowRows = rows.filter((r) => levelValue(r.level) < LOW_CUTOFF);
     const lowPlayed = lowRows.reduce((t, r) => t + r.played, 0);
@@ -279,7 +288,11 @@ export default function LevelChart({ songs, totals, naExcluded }: {
                         </span>
                     )}
                 </span>
-                <span className="lc-count lc-end-count">{played} / {total}</span>
+                <span className="lc-count lc-end-count">
+                    <span className="lc-played">{played}</span>
+                    <span aria-hidden="true">/</span>
+                    <span className="lc-total">{total}</span>
+                </span>
                 <span
                     className="lc-new"
                     title={newCount > 0 ? `${newCount} chart${newCount === 1 ? '' : 's'} played for the first time in the latest update` : undefined}
