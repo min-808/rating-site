@@ -499,7 +499,7 @@ function Section({ title, note, songs, extras, floor, gains, onOpen }: {
                     {showExtras && (
                         <>
                             <p className="bf-extra-note">
-                                these tie your lowest {title} rating but don't count toward your total
+                                these scores tie your {title} floor but don't count toward your rating
                             </p>
                             <ul className="bf-grid">
                                 {extras.map((song, i) => (

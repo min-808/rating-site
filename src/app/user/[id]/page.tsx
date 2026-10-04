@@ -17,6 +17,7 @@ import {
   toNormalWidth,
 } from '../../../lib/leaderboard';
 import { versionName } from '../../../lib/versions';
+import LevelChart from '../../../components/LevelChart';
 
 interface UserPageProps {
   params: Promise<{ id: string }>;
@@ -414,6 +415,11 @@ export default async function UserPage({ params }: UserPageProps) {
   const optedOut = Boolean(player.scores_opt_out);
 
   let songs: PlayerDocument['songs'] = [];
+
+  // the "charts by level" totals, for both region views, and the songs the NA view leaves out
+  const levelTotals = { na: {} as Record<string, number>, intl: {} as Record<string, number> };
+  let naExcluded: string[] = [];
+
   if (!optedOut) {
     const titles = [...new Set((player.songs ?? []).map((s) => s.title))];
     const metaDocs = await client
@@ -424,8 +430,49 @@ export default async function UserPage({ params }: UserPageProps) {
     const meta = new Map<string, SongMetaDocument>(metaDocs.map((m) => [m._id, m]));
     songs = (player.songs ?? []).map((s) => {
       const m = meta.get(s.title);
-      return m ? { ...s, jacket_blob: m.blob, artist: m.artist, bpm: m.bpm, version: m.version ?? versionName(m.version_code) } : s;
+      return m
+  ? {
+      ...s,
+      jacket_blob: m.blob,
+      artist: m.artist,
+      bpm: m.bpm,
+      version: versionName(m.version_code),
+      improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null,
+    }
+  : { ...s, improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null };
     });
+
+    // same title matching as the scrapers, so full-width titles line up
+    const titleKey = (t: string) => toNormalWidth(String(t ?? '')).replace(/\s+/g, ' ').trim().toLowerCase();
+
+    // songs not available in North America (na: "0"). a title only counts as
+    // excluded if every song with that title is marked, since a few titles are shared
+    const songFlags = await client
+        .db('maimai')
+        .collection<{ title: string; na?: string | number }>('songs')
+        .find({}, { projection: { title: 1, na: 1 } })
+        .toArray();
+
+    const availableInNa = new Map<string, boolean>();
+    for (const s of songFlags) {
+      const key = titleKey(s.title);
+      availableInNa.set(key, (availableInNa.get(key) ?? false) || String(s.na) !== '0');
+    }
+    naExcluded = [...availableInNa].filter(([, ok]) => !ok).map(([key]) => key);
+    const excludedSet = new Set(naExcluded);
+
+    // chart lists per level, saved nightly from maimai NET's own level pages
+    const levelDocs = await client
+        .db('maimai')
+        .collection<{ _id: string; charts?: { title: string }[] }>('level_charts')
+        .find({}, { projection: { charts: 1 } })
+        .toArray();
+
+    for (const doc of levelDocs) {
+      const charts = doc.charts ?? [];
+      levelTotals.intl[doc._id] = charts.length;
+      levelTotals.na[doc._id] = charts.filter((c) => !excludedSet.has(titleKey(c.title))).length;
+    }
   }
 
   return (
@@ -483,12 +530,15 @@ export default async function UserPage({ params }: UserPageProps) {
 
         <hr className="divider" />
 
-        {!optedOut && <Best50Stats b15={new15(songs)} b35={old35(songs)} />}
-
         {optedOut ? (
-            <p className="bf-hidden">best 50 scores hidden</p>
+        <p className="bf-hidden">best 50 scores hidden</p>
         ) : (
+        <>
+            <LevelChart songs={songs} totals={levelTotals} naExcluded={naExcluded} />
+            <hr className="divider" />
+            <Best50Stats b15={new15(songs)} b35={old35(songs)} />
             <BestFifty data={songs} />
+        </>
         )}
 
         <p className="updated">last updated on {lastUpdated}</p>
