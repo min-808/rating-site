@@ -333,7 +333,7 @@ export default function LevelChart({ songs, totals, naExcluded }: {
                     aria-expanded={showLow}
                     onClick={() => setShowLow((v) => !v)}
                 >
-                    {showLow ? 'hide' : 'show'} level 11+ and below ({lowPlayed} played{lowNew > 0 ? `, +${lowNew} new` : ''})
+                    {showLow ? 'hide' : 'show'} level 9+ and below ({lowPlayed} played{lowNew > 0 ? `, +${lowNew} new` : ''})
                     <span className={`lc-chev${showLow ? ' open' : ''}`} aria-hidden="true">▾</span>
                 </button>
             )}
