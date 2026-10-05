@@ -151,11 +151,9 @@ const css = `
      lines up down the chart instead of shifting with the lamp */
   .lc-end { display: grid; grid-template-columns: 2.6rem auto 2rem; align-items: center; gap: 6px; }
   .lc-end-lamp { justify-self: start; display: flex; align-items: center; }
-  /* played / total as three tight pieces sized to 3 digits, so the slashes line up
-     and the count sits right next to the lamp instead of floating far to the right */
-  .lc-end-count { display: grid; grid-template-columns: 3ch auto 3ch; column-gap: 0.3em; align-items: center; }
-  .lc-played { text-align: right; }
-  .lc-total { text-align: left; }
+  /* played / total, right-aligned so every count ends at the same edge. the slot is
+     just wide enough for the longest count ("409 / 409"), so it sits close to the lamp */
+  .lc-end-count { min-width: 9ch; text-align: right; }
   .lc-new { font-size: 0.72rem; font-weight: 800; color: #4ade80; font-variant-numeric: tabular-nums;
     white-space: nowrap; text-align: left; }
   .lc-lamp { display: inline-block; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.03em; padding: 1px 6px;
@@ -288,11 +286,7 @@ export default function LevelChart({ songs, totals, naExcluded }: {
                         </span>
                     )}
                 </span>
-                <span className="lc-count lc-end-count">
-                    <span className="lc-played">{played}</span>
-                    <span aria-hidden="true">/</span>
-                    <span className="lc-total">{total}</span>
-                </span>
+                <span className="lc-count lc-end-count">{played} / {total}</span>
                 <span
                     className="lc-new"
                     title={newCount > 0 ? `${newCount} chart${newCount === 1 ? '' : 's'} played for the first time in the latest update` : undefined}
