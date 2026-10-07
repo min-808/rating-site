@@ -15,7 +15,7 @@ export default function SignOutButton({ className }: { className?: string }) {
                 router.refresh();
             }}
         >
-            Sign out
+            sign out
         </button>
     );
 }

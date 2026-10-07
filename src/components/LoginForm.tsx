@@ -5,9 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { announceAuthChange } from './AccountButton';
 
-// resetHref: where "forgot your password?" leads, when the visitor came from a claimed
-// profile's "sign in" link. without it, they're told how to get there instead
-export default function LoginForm({ resetHref = null }: { resetHref?: string | null }) {
+export default function LoginForm() {
     const router = useRouter();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -26,7 +24,7 @@ export default function LoginForm({ resetHref = null }: { resetHref?: string | n
         const data = await res.json().catch(() => ({}));
         setBusy(false);
         if (!res.ok) {
-            setError(data.error ?? 'Something went wrong.');
+            setError(data.error ?? 'something went wrong');
             return;
         }
         announceAuthChange();
@@ -37,36 +35,29 @@ export default function LoginForm({ resetHref = null }: { resetHref?: string | n
 
     return (
         <form className="lg-card" onSubmit={submit}>
-            <h1>Sign in</h1>
+            <h1>sign in</h1>
 
             <div className="lg-field">
-                <label htmlFor="lg-username">Username</label>
+                <label htmlFor="lg-username">username</label>
                 <input id="lg-username" value={username} onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username" autoFocus required />
             </div>
             <div className="lg-field">
-                <label htmlFor="lg-password">Password</label>
+                <label htmlFor="lg-password">password</label>
                 <input id="lg-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password" required />
             </div>
 
             {error && <p className="lg-error">{error}</p>}
 
-            <button type="submit" className="lg-btn" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+            <button type="submit" className="lg-btn" disabled={busy}>{busy ? 'signing in…' : 'sign in'}</button>
 
             <p className="lg-help">
-                <Link href="/loginhelp">Don&apos;t have an account?</Link>
+                <Link href="/loginhelp">don&apos;t have an account?</Link>
             </p>
-            {resetHref ? (
-                <p className="lg-help">
-                    Forgot your password? <Link href={resetHref}>Reset access</Link> by verifying your profile again.
-                </p>
-            ) : (
-                <p className="lg-help">
-                    Forgot your password? Open your profile from the leaderboard and press <b>sign in</b>. The
-                    sign-in page you land on has a link to reset access.
-                </p>
-            )}
+            <p className="lg-help">
+                <Link href="/login/reset">forgot your password?</Link>
+            </p>
         </form>
     );
 }

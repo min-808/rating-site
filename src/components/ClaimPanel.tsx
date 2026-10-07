@@ -13,12 +13,12 @@ import { announceAuthChange } from './AccountButton';
  *   setup   -> pick a username and password (pre-filled on a reclaim)
  *
  * The profile page decides which strip to show: the owner sees "this is you",
- * a claimed profile offers "sign in", an unclaimed one offers "claim".
+ * a claimed profile just says so, an unclaimed one offers "claim".
  *
- * Reset access (forgot password) is deliberately not on the profile itself. It
- * lives on the sign-in page: a claimed profile's "sign in" link goes to
- * /login?profile=<web_id>, whose "forgot your password?" link comes back here
- * with ?reset=1, which opens the reset flow.
+ * Reset access (forgot password) is deliberately not on profiles, so nobody sees a
+ * reset button on other people's pages. It lives at /login/reset, which finds the
+ * player's profile and renders this panel with `standalone`: it opens straight to
+ * the intro, "cancel" goes back to closeHref, and finishing goes to the profile.
  */
 
 type Step = 'closed' | 'intro' | 'verify' | 'setup';
@@ -153,16 +153,19 @@ async function post(url: string, body?: object) {
     return { ok: res.ok, data: data as Record<string, any> };
 }
 
-export default function ClaimPanel({ webId, playerName, claimed, isOwner, signedInAs, captchaSiteKey }: {
+export default function ClaimPanel({ webId, playerName, claimed, isOwner, signedInAs, captchaSiteKey, standalone = null }: {
     webId: number;
     playerName: string;
     claimed: boolean; // someone already has an account for this profile
     isOwner: boolean; // the signed-in visitor owns this profile
     signedInAs: string | null;
     captchaSiteKey: string | null;
+    // on its own page (the reset page) instead of under a profile: no strip, and
+    // cancel leaves for closeHref
+    standalone?: { closeHref: string } | null;
 }) {
     const router = useRouter();
-    const [step, setStep] = useState<Step>('closed');
+    const [step, setStep] = useState<Step>(standalone ? 'intro' : 'closed');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [note, setNote] = useState<string | null>(null);
@@ -198,17 +201,17 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
 
     const open = () => { setError(null); setNote(null); setGate(null); setStep('intro'); void checkGate(); };
 
-    // arriving from the sign-in page's "forgot your password?" link opens the reset flow
+    // a standalone panel starts at the intro, so run the same check open() does
     useEffect(() => {
-        if (!claimed || isOwner || signedInAs) return;
-        const url = new URL(window.location.href);
-        if (url.searchParams.get('reset') !== '1') return;
-        url.searchParams.delete('reset');
-        window.history.replaceState(null, '', url.pathname + url.search + url.hash);
-        open();
+        if (standalone) void checkGate();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [claimed, isOwner, signedInAs]);
-    const close = () => { setError(null); setNote(null); setStep('closed'); };
+    }, []);
+
+    const close = () => {
+        setError(null); setNote(null);
+        if (standalone) router.push(standalone.closeHref);
+        else setStep('closed');
+    };
 
     // cancelling mid-claim gives the slot back so the next person doesn't wait on us
     const cancelClaim = () => { void post('/api/claim/cancel'); close(); };
@@ -252,9 +255,14 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
         const { ok, data } = await post('/api/claim/complete', { username, password });
         setBusy(false);
         if (!ok) { setError(data.error ?? 'something went wrong'); return; }
-        setStep('closed');
         announceAuthChange();
-        router.refresh(); // re-render the profile as its owner
+        if (standalone) {
+            // signed in now: off to their profile
+            router.push(`/user/${data.webId ?? webId}`);
+        } else {
+            setStep('closed');
+            router.refresh(); // re-render the profile as its owner
+        }
     };
 
     const signOut = async () => {
@@ -299,8 +307,12 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
             {step === 'intro' && (
                 <>
                     <h2>{claimed ? 'reset access' : 'claim profile'}</h2>
-                    <p>claiming your profile will let you create an account that you can sign in with. by creating an account, you'll be able to edit your profile's bio, pinned scores, favorite charts, and more!</p>
-                    <p>in order to claim your profile, we first need to prove that <b>{`${playerName}`}</b> is your maimai account. to do this, you'll need to temporarily change your <b>user title</b> on the maimai site, but don't change it just yet</p>
+                    {claimed ? (
+                        <p>forgot your password? you can set a new one by proving this profile is yours again</p>
+                    ) : (
+                        <p>claiming your profile will let you create an account that you can sign in with. by creating an account, you'll be able to edit your profile's bio, pinned scores, favorite charts, and more!</p>
+                    )}
+                    <p>in order to {claimed ? 'reset your password' : 'claim your profile'}, we first need to prove that <b>{`${playerName}`}</b> is your maimai account. to do this, you'll need to temporarily change your <b>user title</b> on the maimai site, but don't change it just yet</p>
                     <p>first, press <b>start</b> below to begin</p>
                     {claimed && (
                         <p className="cp-muted">this replaces the current password and signs you out everywhere else</p>

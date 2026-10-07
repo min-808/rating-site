@@ -36,15 +36,8 @@ const css = `
   .lg-help a { color: #2563eb; }
 `;
 
-export default async function LoginPage({ searchParams }: {
-  searchParams: Promise<{ profile?: string }>;
-}) {
+export default async function LoginPage() {
   const session = await getSession();
-
-  // came from a claimed profile's "sign in" link: offer a reset for that profile
-  const { profile } = await searchParams;
-  const profileId = /^\d{1,7}$/.test(profile ?? '') ? Number(profile) : null;
-  const resetHref = profileId != null ? `/user/${profileId}?reset=1` : null;
 
   // already signed in: point them to their profile instead of showing the form
   let profileHref: string | null = null;
@@ -61,15 +54,15 @@ export default async function LoginPage({ searchParams }: {
 
       {session ? (
         <div className="lg-card">
-          <h1>You&apos;re signed in</h1>
-          <p className="lg-help" style={{ marginTop: 0 }}>Signed in as <b>{session.username}</b>.</p>
+          <h1>you&apos;re signed in</h1>
+          <p className="lg-help" style={{ marginTop: 0 }}>signed in as <b>{session.username}</b></p>
           {profileHref && (
-            <p><Link href={profileHref} className="lg-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Go to your profile</Link></p>
+            <p><Link href={profileHref} className="lg-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>go to your profile</Link></p>
           )}
           <SignOutButton className="lg-btn lg-btn-quiet" />
         </div>
       ) : (
-        <LoginForm resetHref={resetHref} />
+        <LoginForm />
       )}
     </main>
   );
