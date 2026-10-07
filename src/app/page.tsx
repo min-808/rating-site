@@ -11,6 +11,8 @@ import {
   isNewPlayer,
 } from '../lib/leaderboard';
 import JumpIcon from '../components/JumpIcon';
+import MilestoneBanner, { type Milestone } from '../components/MilestoneBanner';
+import { TIER_MILESTONES } from '../lib/rating-tiers';
 
 export const metadata: Metadata = {
   title: 'Rating Leaderboard - HI Maimai',
@@ -18,6 +20,29 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = false;
+
+const TZ = 'Pacific/Honolulu';
+
+// every rating badge boundary, including each star medal from 14000 up
+const MILESTONES = TIER_MILESTONES;
+
+// how many days of updates the milestone banner covers (today plus the two before it)
+const MILESTONE_DAYS = 3;
+
+// how many history entries to load per player: enough to cover MILESTONE_DAYS of nightly
+// updates, plus room for any extra single-player runs in between
+const HISTORY_ENTRIES = 10;
+
+// the calendar day an update happened on, in hawaii time ("2026-10-03")
+const dayOf = (date: Date) => date.toLocaleDateString('en-CA', { timeZone: TZ });
+
+// "today", "yesterday", "2 days ago", counted from the latest update's day
+function daysAgoLabel(date: Date, updateDate: Date) {
+  const days = Math.round((Date.parse(dayOf(updateDate)) - Date.parse(dayOf(date))) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  return `${days} days ago`;
+}
 
 export default async function LeaderboardPage() {
   await connectMongo();
@@ -41,8 +66,9 @@ export default async function LeaderboardPage() {
         rank_change: 1,
         // rank_history is only used for the new badge, so just the first entry
         rank_history: { $slice: 1 },
-        // history's last two entries drive the rating delta
-        history: { $slice: -2 },
+        // the last few history entries: the final two drive the rating delta, and the
+        // rest let the milestone banner look back a few days
+        history: { $slice: -HISTORY_ENTRIES },
         // don't fetch songs history lol that'll take way too long
       },
     },
@@ -59,7 +85,7 @@ export default async function LeaderboardPage() {
   const updateDate = metadata?.lastUpdated ? new Date(metadata.lastUpdated) : new Date();
 
   const lastUpdated = updateDate.toLocaleString('en-US', {
-    timeZone: 'Pacific/Honolulu',
+    timeZone: TZ,
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -69,6 +95,45 @@ export default async function LeaderboardPage() {
     hour12: true,
     timeZoneName: 'short',
   });
+
+  // milestones crossed in the last MILESTONE_DAYS days of updates. each pair of
+  // neighbouring history entries is one update; if the rating went from below a
+  // milestone to at or above it, that update crossed it
+  const earliestDay = dayOf(new Date(updateDate.getTime() - (MILESTONE_DAYS - 1) * 86_400_000));
+
+  const milestones: Milestone[] = players
+    .flatMap((player) => {
+      const history = player.history ?? [];
+      // the best milestone this player crossed in the window, and when
+      let best: { milestone: number; date: Date } | null = null;
+
+      for (let i = 1; i < history.length; i++) {
+        const date = new Date(history[i].date);
+        if (dayOf(date) < earliestDay) continue; // older than the window
+
+        const before = history[i - 1].rating;
+        const after = history[i].rating;
+        const crossed = MILESTONES.filter((m) => before < m && after >= m);
+        if (crossed.length === 0) continue;
+
+        // a big jump past two milestones shows the higher one
+        const top = Math.max(...crossed);
+        if (!best || top > best.milestone) best = { milestone: top, date };
+      }
+
+      if (!best) return [];
+      return [{
+        name: toNormalWidth(player.name),
+        href: `/user/${player.web_id}`,
+        milestone: best.milestone,
+        rating: player.rating,
+        when: daysAgoLabel(best.date, updateDate),
+        sortDate: best.date.getTime(),
+      }];
+    })
+    // newest first, then the bigger milestone first within the same day
+    .sort((a, b) => b.sortDate - a.sortDate || b.milestone - a.milestone)
+    .map(({ sortDate, ...m }) => m);
 
   return (
     <main className="main-container">
@@ -258,6 +323,9 @@ export default async function LeaderboardPage() {
         }
       `}</style>
 
+        <br />
+      <MilestoneBanner milestones={milestones} updateKey={updateDate.toISOString()} />
+
       <h1 className="page-title">
         HI Maimai Rating{' '}
         <span className="title-end">
@@ -292,7 +360,9 @@ export default async function LeaderboardPage() {
         <tbody>
           {players.map((player, index) => {
             const rankChange = calculateRankChange(player);
-            const ratingChange = calculateRatingChange(player);
+            // the 24hr change only looks at the last two history entries, same as before
+            // the banner started loading a few more
+            const ratingChange = calculateRatingChange({ ...player, history: (player.history ?? []).slice(-2) });
 
             const isNew = isNewPlayer(player, updateDate);
 
