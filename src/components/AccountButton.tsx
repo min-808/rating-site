@@ -20,7 +20,7 @@ export function announceAuthChange() {
     window.dispatchEvent(new Event(AUTH_EVENT));
 }
 
-type Me = { signedIn: false } | { signedIn: true; username: string; webId: number | null };
+type Me = { signedIn: false } | { signedIn: true; username: string; webId: number | null; isAdmin?: boolean };
 
 const css = `
   /* same look as the leaderboard / faq buttons in the header */
@@ -28,6 +28,7 @@ const css = `
     padding: 0.4rem 1rem; background-color: var(--btn-bg); border: 1px solid var(--btn-border);
     border-radius: 6px; text-decoration: none; color: var(--btn-text); font-weight: bold; }
   .acct-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+  /* admins only: a quiet link to /admin next to the username */
   .acct-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .acct-dot { width: 7px; height: 7px; border-radius: 50%; background: #22a35a; flex-shrink: 0; }
   /* reserve the space while loading, so nothing jumps */
@@ -79,6 +80,7 @@ export default function AccountButton() {
     return (
         <>
             <style>{css}</style>
+            {me.isAdmin && <Link href="/admin" className="acct-btn">admin</Link>}
             <Link
                 href={me.webId ? `/user/${me.webId}` : '/login'}
                 className="acct-btn"

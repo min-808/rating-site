@@ -5,7 +5,7 @@ import SignOutButton from '../../components/SignOutButton';
 import { getSession, getDb } from '../../lib/auth';
 
 export const metadata: Metadata = {
-  title: 'Sign In - HI Maimai',
+  title: 'Sign in - HI Maimai',
 };
 
 // reads the session cookie, so it's rendered fresh for every visitor
@@ -36,8 +36,15 @@ const css = `
   .lg-help a { color: #2563eb; }
 `;
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: {
+  searchParams: Promise<{ profile?: string }>;
+}) {
   const session = await getSession();
+
+  // came from a claimed profile's "sign in" link: offer a reset for that profile
+  const { profile } = await searchParams;
+  const profileId = /^\d{1,7}$/.test(profile ?? '') ? Number(profile) : null;
+  const resetHref = profileId != null ? `/user/${profileId}?reset=1` : null;
 
   // already signed in: point them to their profile instead of showing the form
   let profileHref: string | null = null;
@@ -62,7 +69,7 @@ export default async function LoginPage() {
           <SignOutButton className="lg-btn lg-btn-quiet" />
         </div>
       ) : (
-        <LoginForm />
+        <LoginForm resetHref={resetHref} />
       )}
     </main>
   );

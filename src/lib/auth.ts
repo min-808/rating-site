@@ -120,13 +120,13 @@ export const USERNAME_RULES = '3 to 20 characters: letters, numbers, _ . or -';
 export const PASSWORD_RULES = 'at least 8 characters';
 
 export function checkUsername(username: string): string | null {
-  if (!/^[A-Za-z0-9_.-]{3,20}$/.test(username)) return `Usernames need ${USERNAME_RULES}.`;
+  if (!/^[A-Za-z0-9_.-]{3,20}$/.test(username)) return `usernames need ${USERNAME_RULES}`;
   return null;
 }
 
 export function checkPassword(password: string): string | null {
-  if (password.length < 8) return `Passwords need ${PASSWORD_RULES}.`;
-  if (password.length > 200) return 'That password is too long.';
+  if (password.length < 8) return `passwords need ${PASSWORD_RULES}`;
+  if (password.length > 200) return 'that password is too long';
   return null;
 }
 
@@ -284,12 +284,17 @@ export async function verifyCaptcha(token: unknown, ip: string) {
 export type LivePlayer = { found: boolean; name?: string | null; title?: string | null; icon?: string | null };
 
 export class VerifyBusyError extends Error {}
+export class VerifyNotConfiguredError extends Error {}
 
 // reads the player's title and icon from maimai NET right now, through the VPS
 export async function fetchLivePlayer(userId: string): Promise<LivePlayer> {
-  const base = process.env.VERIFY_URL;
+    const base = process.env.VERIFY_URL;
   const token = process.env.VERIFY_TOKEN;
-  if (!base || !token) throw new Error('Profile verification is not set up on this server.');
+  if (!base || !token) {
+    throw new VerifyNotConfiguredError(
+      'profile verification is not set up on this deployment (VERIFY_URL / VERIFY_TOKEN missing)',
+    );
+  }
 
   const res = await fetch(`${base.replace(/\/$/, '')}/player/${encodeURIComponent(userId)}`, {
     headers: { Authorization: `Bearer ${token}` },

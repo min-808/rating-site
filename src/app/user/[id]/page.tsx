@@ -1,4 +1,4 @@
-import { cache } from 'react';
+import { cache, Fragment } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -20,6 +20,8 @@ import { versionName } from '../../../lib/versions';
 import LevelChart from '../../../components/LevelChart';
 import ClaimPanel from '../../../components/ClaimPanel';
 import { getSession } from '../../../lib/auth';
+import ProfileBio from '../../../components/ProfileBio';
+import { playStats } from '../../../lib/play-stats';
 
 interface UserPageProps {
   params: Promise<{ id: string }>;
@@ -249,36 +251,121 @@ const css = `
     color: var(--text-muted);
   }
 
-  .stat-grid {
+  /* the overview card, laid out like an osu! profile:
+       left:  rating + rank up top, the history graph, rank pills along the bottom
+       right: a panel of label / value rows */
+  .overview {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 220px));
-    justify-content: center;
-    gap: 0.75rem;
-    margin-bottom: 2rem;
-  }
-  .stat-card {
+    grid-template-columns: minmax(0, 1fr) 280px;
     border: 1px solid var(--border-light);
-    border-radius: 8px;
-    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+  .ov-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 1rem 1.25rem 1rem;
+  }
+  .ov-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.75rem 2.5rem;
+  }
+  .ov-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ov-label {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+  }
+  .ov-big {
+    font-size: 2rem;
+    font-weight: bold;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .ov-sub {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+  }
+  /* the rating frame, scaled up to sit level with the big rank number */
+  .ov-stat .rating-badge {
+    width: 128px;
+    height: 36px;
+    font-size: 1.15rem;
+  }
+  .ov-stat .rating-value {
+    margin-right: 9px;
+  }
+  .ov-chart {
+    min-width: 0;
+  }
+  .ov-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 10px;
+  }
+  .ov-badge {
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
-    gap: 0.35rem;
-    min-width: 0;
+    gap: 4px;
   }
-  .stat-label {
-    font-size: 0.75rem;
-    color: var(--text-sub);
+  /* grade images (SSS+, SSS, ...) are all the same height; width follows the image */
+  .ov-grade {
+    display: block;
+    height: 26px;
+    width: auto;
   }
-  .stat-value {
-    font-size: 1.4rem;
+  .ov-count {
+    font-size: 0.85rem;
     font-weight: bold;
-    line-height: 28px;
+    font-variant-numeric: tabular-nums;
   }
-  .stat-sub {
-    font-size: 0.8rem;
+  .ov-side {
+    border-left: 1px solid var(--border-light);
+    background: rgba(127, 127, 127, 0.06);
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    align-items: center;
+  }
+  .ov-list {
+    width: 100%;
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 1rem;
+    font-size: 0.88rem;
+  }
+  /* thin line between groups: totals, combo badges, sync badges */
+  .ov-sep {
+    grid-column: 1 / -1;
+    height: 1px;
+    margin: 2px 0;
+    background: var(--border-light);
+  }
+  .ov-list dt {
     color: var(--text-sub);
+  }
+  .ov-list dd {
+    margin: 0;
+    font-weight: bold;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .ov-hidden {
+    width: 100%;
+    text-align: center;
+    font-size: 0.85rem;
+    font-style: italic;
+    color: var(--text-muted);
   }
   .rating-badge {
     background-size: contain;
@@ -310,6 +397,36 @@ const css = `
     font-size: 0.9rem;
     font-style: italic;
     color: var(--text-muted);
+  }
+
+  /* narrower than a laptop: the side panel moves under the graph */
+  @media (max-width: 760px) {
+    .overview {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ov-side {
+      border-left: 0;
+      border-top: 1px solid var(--border-light);
+    }
+    .ov-badges {
+      justify-content: center;
+    }
+  }
+  @media (max-width: 600px) {
+    .ov-main {
+      padding: 0.85rem 0.9rem;
+    }
+    .ov-big {
+      font-size: 1.6rem;
+    }
+    .ov-stat .rating-badge {
+      width: 104px;
+      height: 29px;
+      font-size: 0.95rem;
+    }
+    .ov-grade {
+      height: 21px;
+    }
   }
 
   @media (max-width: 600px) {
@@ -345,26 +462,31 @@ const css = `
     .user-dan {
       height: 22px;
     }
-    .stat-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
+    .ov-main {
+      padding: 0.85rem 0.75rem;
     }
-    .stat-card {
-      padding: 0.6rem;
+    .ov-top {
+      gap: 0.75rem 1.75rem;
     }
-    .stat-value {
-      font-size: 1.05rem;
-      line-height: 20px;
+    .ov-big {
+      font-size: 1.5rem;
     }
-    .stat-sub {
-      font-size: 0.7rem;
+    .ov-badges {
+      justify-content: center;
+      gap: 8px;
     }
-    .rating-badge {
-      width: 70px;
-      height: 20px;
-      padding-right: 0;
-      font-size: 0.75rem;
+    .ov-grade {
+      height: 21px;
+    }
+    .ov-count {
+      font-size: 0.78rem;
+    }
+    .ov-side {
+      padding: 0.85rem 1rem;
+    }
+    .ov-list {
+      font-size: 0.82rem;
+      gap: 6px 1rem;
     }
   }
 `;
@@ -403,9 +525,9 @@ export default async function UserPage({ params }: UserPageProps) {
   // who's looking, and whether this profile has an account yet
   const session = await getSession();
   const account = await client
-      .db('maimai')
-      .collection<{ _id: string }>('accounts')
-      .findOne({ _id: String(player.user_id) }, { projection: { _id: 1 } });
+    .db('maimai')
+    .collection<{ _id: string; bio?: string }>('accounts')
+    .findOne({ _id: String(player.user_id) }, { projection: { _id: 1, bio: 1 } });
   const isOwner = session?.userId === String(player.user_id);
 
   const pastNames = [...new Set((player.old_names ?? []).map(toNormalWidth))].filter(
@@ -423,6 +545,8 @@ export default async function UserPage({ params }: UserPageProps) {
   const ratingChange = calculateRatingChange(player);
 
   const optedOut = Boolean(player.scores_opt_out);
+  // counted from their saved scores, so it's hidden along with them when they opt out
+  const stats = optedOut ? null : playStats(player.songs);
 
   let songs: PlayerDocument['songs'] = [];
 
@@ -522,30 +646,66 @@ export default async function UserPage({ params }: UserPageProps) {
             captchaSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? null}
         />
 
-        <section className="stat-grid">
-          <div className="stat-card">
-            <span className="stat-label">rating</span>
-            <div
-                className="rating-badge"
-                style={{ backgroundImage: `url(${getFrameForRating(player.rating)})` }}
-            >
-              <span className="rating-value">{player.rating}</span>
+        <section className="overview" aria-label="rating, rank and play stats">
+          <div className="ov-main">
+            <div className="ov-top">
+              <div className="ov-stat">
+                <span className="ov-label">rating</span>
+                <div
+                    className="rating-badge"
+                    style={{ backgroundImage: `url(${getFrameForRating(player.rating)})` }}
+                >
+                  <span className="rating-value">{player.rating}</span>
+                </div>
+                <span className="ov-sub"><Delta value={ratingChange} zeroText="0" /> today</span>
+              </div>
+
+              <div className="ov-stat">
+                <span className="ov-label">rank</span>
+                <span className="ov-big">#{player.currentRank ?? '-'}</span>
+                <span className="ov-sub"><Delta value={rankChange} arrows /> today</span>
+              </div>
             </div>
-            <span className="stat-sub">
-            <Delta value={ratingChange} zeroText="0" /> today
-          </span>
+
+            <div className="ov-chart">
+              <PlayerHistoryChart data={history} rating={player.rating} />
+            </div>
+
+            {stats && (
+              <div className="ov-badges">
+                {stats.badges.map((b) => (
+                  <div className="ov-badge" key={b.label}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img className="ov-grade" src={b.img} alt={b.label} title={b.label} height={26} />
+                    <span className="ov-count">{b.count.toLocaleString('en-US')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="stat-card">
-            <span className="stat-label">rank</span>
-            <span className="stat-value">#{player.currentRank ?? '-'}</span>
-            <span className="stat-sub">
-            <Delta value={rankChange} arrows /> today
-          </span>
-          </div>
+          <aside className="ov-side">
+            {stats ? (
+              <dl className="ov-list">
+                {stats.side.map((group, g) => (
+                  <Fragment key={g}>
+                    {g > 0 && <div className="ov-sep" role="presentation" />}
+                    {group.map((row) => (
+                      <div key={row.label} style={{ display: 'contents' }}>
+                        <dt>{row.label}</dt>
+                        <dd>{row.value}</dd>
+                      </div>
+                    ))}
+                  </Fragment>
+                ))}
+              </dl>
+            ) : (
+              <p className="ov-hidden">play stats hidden</p>
+            )}
+          </aside>
         </section>
 
-        <PlayerHistoryChart data={history} />
+        <ProfileBio initialBio={account?.bio ?? null} canEdit={isOwner} />
 
         <hr className="divider" />
 
