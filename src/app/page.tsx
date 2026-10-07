@@ -324,7 +324,10 @@ export default async function LeaderboardPage() {
       `}</style>
 
         <br />
-      <MilestoneBanner milestones={milestones} updateKey={updateDate.toISOString()} />
+      <MilestoneBanner
+        milestones={milestones}
+        updateKey={milestones.map((m) => `${m.href}:${m.milestone}`).join('|')}
+        />
 
       <h1 className="page-title">
         HI Maimai Rating{' '}
