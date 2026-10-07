@@ -18,6 +18,8 @@ import {
 } from '../../../lib/leaderboard';
 import { versionName } from '../../../lib/versions';
 import LevelChart from '../../../components/LevelChart';
+import ClaimPanel from '../../../components/ClaimPanel';
+import { getSession } from '../../../lib/auth';
 
 interface UserPageProps {
   params: Promise<{ id: string }>;
@@ -398,6 +400,14 @@ export default async function UserPage({ params }: UserPageProps) {
 
   const isHeartUser = String(player.user_id) === HEART_USER_ID;
 
+  // who's looking, and whether this profile has an account yet
+  const session = await getSession();
+  const account = await client
+      .db('maimai')
+      .collection<{ _id: string }>('accounts')
+      .findOne({ _id: String(player.user_id) }, { projection: { _id: 1 } });
+  const isOwner = session?.userId === String(player.user_id);
+
   const pastNames = [...new Set((player.old_names ?? []).map(toNormalWidth))].filter(
       (n) => n !== displayName,
   );
@@ -502,6 +512,15 @@ export default async function UserPage({ params }: UserPageProps) {
             </span>
           )}
         </header>
+
+        <ClaimPanel
+            webId={player.web_id}
+            playerName={displayName}
+            claimed={Boolean(account)}
+            isOwner={isOwner}
+            signedInAs={session?.username ?? null}
+            captchaSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? null}
+        />
 
         <section className="stat-grid">
           <div className="stat-card">

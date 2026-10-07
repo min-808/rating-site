@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from '../components/ThemeProvider';
 import ThemeToggle from '../components/ThemeToggle';
+import AccountButton from '../components/AccountButton';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,7 +11,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
         <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '0.5rem', fontFamily: 'sans-serif', position: 'relative' }}>
-            <div style={{ position: 'absolute', right: '1rem', top: '0.5rem' }}>
+            {/* top right: account button, then the theme toggle */}
+            <div style={{ position: 'absolute', right: '1rem', top: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AccountButton />
               <ThemeToggle />
             </div>
 
