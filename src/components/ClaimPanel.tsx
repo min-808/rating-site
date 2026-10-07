@@ -238,15 +238,8 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
             {step === 'intro' && (
                 <>
                     <h2>{claimed ? `Reset access to ${playerName}` : `claim profile`}</h2>
-                    <p>in order to claim your profile, we first need to prove that <b>{`${playerName}`}</b> is your maimai account. to do this, you'll just need to temporarily change your <b>user title</b> on the maimai site</p>
-                    <ol>
-                        <li>press <b>start</b> below</li>
-                        <li>navigate to the <Link href="https://maimaidx-eng.com/" target="_blank" rel="noopener noreferrer">maimai website</Link> and login to your maimai account</li>
-                        <li>click on the "collection" button, then go to "title" <Link href="https://maimaidx-eng.com/maimai-mobile/collection/trophy/" target="_blank" rel="noopener noreferrer">(or click here)</Link></li>
-                        <li>set your title to any different title</li>
-                        <li>within 10 minutes, come back to this site and hit <b>"verify"</b></li>
-                        <li>after the verification process is finished, feel free to change your title back if you wish</li>
-                    </ol>
+                    <p>in order to claim your profile, we first need to prove that <b>{`${playerName}`}</b> is your maimai account. to do this, you'll just need to temporarily change your <b>user title</b> on the maimai site, but don't change it yet</p>
+                    <p>press <b>start</b> below to begin</p>
                     {claimed && (
                         <p className="cp-muted">this replaces the current password and signs you out everywhere else</p>
                     )}
@@ -266,7 +259,10 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
                 <>
                     <h2>now, please change your title</h2>
                     <p>your title is currently <span className="cp-title">{startTitle ?? '(none)'}</span></p>
-                    <p>on the maimai site, set any other title, then press <b>verify</b>. you can switch it back afterward</p>
+                    <li>navigate to the <Link href="https://maimaidx-eng.com/" target="_blank" rel="noopener noreferrer">maimai website</Link> and login to your maimai account</li>
+                    <li>click on the "collection" button, then go to "title" <Link href="https://maimaidx-eng.com/maimai-mobile/collection/trophy/" target="_blank" rel="noopener noreferrer">(or click here)</Link></li>
+                    <li>set your title to any different title</li>
+                    <li>within 10 minutes, come back to this site and hit <b>"verify"</b></li>
                     <p className="cp-muted">
                         {secondsLeft > 0
                             ? `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')} left`
