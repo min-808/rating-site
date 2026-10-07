@@ -2,10 +2,14 @@
  * POST /api/auth/login   { username, password }
  */
 import { NextResponse } from 'next/server';
-import { type AccountDoc, getDb, ensureIndexes, verifyPassword, createSession, rateLimit, clientIp } from '../../../../lib/auth';
+import { type AccountDoc, getDb, ensureIndexes, verifyPassword, createSession, hashPassword, rateLimit, clientIp } from '../../../../lib/auth';
 import { logged } from '../../../../lib/attempts';
 
 const WRONG = 'wrong username or password';
+
+// checked against when the username doesn't exist, so both cases take as long
+let dummyHash: Promise<string> | null = null;
+const getDummyHash = () => (dummyHash ??= hashPassword('not-a-real-password'));
 
 async function handle(req: Request) {
   const ip = clientIp(req);
@@ -25,8 +29,9 @@ async function handle(req: Request) {
   const db = await getDb();
   const account = await db.collection<AccountDoc>('accounts').findOne({ username_lower: username.toLowerCase() });
 
-  // same message either way, so this can't be used to find out which usernames exist
-  if (!account || !(await verifyPassword(password, account.password_hash))) {
+    // same message and same timing either way, so this can't be used to find out which usernames exist
+  const ok = await verifyPassword(password, account?.password_hash ?? (await getDummyHash()));
+  if (!account || !ok) {
     return NextResponse.json({ error: WRONG }, { status: 401 });
   }
 

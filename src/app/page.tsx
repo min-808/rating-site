@@ -63,7 +63,6 @@ export default async function LeaderboardPage() {
         currentRank: 1,
         previousRank: 1,
         old_names: 1,
-        rank_change: 1,
         // rank_history is only used for the new badge, so just the first entry
         rank_history: { $slice: 1 },
         // the last few history entries: the final two drive the rating delta, and the

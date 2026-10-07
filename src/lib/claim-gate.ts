@@ -22,8 +22,6 @@ export const VERIFY_MINUTES = 5;
 // ---------------------------------------------------------------------------
 // closed hours
 
-// how long each "every 4th hour" block lasts, from the top of the hour.
-// 60 = the whole hour. if your 4-hourly job only takes ~15 minutes, set 15
 // how long each "every 8th hour" block lasts, from the top of the hour.
 // 60 = the whole hour. if your 8-hourly job only takes ~15 minutes, set 15
 const EVERY_8TH_HOUR_MINUTES = 60;

@@ -48,6 +48,6 @@ export function old35(songs: Song[]): Song[] {
 }
 
 export function calcRating(songs: Song[]): number {
-  const sum = (list: Song[]) => list.reduce((total, song) => total + (Math.floor(song.rating) ?? 0), 0);
+  const sum = (list: Song[]) => list.reduce((total, song) => total + (Math.floor(song.rating)), 0);
   return sum(new15(songs)) + sum(old35(songs));
 }
