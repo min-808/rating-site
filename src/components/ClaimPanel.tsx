@@ -265,12 +265,6 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
         }
     };
 
-    const signOut = async () => {
-        await post('/api/auth/logout');
-        announceAuthChange();
-        router.refresh();
-    };
-
     // ----- the strip under the header -----
     if (step === 'closed') {
         // signed in on someone else's profile: they already have their one account,
@@ -284,7 +278,7 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
                     <>
                         <span className="cp-pill">✓ this is you</span>
                         <span>
-                            signed in as <b>{signedInAs}</b> · <button type="button" className="cp-link" onClick={signOut}>sign out</button>
+                            signed in as <b>{signedInAs}</b>
                         </span>
                     </>
                 ) : claimed ? (

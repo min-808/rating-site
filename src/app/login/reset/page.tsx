@@ -173,7 +173,7 @@ export default async function ResetPage({ searchParams }: {
       <div className="rs-card">
         <h1>reset your password</h1>
         <p className="rs-help">
-          find your maimai profile by its in-game name. you&apos;ll prove it&apos;s yours by changing your title
+          find your maimai profile by its in game name. you&apos;ll prove it&apos;s yours by changing your title
           for a moment, then set a new password
         </p>
 

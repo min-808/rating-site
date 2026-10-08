@@ -474,7 +474,7 @@ export default async function AdminPage({ searchParams }: {
       <section className="ad-card">
         <h2>find a player</h2>
         <form className="ad-search" action="/admin">
-          <input name="q" defaultValue={q} placeholder="in-game name, site username, web id or user id" aria-label="search" />
+          <input name="q" defaultValue={q} placeholder="in game name, site username, web id or user id" aria-label="search" />
           <button type="submit" className="ad-btn ad-btn-primary">search</button>
         </form>
         {q && (results.length === 0 ? (
