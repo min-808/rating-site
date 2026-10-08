@@ -57,7 +57,7 @@
   --tooltip-text: #121212;
   --tooltip-border: #cccccc;
 
-  --badge-filter: brightness(0.8) contrast(1.05);
+  --badge-filter: brightness(1); /* no darkening: same as light mode */
 
   --rating-gain: #82ff9f;
   --rating-loss: #ff8282;
