@@ -1,7 +1,7 @@
 /**
  * POST /api/profile/favorites   { favorites: string[] }
  *
- * Saves the signed-in player's favorite scores: up to five charts, in order, by
+ * Saves the signed-in player's favorite scores: up to five charts (FAVORITES_MAX), in order, by
  * chart key ("<difficulty>-<kind>-<title>", the key the score cards use). The
  * account to change comes from the session, never from the request, and every
  * chart has to be one they've actually played. An empty list removes them.

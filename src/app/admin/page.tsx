@@ -5,6 +5,7 @@ import { type AccountDoc, type ClaimDoc, getDb } from '../../lib/auth';
 import { getAdmin, type AdminLogDoc } from '../../lib/admin';
 import { toNormalWidth } from '../../lib/leaderboard';
 import AdminButton from '../../components/AdminButton';
+import { isScraperLock, type LockDoc } from '../../lib/claim-gate';
 import type { AttemptDoc, AttemptKind, AttemptOutcome } from '../../lib/attempts';
 import type { ActivityAction, ActivityDoc } from '../../lib/activity';
 
@@ -174,7 +175,7 @@ export default async function AdminPage({ searchParams }: {
 
   // ---- claims in progress and the slot ----
   const [slot, liveClaims] = await Promise.all([
-    db.collection<{ _id: string; holder: string; until: Date }>('locks').findOne({ _id: SLOT }),
+    db.collection<LockDoc>('locks').findOne({ _id: SLOT }),
     db
       .collection<ClaimDoc>('claims')
       .find({
@@ -414,7 +415,12 @@ export default async function AdminPage({ searchParams }: {
       <section className="ad-card">
         <div className="ad-row">
           <h2>claims</h2>
-          {liveSlot ? (
+          {liveSlot && isScraperLock(liveSlot) ? (
+            <span className="ad-tag ad-tag-live">
+              {liveSlot.scraper ?? 'a VPS job'} running
+              {liveSlot.expected_done_at ? ` · done in ~${minutesLeft(new Date(liveSlot.expected_done_at))} min` : ''}
+            </span>
+          ) : liveSlot ? (
             <span className="ad-tag ad-tag-live">slot taken · frees in {minutesLeft(liveSlot.until)} min</span>
           ) : (
             <span className="ad-tag ad-tag-ok">slot free</span>
@@ -424,7 +430,9 @@ export default async function AdminPage({ searchParams }: {
         {liveSlot && (
           <div className="ad-row" style={{ marginBottom: '0.75rem' }}>
             <p className="ad-muted">
-              held by {slotClaim ? <>a claim on {profileLink(slotClaim.user_id)}</> : 'a claim that no longer exists'} until {when(liveSlot.until)}
+              {isScraperLock(liveSlot)
+                ? <>held by the VPS job <b>{liveSlot.scraper ?? liveSlot.holder}</b>, started {when(liveSlot.started_at)}. it renews this every minute while it runs</>
+                : <>held by {slotClaim ? <>a claim on {profileLink(slotClaim.user_id)}</> : 'a claim that no longer exists'} until {when(liveSlot.until)}</>}
             </p>
             <AdminButton action="free-slot" label="free the slot" danger
               confirmText="free the slot? if that claim is still running, its next verify press may clash with another claim's" />

@@ -10,7 +10,7 @@ import {
   profileChanged, suggestUsername,
   getSession,
 } from '../../../../lib/auth';
-import { closedWindowDuring, closedMessage, releaseSlot } from '../../../../lib/claim-gate';
+import { releaseSlot } from '../../../../lib/claim-gate';
 import { logged } from '../../../../lib/attempts';
 
 const MIN_SECONDS_BETWEEN_CHECKS = 20;
@@ -35,9 +35,8 @@ async function handle() {
   if (!claim.verified_at) {
     if (now > claim.verify_until) return fail(410, 'time ran out. start the claim again');
     if (claim.checks >= MAX_CHECKS) return fail(429, 'too many checks. start the claim again');
-    // start won't begin a claim that runs into closed hours, but just in case
-    const closed = closedWindowDuring(now);
-    if (closed) return fail(503, closedMessage(closed, now));
+    // no closed-hours check here: this claim holds the slot until its verify window ends,
+    // and a VPS job that starts meanwhile waits for it, so maimai NET is ours until then
     if (claim.last_check_at) {
       const wait = MIN_SECONDS_BETWEEN_CHECKS - (now.getTime() - claim.last_check_at.getTime()) / 1000;
       if (wait > 0) return fail(429, `give it ${Math.ceil(wait)} more seconds before checking again`, { retryAfter: Math.ceil(wait) });

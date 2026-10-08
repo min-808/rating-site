@@ -121,7 +121,7 @@ const login_faq: Entry[] = [
       answer: (
         <>
             <p>
-                claims are unavailable for about 10 minutes around 8am, 3pm, 4pm, and from 11pm to 12am (HST), while the backend updates scores and fetches charts
+                claims are unavailable while the backend updates scores and fetches charts. this happens around 12am, 8am, 3pm, 4pm, and 11pm (HST), and usually only takes a few minutes, except at 11pm, which can take longer. the message shows an estimate for how long is left, and claims reopen the moment it's done
             </p>
         </>
       ),

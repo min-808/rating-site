@@ -251,6 +251,21 @@ export async function rateLimit(key: string, limit: number, windowMs: number) {
   };
 }
 
+/**
+ * Whether one more hit against `key` would be within the limit, without counting it.
+ * For checking several limits first and only counting once they all pass (rateLimit).
+ */
+export async function peekRateLimit(key: string, limit: number) {
+  const db = await getDb();
+  const now = new Date();
+  const doc = await db.collection<RateLimitDoc>('rate_limits').findOne({ _id: key, expires_at: { $gt: now } });
+  const count = doc?.count ?? 0;
+  return {
+    ok: count + 1 <= limit,
+    retryAfterSec: doc ? Math.max(1, Math.ceil((doc.expires_at.getTime() - now.getTime()) / 1000)) : 0,
+  };
+}
+
 // the visitor's ip, as Vercel passes it along
 export function clientIp(req: Request) {
   return (

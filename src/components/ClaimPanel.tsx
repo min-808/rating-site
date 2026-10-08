@@ -124,23 +124,12 @@ function useTurnstile(siteKey: string | null, active: boolean, onToken: (token: 
     return boxRef;
 }
 
-// "11:45 pm" in the visitor's own time zone
-const localTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+// why a claim can't start right now, or null. the server writes the message: someone
+// else claiming, the site updating (with an estimate), or the moment before an update
+type Gate = { reason: 'closed' | 'busy'; message: string } | null;
 
-// why a claim can't start right now (closed hours, or someone else is claiming), or null
-type Gate = { reason: 'closed' | 'busy'; from?: string; until: string } | null;
-
-function gateMessage(gate: NonNullable<Gate>) {
-    if (gate.reason === 'busy') {
-        const minutes = Math.max(1, Math.ceil((Date.parse(gate.until) - Date.now()) / 60_000));
-        return `someone else is claiming a profile right now. only one claim can run at a time, so try again in ${minutes} minute${minutes === 1 ? '' : 's'}`;
-    }
-    const started = gate.from && Date.parse(gate.from) <= Date.now();
-    return started
-        ? `claims are paused while the site updates scores. try again after ${localTime(gate.until)}`
-        : `claims pause at ${localTime(gate.from!)} while the site updates scores, which is too soon to finish one. try again after ${localTime(gate.until)}`;
-}
+// while a claim can't start, check again this often, so start comes back by itself
+const GATE_RECHECK_MS = 30_000;
 
 async function post(url: string, body?: object) {
     const res = await fetch(url, {
@@ -197,7 +186,9 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
     const checkGate = async () => {
         const res = await fetch('/api/claim/status', { cache: 'no-store' }).catch(() => null);
         const data = res ? await res.json().catch(() => null) : null;
-        setGate(data && !data.open ? { reason: data.reason, from: data.from, until: data.until } : null);
+        setGate(data && !data.open
+            ? { reason: data.reason, message: data.message ?? 'claims are paused right now. try again in a few minutes' }
+            : null);
     };
 
     const open = () => { setError(null); setNote(null); setGate(null); setStep('intro'); void checkGate(); };
@@ -207,6 +198,14 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
         if (standalone) void checkGate();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // paused or busy: keep checking, so start comes back as soon as claims reopen
+    useEffect(() => {
+        if (!gate || step !== 'intro') return;
+        const t = setInterval(() => void checkGate(), GATE_RECHECK_MS);
+        return () => clearInterval(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [gate, step]);
 
     const close = () => {
         setError(null); setNote(null);
@@ -223,9 +222,10 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
         setBusy(false);
         if (!ok) {
             setCaptchaToken('');
-            // closed hours or someone else claiming: show it the same way the pre-check does
-            if (data.busyUntil) { setGate({ reason: 'busy', until: data.busyUntil }); setError(null); return; }
-            if (data.closedUntil) { void checkGate(); setError(data.error ?? null); return; }
+            // the site updating, someone else claiming, or about to update: show it the
+            // same way the pre-check does (busyUntil can be null: an update with no estimate)
+            if ('busyUntil' in data) { setGate({ reason: 'busy', message: data.error }); setError(null); return; }
+            if (data.closedUntil) { setGate({ reason: 'closed', message: data.error }); setError(null); return; }
             setError(data.error ?? 'something went wrong');
             return;
         }
@@ -312,7 +312,7 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
                     {claimed && (
                         <p className="cp-muted">this replaces the current password and signs you out everywhere else</p>
                     )}
-                    {gate && <p className="cp-error">{gateMessage(gate)}</p>}
+                    {gate && <p className="cp-error">{gate.message}</p>}
                     {captchaSiteKey && <div className="cp-captcha" ref={captchaBox} />}
                     {error && !gate && <p className="cp-error">{error}</p>}
                     <div className="cp-actions">

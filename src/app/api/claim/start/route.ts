@@ -7,16 +7,31 @@
  */
 import { NextResponse } from 'next/server';
 import {
-  type ClaimDoc, getDb, ensureIndexes, randomToken, sha256, rateLimit, clientIp, verifyCaptcha,
+  type ClaimDoc, getDb, ensureIndexes, randomToken, sha256, rateLimit, peekRateLimit, clientIp, verifyCaptcha,
   fetchLivePlayer, VerifyBusyError, VerifyNotConfiguredError, getClaimToken, setClaimCookie,
   getSession,
 } from '../../../../lib/auth';
 import {
-  VERIFY_MINUTES, closedWindowDuring, closedMessage, takeSlot, releaseSlot, slotBusyUntil, busyMessage,
+  VERIFY_MINUTES, closedWindowDuring, closedMessage, takeSlot, releaseSlot, slotHeldBy, busyMessage, slotFreeAt,
+  type LockDoc,
 } from '../../../../lib/claim-gate';
 import { logged } from '../../../../lib/attempts';
 
 const LOCK_MINUTES = 15; // other browsers can't start a claim on this profile until then
+
+// how often claims can start, all counted only once the captcha has passed. every start
+// is a real maimai NET login, so these mostly protect the CLAL cookie from a flood of them
+const LIMITS = {
+  gapMinutes: 2, // between two starts from one ip (start, cancel, start again)
+  perIp: { count: 5, minutes: 60 },
+  perProfile: { count: 3, minutes: 60 }, // whoever is trying, from wherever
+  siteWide: { count: 20, minutes: 60 }, // everyone together
+};
+
+const inTime = (sec: number) => {
+  const minutes = Math.max(1, Math.ceil(sec / 60));
+  return sec < 60 ? `${Math.max(1, sec)} second${sec === 1 ? '' : 's'}` : `${minutes} minute${minutes === 1 ? '' : 's'}`;
+};
 const SETUP_MINUTES = 15; // after verifying, time to pick a username and password
 
 const fail = (status: number, error: string, extra: object = {}) =>
@@ -40,10 +55,14 @@ async function handle(req: Request) {
   const now = new Date();
   const verifyUntil = new Date(now.getTime() + VERIFY_MINUTES * 60_000);
 
-  // closed hours: the scrapers have maimai NET. the whole verify window has to fit
-  // before the next pause, or the last verify presses would land in it
-  const closed = closedWindowDuring(now, verifyUntil);
-  if (closed) return fail(503, closedMessage(closed, now), { closedUntil: closed.until.toISOString() });
+  // the backstop around each VPS job's cron time. a job that's already running holds the
+  // slot instead (checked below), and a job that starts mid-claim waits for the claim
+  const closed = closedWindowDuring(now);
+  if (closed) return fail(503, closedMessage(closed), { closedUntil: closed.until.toISOString() });
+
+  // "the slot is taken": who has it and when it should free up, for the panel
+  const busy = (lock: LockDoc) =>
+    fail(409, busyMessage(lock, now), { busyUntil: slotFreeAt(lock)?.toISOString() ?? null });
 
   // a browser restarting its own claim is fine; anyone else waits out the lock
   const ownToken = await getClaimToken();
@@ -51,8 +70,8 @@ async function handle(req: Request) {
 
   // quick check before the rate limit and captcha, so waiting on someone else
   // doesn't use up this visitor's tries. takeSlot below is the real, race-proof check
-  const slotTakenUntil = await slotBusyUntil(ownId);
-  if (slotTakenUntil) return fail(409, busyMessage(slotTakenUntil, now), { busyUntil: slotTakenUntil.toISOString() });
+  const taken = await slotHeldBy(ownId);
+  if (taken) return busy(taken);
 
   const blocking = await claims.findOne({
     user_id: userId,
@@ -64,17 +83,33 @@ async function handle(req: Request) {
     return fail(409, `someone is verifying this profile right now. try again in ${minutes} minute${minutes === 1 ? '' : 's'}`);
   }
 
-  const limit = await rateLimit(`claim-start:${ip}`, 5, 60 * 60_000);
-  if (!limit.ok) return fail(429, 'too many claims from here. try again later', { retryAfter: limit.retryAfterSec });
-
+  // the captcha first, so a failed one doesn't use up any of the limits below
   if (!(await verifyCaptcha(body.captchaToken, ip))) return fail(400, 'the captcha check failed. please try again');
+
+  // the limits: all checked before any is counted, so being refused by one doesn't
+  // use up the others. the 2-minute gap is a limit of 1 per 2 minutes
+  const limits = [
+    { key: `claim-gap:${ip}`, count: 1, minutes: LIMITS.gapMinutes,
+      message: (s: number) => `you just started a claim. wait ${inTime(s)} before starting another` },
+    { key: `claim-start:${ip}`, count: LIMITS.perIp.count, minutes: LIMITS.perIp.minutes,
+      message: (s: number) => `too many claims from here. try again in ${inTime(s)}` },
+    { key: `claim-profile:${userId}`, count: LIMITS.perProfile.count, minutes: LIMITS.perProfile.minutes,
+      message: (s: number) => `this profile has had too many claims recently. try again in ${inTime(s)}` },
+    { key: 'claim-site', count: LIMITS.siteWide.count, minutes: LIMITS.siteWide.minutes,
+      message: (s: number) => `lots of people are claiming right now. try again in ${inTime(s)}` },
+  ];
+  for (const l of limits) {
+    const peek = await peekRateLimit(l.key, l.count);
+    if (!peek.ok) return fail(429, l.message(peek.retryAfterSec), { retryAfter: peek.retryAfterSec });
+  }
+  await Promise.all(limits.map((l) => rateLimit(l.key, l.count, l.minutes * 60_000)));
 
   // one claim at a time across the whole site: take the slot before touching maimai NET.
   // this browser's own earlier claim counts as "mine", so restarting works
   const token = randomToken();
   const claimId = sha256(token);
-  const busyUntil = await takeSlot(claimId, verifyUntil, [ownId]);
-  if (busyUntil) return fail(409, busyMessage(busyUntil, now), { busyUntil: busyUntil.toISOString() });
+  const holder = await takeSlot(claimId, verifyUntil, [ownId]);
+  if (holder) return busy(holder);
 
   // the starting point is what's on their profile RIGHT NOW, not last night's scrape,
   // so a title they changed earlier today can't count as proof

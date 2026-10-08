@@ -9,7 +9,7 @@ import { SongCard, SongDetail, bestFiftyCss, ratingGains, type Selected } from '
 import { PencilIcon } from './ProfileBio';
 
 /**
- * A row of up to five favorite scores on a profile, in a card styled like the
+ * Up to five favorite scores (FAVORITES_MAX) on a profile, in a card styled like the
  * "about me" one, drawn with the same score cards and detail popup as the best 50.
  * The owner gets the same pencil: pick charts from their played scores, drag the
  * cards themselves into order, remove them with the × on each card, then save.
