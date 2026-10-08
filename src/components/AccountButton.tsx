@@ -30,6 +30,7 @@ type Me =
         webId: number | null;
         icon?: string | null;
         iconFallback?: string | null;
+        scoresHidden?: boolean;
         isAdmin?: boolean;
     };
 
@@ -52,7 +53,7 @@ const css = `
   .acct-chev { flex-shrink: 0; opacity: 0.6; transition: transform 0.15s ease; }
   .acct-trigger[aria-expanded="true"] .acct-chev { transform: rotate(180deg); }
 
-  .acct-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 11rem;
+  .acct-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 14rem;
     padding: 4px; margin: 0; list-style: none; box-sizing: border-box;
     background: var(--btn-bg); border: 1px solid var(--btn-border); border-radius: 8px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
@@ -65,6 +66,19 @@ const css = `
   .acct-item:hover, .acct-item:focus-visible { background: rgba(127,127,127,0.15); outline: none; }
   .acct-item:disabled { opacity: 0.55; cursor: default; }
   .acct-sep { height: 1px; margin: 4px 0; background: var(--btn-border); }
+  /* "show my scores": a menu item with an on / off switch on the right, blue when on */
+  .acct-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; white-space: nowrap; }
+  .acct-switch { position: relative; flex-shrink: 0; width: 32px; height: 18px; border-radius: 999px;
+    background: rgba(127,127,127,0.4); transition: background-color 0.2s ease; }
+  .acct-toggle[aria-checked="true"] .acct-switch { background: #2563eb; }
+  .acct-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3); transition: transform 0.2s ease; }
+  .acct-toggle[aria-checked="true"] .acct-knob { transform: translateX(14px); }
+  .acct-note { padding: 0 10px 6px; font-size: 0.72rem; line-height: 1.35; color: var(--text-sub); }
+  .acct-note-error { color: #e11d48; }
+  @media (prefers-reduced-motion: reduce) {
+    .acct-switch, .acct-knob { transition: none; }
+  }
 
   @media (max-width: 600px) {
     /* phones: same style, just capped so a long username can't crowd the header */
@@ -128,6 +142,11 @@ function AccountMenu({ me }: { me: Extract<Me, { signedIn: true }> }) {
     const pathname = usePathname();
     const [open, setOpen] = useState(false);
     const [signingOut, setSigningOut] = useState(false);
+    // "show my scores": whether their scores are hidden from their profile (scores_opt_out)
+    const [scoresHidden, setScoresHidden] = useState(Boolean(me.scoresHidden));
+    const [savingScores, setSavingScores] = useState(false);
+    const [scoresError, setScoresError] = useState<string | null>(null);
+    useEffect(() => { setScoresHidden(Boolean(me.scoresHidden)); }, [me.scoresHidden]);
     const wrapRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -181,6 +200,22 @@ function AccountMenu({ me }: { me: Extract<Me, { signedIn: true }> }) {
         else if (e.key === 'Tab') setOpen(false);
     };
 
+    // flips "show my scores". the menu stays open so they can see it change
+    const toggleScores = async () => {
+        const next = !scoresHidden;
+        setSavingScores(true); setScoresError(null);
+        const res = await fetch('/api/profile/scores-visibility', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hidden: next }),
+        }).catch(() => null);
+        const data = res ? await res.json().catch(() => ({})) : {};
+        setSavingScores(false);
+        if (!res?.ok) { setScoresError(data.error ?? 'something went wrong'); return; }
+        setScoresHidden(Boolean(data.hidden));
+        router.refresh(); // their profile, if it's open, shows or hides the scores right away
+    };
+
     const signOut = async () => {
         setSigningOut(true);
         await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null);
@@ -221,6 +256,21 @@ function AccountMenu({ me }: { me: Extract<Me, { signedIn: true }> }) {
                         <Link href="/admin" className="acct-item" role="menuitem" onClick={() => setOpen(false)}>
                             admin
                         </Link>
+                    )}
+                    {me.webId != null && (
+                        <>
+                            <div className="acct-sep" role="separator" />
+                            <button type="button" className="acct-item acct-toggle" role="menuitemcheckbox"
+                                aria-checked={!scoresHidden} onClick={toggleScores} disabled={savingScores}>
+                                show my scores
+                                <span className="acct-switch" aria-hidden="true"><span className="acct-knob" /></span>
+                            </button>
+                            <div className={`acct-note${scoresError ? ' acct-note-error' : ''}`} role="presentation">
+                                {scoresError ?? (scoresHidden
+                                    ? 'your best 50, play stats and favorites are hidden'
+                                    : 'turn off to hide your best 50, play stats and favorites')}
+                            </div>
+                        </>
                     )}
                     <div className="acct-sep" role="separator" />
                     <button type="button" className="acct-item" role="menuitem" onClick={signOut} disabled={signingOut}>

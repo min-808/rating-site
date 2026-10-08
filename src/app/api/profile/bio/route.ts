@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { type AccountDoc, getDb, getSession, rateLimit } from '../../../../lib/auth';
 import { cleanBio, checkBio } from '../../../../lib/bio';
+import { logActivity } from '../../../../lib/activity';
 
 const fail = (status: number, error: string) => NextResponse.json({ error }, { status });
 
@@ -27,10 +28,14 @@ export async function POST(req: Request) {
   if (!limit.ok) return fail(429, "you've saved a lot recently. try again in a bit");
 
   const db = await getDb();
-  await db.collection<AccountDoc & { bio?: string; bio_updated_at?: Date }>('accounts').updateOne(
+  const accounts = db.collection<AccountDoc & { bio?: string; bio_updated_at?: Date }>('accounts');
+  // the old bio, for the admin page's activity log
+  const before = (await accounts.findOne({ _id: session.userId }, { projection: { bio: 1 } }))?.bio ?? null;
+  await accounts.updateOne(
     { _id: session.userId },
     bio ? { $set: { bio, bio_updated_at: new Date() } } : { $unset: { bio: '', bio_updated_at: '' } },
   );
+  if (before !== (bio || null)) await logActivity(req, session, 'bio', { before, after: bio || null });
 
   return NextResponse.json({ bio: bio || null });
 }

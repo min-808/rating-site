@@ -40,7 +40,8 @@ const css = `
     background: rgba(225, 29, 72, 0.12); color: #e11d48; }
 `;
 
-function PencilIcon() {
+// also used by the favorites card, so the two edit buttons match
+export function PencilIcon() {
     return (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

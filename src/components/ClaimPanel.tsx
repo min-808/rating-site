@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { announceAuthChange } from './AccountButton';
@@ -12,8 +13,10 @@ import { announceAuthChange } from './AccountButton';
  *   verify  -> "change your title, then press Verify", with a countdown
  *   setup   -> pick a username and password (pre-filled on a reclaim)
  *
- * The profile page decides which strip to show: the owner sees "this is you",
- * a claimed profile just says so, an unclaimed one offers "claim".
+ * On a profile it sits in the header, under the name, as one small status line:
+ * the owner sees "this is you", a claimed profile just says so, an unclaimed one
+ * offers "claim". The flow's card is bigger, so it renders into the page's
+ * `flowSlotId` element instead (below the header), when there is one.
  *
  * Reset access (forgot password) is deliberately not on profiles, so nobody sees a
  * reset button on other people's pages. It lives at /login/reset, which finds the
@@ -34,20 +37,16 @@ declare global {
 }
 
 const css = `
-    .cp-strip { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 12px;
-    width: fit-content; max-width: 100%; box-sizing: border-box; margin: 0.25rem auto 1.5rem;
-    padding: 0.6rem 1.1rem; border-radius: 12px; border: 1px solid var(--border-light);
-    background: rgba(127, 127, 127, 0.06);
-    font-size: 0.82rem; color: var(--text-sub); text-align: center; }
-  .cp-strip b { color: inherit; }
+  /* the status line under the player's name */
+  .cp-status { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin: 0.4rem 0 0;
+    font-size: 0.75rem; color: var(--text-sub); }
+  .cp-status b { color: inherit; }
   .cp-link { border: 0; background: none; padding: 0; font: inherit; color: #2563eb; cursor: pointer;
     text-decoration: underline; text-underline-offset: 2px; }
   .cp-link:hover { color: #1d4ed8; }
-  /* pill on top, the "is this you?" line under it */
-  .cp-strip-stack { flex-direction: column; gap: 6px; }
-  .cp-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 999px;
+  .cp-pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px;
     background: var(--faq-highlight-bg); font-weight: 700; color: var(--text-sub); }
-  .cp-uc-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 999px;
+  .cp-uc-pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px;
     background: var(--btn-border); font-weight: 700; color: var(--text-sub); }
 
   .cp-card { max-width: 460px; margin: 0.25rem auto 1.75rem; padding: 1.1rem 1.25rem; border-radius: 12px;
@@ -153,7 +152,7 @@ async function post(url: string, body?: object) {
     return { ok: res.ok, data: data as Record<string, any> };
 }
 
-export default function ClaimPanel({ webId, playerName, claimed, isOwner, signedInAs, captchaSiteKey, standalone = null }: {
+export default function ClaimPanel({ webId, playerName, claimed, isOwner, signedInAs, captchaSiteKey, standalone = null, flowSlotId = null }: {
     webId: number;
     playerName: string;
     claimed: boolean; // someone already has an account for this profile
@@ -163,6 +162,8 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
     // on its own page (the reset page) instead of under a profile: no strip, and
     // cancel leaves for closeHref
     standalone?: { closeHref: string } | null;
+    // id of an element elsewhere on the page that the open flow renders into
+    flowSlotId?: string | null;
 }) {
     const router = useRouter();
     const [step, setStep] = useState<Step>(standalone ? 'intro' : 'closed');
@@ -265,38 +266,38 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
         }
     };
 
-    // ----- the strip under the header -----
-    if (step === 'closed') {
-        // signed in on someone else's profile: they already have their one account,
-        // so there's nothing to claim or sign in to here
-        if (signedInAs && !isOwner) return null;
+    // the element the flow renders into, found once the page is on screen
+    const [flowSlot, setFlowSlot] = useState<HTMLElement | null>(null);
+    useEffect(() => {
+        if (flowSlotId) setFlowSlot(document.getElementById(flowSlotId));
+    }, [flowSlotId]);
 
-        return (
-            <div className="cp-strip cp-strip-stack">
-                <style>{css}</style>
-                {isOwner ? (
-                    <>
-                        <span className="cp-pill">✓ this is you</span>
-                        <span>
-                            signed in as <b>{signedInAs}</b>
-                        </span>
-                    </>
-                ) : claimed ? (
-                    <span className="cp-pill">✓ claimed profile</span>
-                ) : (
-                    <>
-                        <span className="cp-uc-pill">unclaimed profile</span>
-                        <span>is this you? · <button type="button" className="cp-link" onClick={open}>claim this profile</button></span>
-                    </>
-                )}
-            </div>
-        );
-    }
+    // ----- the status line under the name -----
+    // signed in on someone else's profile: they already have their one account,
+    // so there's nothing to claim or sign in to here. the reset page has no status line
+    const status = standalone || (signedInAs && !isOwner) ? null : (
+        <p className="cp-status">
+            {isOwner ? (
+                <>
+                    <span className="cp-pill">✓ this is you</span>
+                    <span>signed in as <b>{signedInAs}</b></span>
+                </>
+            ) : claimed ? (
+                <span className="cp-pill">✓ claimed profile</span>
+            ) : (
+                <>
+                    <span className="cp-uc-pill">unclaimed profile</span>
+                    {step === 'closed' && (
+                        <span>is this you? <button type="button" className="cp-link" onClick={open}>claim this profile</button></span>
+                    )}
+                </>
+            )}
+        </p>
+    );
 
     // ----- the flow -----
-    return (
+    const flow = step === 'closed' ? null : (
         <section className="cp-card" aria-live="polite">
-            <style>{css}</style>
 
             {step === 'intro' && (
                 <>
@@ -385,5 +386,13 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
                 </form>
             )}
         </section>
+    );
+
+    return (
+        <>
+            <style>{css}</style>
+            {status}
+            {flow && flowSlot ? createPortal(flow, flowSlot) : flow}
+        </>
     );
 }

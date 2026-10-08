@@ -6,6 +6,7 @@ import { getAdmin, type AdminLogDoc } from '../../lib/admin';
 import { toNormalWidth } from '../../lib/leaderboard';
 import AdminButton from '../../components/AdminButton';
 import type { AttemptDoc, AttemptKind, AttemptOutcome } from '../../lib/attempts';
+import type { ActivityAction, ActivityDoc } from '../../lib/activity';
 
 /**
  * /admin: only for accounts listed in ADMIN_USER_IDS. Everyone else gets the
@@ -77,6 +78,15 @@ const OUTCOME_LABEL: Record<AttemptOutcome, string> = {
 };
 // "ok" says something different for each step
 const OK_LABEL: Partial<Record<AttemptKind, string>> = { login: 'signed in', 'claim-start': 'started', 'claim-cancel': 'cancelled' };
+const ACTIVITY_LABEL: Record<ActivityAction, string> = { bio: 'bio', favorites: 'favorites', scores: 'scores', 'sign-out': 'signed out' };
+
+// a favorite's chart key ("master-dx-Oshama Scramble!") as "Oshama Scramble! · DX MASTER".
+// difficulty and kind never contain a dash, so everything after the second one is the title
+function chartLabel(key: string) {
+  const [difficulty, kind, ...title] = String(key).split('-');
+  return `${title.join('-')} · ${/dx/i.test(kind ?? '') ? 'DX' : 'STD'} ${(difficulty ?? '').toUpperCase()}`;
+}
+
 const resultLabel = (a: Pick<AttemptDoc, 'kind' | 'outcome'>) =>
   (a.outcome === 'ok' && OK_LABEL[a.kind]) || OUTCOME_LABEL[a.outcome];
 
@@ -126,6 +136,11 @@ const css = `
   .ad-btn-wrap { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; }
   .ad-btn-error { font-size: 0.72rem; color: #e11d48; }
   .ad-scroll { overflow-x: auto; }
+  .ad-change { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 8px; max-width: 420px; font-size: 0.8rem; }
+  .ad-change-label { color: var(--text-sub); font-size: 0.72rem; font-weight: 700; padding-top: 1px; }
+  .ad-change-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .ad-change-old { color: var(--text-sub); text-decoration: line-through; text-decoration-color: rgba(225, 29, 72, 0.6); }
+  .ad-change ol { margin: 0; padding-left: 1.1rem; }
   @media (max-width: 600px) {
     .ad-hide-sm { display: none; }
   }
@@ -237,11 +252,20 @@ export default async function AdminPage({ searchParams }: {
   ]);
   const sumsFor = (login: boolean) => daySums.filter((d) => d._id.login === login);
 
+  // ---- what signed-in players did: bio and favorites changes, sign-outs ----
+  const activity = await db
+    .collection<ActivityDoc>('user_activity')
+    .find(attemptFilter)
+    .sort({ at: -1 })
+    .limit(40)
+    .toArray();
+
   const nameMap = await playersFor([
     ...recent.map((a) => a._id),
     ...liveClaims.map((c) => c.user_id),
     ...log.map((l) => l.target_user_id).filter((id): id is string => Boolean(id)),
     ...[...claimAttempts, ...loginAttempts].map((a) => a.user_id).filter((id): id is string => Boolean(id)),
+    ...activity.map((a) => a.user_id),
     ...(filterPlayer ? [filterPlayer] : []),
   ]);
   const playerName = (id: string | null | undefined) => {
@@ -326,6 +350,39 @@ export default async function AdminPage({ searchParams }: {
       </table>
     </div>
   );
+
+  // what changed in one activity entry: old and new bio, or old and new favorites
+  const activityChange = (a: ActivityDoc) => {
+    if (a.action === 'bio') {
+      const text = (v: unknown) => (typeof v === 'string' && v ? v : null);
+      return (
+        <div className="ad-change">
+          <span className="ad-change-label">was</span>
+          <span className="ad-change-text ad-change-old">{text(a.before) ?? <i>no bio</i>}</span>
+          <span className="ad-change-label">now</span>
+          <span className="ad-change-text">{text(a.after) ?? <i>no bio</i>}</span>
+        </div>
+      );
+    }
+    if (a.action === 'favorites') {
+      const list = (v: unknown) => {
+        const keys = Array.isArray(v) ? v.map(String) : [];
+        return keys.length ? <ol>{keys.map((k) => <li key={k}>{chartLabel(k)}</li>)}</ol> : <i>none</i>;
+      };
+      return (
+        <div className="ad-change">
+          <span className="ad-change-label">was</span>
+          <span className="ad-change-old">{list(a.before)}</span>
+          <span className="ad-change-label">now</span>
+          <span>{list(a.after)}</span>
+        </div>
+      );
+    }
+    if (a.action === 'scores') {
+      return <span>{a.after === 'hidden' ? 'hid their scores' : 'showed their scores again'}</span>;
+    }
+    return <span className="ad-muted">-</span>;
+  };
 
   // "24h: 5 account made · 2 blocked ..."
   const daySummary = (login: boolean) => {
@@ -412,7 +469,7 @@ export default async function AdminPage({ searchParams }: {
       {(filterPlayer || filterIp) && (
         <div className="ad-filter">
           <span>
-            showing attempts {filterPlayer ? <>for <b>{playerName(filterPlayer)}</b></> : null}
+            showing attempts and activity {filterPlayer ? <>for <b>{playerName(filterPlayer)}</b></> : null}
             {filterPlayer && filterIp ? ' ' : ''}
             {filterIp ? <>from <code>{filterIp}</code></> : null} only
           </span>
@@ -430,6 +487,39 @@ export default async function AdminPage({ searchParams }: {
         <h2>sign-in attempts</h2>
         <div className="ad-sums">{daySummary(true)}</div>
         {loginAttempts.length === 0 ? <p className="ad-muted">none recorded yet</p> : attemptsTable(loginAttempts, true)}
+      </section>
+
+      {/* ---------------- player activity ---------------- */}
+      <section className="ad-card">
+        <h2>player activity</h2>
+        <p className="ad-muted" style={{ marginBottom: '0.75rem' }}>
+          bio and favorites changes, hiding or showing scores, and sign-outs, newest first. sign-ins and claims are in the tables above
+        </p>
+        {activity.length === 0 ? (
+          <p className="ad-muted">nothing recorded yet</p>
+        ) : (
+          <div className="ad-scroll">
+            <table className="ad-table">
+              <thead>
+                <tr><th>when</th><th>player</th><th>did</th><th>change</th><th>from</th></tr>
+              </thead>
+              <tbody>
+                {activity.map((a) => (
+                  <tr key={String((a as ActivityDoc & { _id: unknown })._id)}>
+                    <td>{when(a.at)}</td>
+                    <td>
+                      <Link href={`/admin?player=${a.user_id}#attempts`}>{playerName(a.user_id)}</Link>
+                      <div className="ad-muted" style={{ fontSize: '0.72rem' }}>{a.username}</div>
+                    </td>
+                    <td><span className="ad-tag">{ACTIVITY_LABEL[a.action] ?? a.action}</span></td>
+                    <td>{activityChange(a)}</td>
+                    <td><Link className="ad-ip" href={`/admin?ip=${a.ip_hash}#attempts`} title="everything from this source">{a.ip_hash}</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       {/* ---------------- scrapers ---------------- */}

@@ -42,6 +42,8 @@ export default function Faq() {
     {
       question: "i'm a maimai player from hawaii. how do i get listed on the leaderboard?",
       highlight: true,
+      // linked from /loginhelp as /faq#get-listed
+      id: "get-listed",
       answer: (
         <>
             <p>
@@ -115,6 +117,7 @@ export default function Faq() {
         {faqs.map((faq, index) => (
           <div 
             key={index} 
+            id={faq.id}
             style={{ 
               marginBottom: '2rem',
                 ...(faq.highlight ? {

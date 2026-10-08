@@ -22,16 +22,19 @@ export const VERIFY_MINUTES = 5;
 // ---------------------------------------------------------------------------
 // closed hours
 
-// how long each "every 8th hour" block lasts, from the top of the hour.
-// 60 = the whole hour. if your 8-hourly job only takes ~15 minutes, set 15
-const EVERY_8TH_HOUR_MINUTES = 60;
-
-// [start, end) in minutes after midnight, Hawaii time
+// [start, end) in minutes after midnight, Hawaii time: when a VPS job uses maimai NET,
+// with some room either side. a window can run past midnight (11:55pm to 12:05am):
+// closedWindowDuring checks yesterday and tomorrow too
+const at = (h: number, m = 0) => h * 60 + m;
 const CLOSED: Array<[number, number]> = [
-  // 12am, 8am, 4pm
-  ...[0, 8, 16].map((h): [number, number] => [h * 60, h * 60 + EVERY_8TH_HOUR_MINUTES]),
-  // 11:00pm to 11:45pm
-  [23 * 60, 23 * 60 + 45],
+  // friend checker (run_friend.sh, every 8 hours at 12am, 8am and 4pm)
+  [at(23, 55), at(24, 5)], // 11:55pm to 12:05am
+  [at(7, 55), at(8, 5)], // 7:55am to 8:05am
+  [at(15, 55), at(16, 5)], // 3:55pm to 4:05pm
+  // song import (import-songs.sh, 3pm)
+  [at(14, 55), at(15, 5)], // 2:55pm to 3:05pm
+  // friends list and score scrapes (scrape-friends.sh 11:10pm, scrape-friend-scores.sh 11:20pm)
+  [at(23, 0), at(23, 50)], // 11:00pm to 11:50pm
 ];
 
 const MINUTE = 60_000;

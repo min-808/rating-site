@@ -14,7 +14,8 @@ export type RatingColor = { colors: string[]; text: string };
 const BY_TIER: Record<string, RatingColor> = {
   kiwami: { colors: ['#ff7eb3', '#ffb86b', '#fff07a', '#7ee7c4', '#7ab8ff', '#c58cff'], text: '#3a1030' },
   rainbow: { colors: ['#ff5a5a', '#ffb84d', '#f2e85a', '#5cd67f', '#4db8ff', '#a06bff'], text: '#3a1010' },
-  platinum: { colors: ['#7fd8e6'], text: '#0b3a42' },
+  // a bright yellow, well clear of gold's darker amber, so the two read as different badges
+  platinum: { colors: ['#ffe14d'], text: '#3d2c00' },
   gold: { colors: ['#e0a800'], text: '#3d2c00' },
   silver: { colors: ['#9aa7b8'], text: '#1d2530' },
   bronze: { colors: ['#c07a45'], text: '#fff' },
@@ -22,7 +23,7 @@ const BY_TIER: Record<string, RatingColor> = {
   red: { colors: ['#ef4444'], text: '#fff' },
   orange: { colors: ['#f97316'], text: '#fff' },
   green: { colors: ['#22c55e'], text: '#fff' },
-  blue: { colors: ['#3b82f6'], text: '#fff' },
+  blue: { colors: ['#7fd8e6'], text: '#0b3a42' },
 };
 
 // under 1000 there's no colored badge

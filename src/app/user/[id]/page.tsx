@@ -21,6 +21,9 @@ import LevelChart from '../../../components/LevelChart';
 import ClaimPanel from '../../../components/ClaimPanel';
 import { getSession } from '../../../lib/auth';
 import ProfileBio from '../../../components/ProfileBio';
+import PastNames from '../../../components/PastNames';
+import ChartsPlayed from '../../../components/ChartsPlayed';
+import FavoriteScores from '../../../components/FavoriteScores';
 import { playStats } from '../../../lib/play-stats';
 
 interface UserPageProps {
@@ -81,8 +84,8 @@ function Avatar({ src, fallbackSrc, name }: { src?: string; fallbackSrc?: string
           fallbackSrc={fallbackSrc}
           alt=""
           className="user-avatar"
-          width={64}
-          height={64}
+          width={88}
+          height={88}
       />
   );
 }
@@ -132,13 +135,12 @@ const css = `
     display: flex;
     align-items: center;
     gap: 1rem;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 0.75rem;
     margin-bottom: 1.5rem;
   }
   .user-avatar {
-    width: 64px;
-    height: 64px;
+    /* about as tall as the plate, name and status line beside it */
+    width: 88px;
+    height: 88px;
     flex-shrink: 0;
     border-radius: 8px;
     object-fit: cover;
@@ -147,7 +149,7 @@ const css = `
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.6rem;
+    font-size: 2.2rem;
     font-weight: bold;
     color: var(--text-sub);
     background-color: var(--faq-highlight-bg);
@@ -244,11 +246,6 @@ const css = `
     height: 28px;
     width: auto;
     flex-shrink: 0;
-  }
-  .user-aka {
-    margin: 0.35rem 0 0 0;
-    font-size: 0.8rem;
-    color: var(--text-muted);
   }
 
   /* the overview card, laid out like an osu! profile:
@@ -437,11 +434,11 @@ const css = `
       gap: 0.75rem;
     }
     .user-avatar {
-      width: 48px;
-      height: 48px;
+      width: 72px;
+      height: 72px;
     }
     .user-avatar-fallback {
-      font-size: 1.2rem;
+      font-size: 1.8rem;
     }
     .user-heart {
       font-size: 1.25rem;
@@ -526,8 +523,8 @@ export default async function UserPage({ params }: UserPageProps) {
   const session = await getSession();
   const account = await client
     .db('maimai')
-    .collection<{ _id: string; bio?: string }>('accounts')
-    .findOne({ _id: String(player.user_id) }, { projection: { _id: 1, bio: 1 } });
+    .collection<{ _id: string; bio?: string; favorites?: string[] }>('accounts')
+    .findOne({ _id: String(player.user_id) }, { projection: { _id: 1, bio: 1, favorites: 1 } });
   const isOwner = session?.userId === String(player.user_id);
 
   const pastNames = [...new Set((player.old_names ?? []).map(toNormalWidth))].filter(
@@ -545,14 +542,13 @@ export default async function UserPage({ params }: UserPageProps) {
   const ratingChange = calculateRatingChange(player);
 
   const optedOut = Boolean(player.scores_opt_out);
-  // counted from their saved scores, so it's hidden along with them when they opt out
-  const stats = optedOut ? null : playStats(player.songs);
 
   let songs: PlayerDocument['songs'] = [];
 
   // the "charts by level" totals, for both region views, and the songs the NA view leaves out
   const levelTotals = { na: {} as Record<string, number>, intl: {} as Record<string, number> };
   let naExcluded: string[] = [];
+  let playedNa = 0;
 
   if (!optedOut) {
     const titles = [...new Set((player.songs ?? []).map((s) => s.title))];
@@ -595,6 +591,11 @@ export default async function UserPage({ params }: UserPageProps) {
     naExcluded = [...availableInNa].filter(([, ok]) => !ok).map(([key]) => key);
     const excludedSet = new Set(naExcluded);
 
+    // the NA "charts played": the same charts the level chart counts in its NA view
+    playedNa = (player.songs ?? []).filter(
+        (s) => (s.achievement ?? 0) > 0 && !excludedSet.has(titleKey(s.title)),
+    ).length;
+
     // chart lists per level, saved nightly from maimai NET's own level pages
     const levelDocs = await client
         .db('maimai')
@@ -608,6 +609,17 @@ export default async function UserPage({ params }: UserPageProps) {
       levelTotals.na[doc._id] = charts.filter((c) => !excludedSet.has(titleKey(c.title))).length;
     }
   }
+
+  // counted from their saved scores, so it's hidden along with them when they opt out.
+  // the total is every chart in the game, from the same level pages as the level chart
+  const sum = (counts: Record<string, number>) => Object.values(counts).reduce((t, n) => t + n, 0);
+  const totalCharts = sum(levelTotals.intl);
+  const stats = optedOut ? null : playStats(player.songs, totalCharts);
+  // "unique charts played" for both regions; the level chart's toggle picks which shows
+  const chartsPlayed = {
+    na: { played: playedNa, total: sum(levelTotals.na) },
+    intl: { played: stats?.played ?? 0, total: totalCharts },
+  };
 
   return (
       <main className="user-container">
@@ -623,12 +635,20 @@ export default async function UserPage({ params }: UserPageProps) {
             <TitlePlate name={player.title_name} plate={player.title_blob} />
             <div className="user-name-row">
               <h1 className={`user-name${isHeartUser ? ' user-name-heart' : ''}`}>{displayName}</h1>
+              <PastNames names={pastNames} />
               <DanBadge src={player.dan_blob} fallbackSrc={player.dan} />
               <DanBadge src={player.class_rank_blob} fallbackSrc={player.class_rank} />
             </div>
-            {pastNames.length > 0 && (
-                <p className="user-aka">formerly known as {pastNames.join(', ')}</p>
-            )}
+            {/* claimed / unclaimed / this is you. the claim flow itself opens in #claim-flow below */}
+            <ClaimPanel
+                webId={player.web_id}
+                playerName={displayName}
+                claimed={Boolean(account)}
+                isOwner={isOwner}
+                signedInAs={session?.username ?? null}
+                captchaSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? null}
+                flowSlotId="claim-flow"
+            />
           </div>
           {isHeartUser && (
               <span className="user-heart" role="img" aria-label="heart">
@@ -637,14 +657,7 @@ export default async function UserPage({ params }: UserPageProps) {
           )}
         </header>
 
-        <ClaimPanel
-            webId={player.web_id}
-            playerName={displayName}
-            claimed={Boolean(account)}
-            isOwner={isOwner}
-            signedInAs={session?.username ?? null}
-            captchaSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? null}
-        />
+        <div id="claim-flow" />
 
         <section className="overview" aria-label="rating, rank and play stats">
           <div className="ov-main">
@@ -693,7 +706,7 @@ export default async function UserPage({ params }: UserPageProps) {
                     {group.map((row) => (
                       <div key={row.label} style={{ display: 'contents' }}>
                         <dt>{row.label}</dt>
-                        <dd>{row.value}</dd>
+                        <dd>{row.id === 'charts-played' ? <ChartsPlayed {...chartsPlayed} /> : row.value}</dd>
                       </div>
                     ))}
                   </Fragment>
@@ -706,6 +719,12 @@ export default async function UserPage({ params }: UserPageProps) {
         </section>
 
         <ProfileBio initialBio={account?.bio ?? null} canEdit={isOwner} />
+
+        {/* favorite scores, right under the about me: claimed profiles only, and hidden
+            with the rest of the scores. the divider below separates it from the level breakdown */}
+        {account && !optedOut && (
+            <FavoriteScores songs={songs ?? []} initialFavorites={account.favorites ?? []} canEdit={isOwner} />
+        )}
 
         <hr className="divider" />
 

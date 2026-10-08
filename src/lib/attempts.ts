@@ -42,7 +42,8 @@ export type AttemptDoc = {
 };
 
 // a stable 10-character tag per IP. not reversible in practice, not stored raw
-const ipTag = (ip: string) => sha256(`hm-attempts:${ip}`).slice(0, 10);
+// also used by the activity log (lib/activity.ts), so one source has one tag everywhere
+export const ipTag = (ip: string) => sha256(`hm-attempts:${ip}`).slice(0, 10);
 
 let indexReady: Promise<unknown> | null = null;
 async function collection() {

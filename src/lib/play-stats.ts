@@ -67,7 +67,8 @@ const SYNC_STATS = [
   { label: 'FS', test: syncAtLeast('fs') },
 ];
 
-type SideRow = { label: string; value: string };
+// id: set on rows the page draws itself (charts played follows the region toggle)
+type SideRow = { label: string; value: string; id?: string };
 
 export type PlayStats = {
   played: number;
@@ -76,7 +77,9 @@ export type PlayStats = {
   side: SideRow[][]; // groups of rows, top to bottom
 };
 
-export function playStats(songs: Chart[] | undefined | null): PlayStats {
+// totalCharts: every chart in the game, for "unique charts played: 812 / 2,340".
+// left out (or 0), only the played count shows
+export function playStats(songs: Chart[] | undefined | null, totalCharts = 0): PlayStats {
   const played = (songs ?? []).filter((s) => (s.achievement ?? 0) > 0);
   const average = played.length
     ? played.reduce((sum, s) => sum + (s.achievement ?? 0), 0) / played.length
@@ -91,7 +94,11 @@ export function playStats(songs: Chart[] | undefined | null): PlayStats {
     badges: RANK_BADGES.map(({ label, test }) => ({ label, count: played.filter(test).length, img: gradeImage(label) })),
     side: [
       [
-        { label: 'charts played', value: fmt(played.length) },
+        {
+          id: 'charts-played',
+          label: 'unique charts played',
+          value: totalCharts > 0 ? `${fmt(played.length)} / ${fmt(totalCharts)}` : fmt(played.length),
+        },
         { label: 'average accuracy', value: average == null ? '-' : `${average.toFixed(4)}%` },
       ],
       COMBO_STATS.map(count),

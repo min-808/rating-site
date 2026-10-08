@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useChartRegion, setChartRegion } from './chart-region';
 import type { Song } from '../lib/leaderboard';
 import { toNormalWidth } from '../lib/leaderboard';
 
@@ -25,7 +26,6 @@ import { toNormalWidth } from '../lib/leaderboard';
  */
 
 type Segment = { key: string; label: string; color: string };
-type Region = 'na' | 'intl';
 type View = 'rank' | 'combo';
 
 const COMBO_SEGMENTS: Segment[] = [
@@ -184,7 +184,9 @@ export default function LevelChart({ songs, totals, naExcluded }: {
     naExcluded: string[]; // title keys of songs not available in North America
 }) {
     const [view, setView] = useState<View>('rank');
-    const [region, setRegion] = useState<Region>('na');
+    // shared with the rest of the profile, so "unique charts played" follows this toggle
+    const region = useChartRegion();
+    const setRegion = setChartRegion;
     const [showLow, setShowLow] = useState(false);
     const segments = SEGMENTS_BY_VIEW[view];
     const keyOf = KEY_BY_VIEW[view];
