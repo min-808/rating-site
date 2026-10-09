@@ -354,9 +354,14 @@ export type Selected = { song: Song; position: number; list: string; size: numbe
 
 // next rank up, and what the song would rate at exactly that achievement
 function nextRankInfo(song: Song) {
-    const i = RANK_CUTOFFS.findIndex((c) => song.achievement >= c.min);
-    if (i <= 0) return null; // no rank yet, or already at the top rank
-    const next = RANK_CUTOFFS[i - 1];
+    const current = RANK_CUTOFFS.find((c) => song.achievement >= c.min);
+    if (!current) return null; // no rank yet
+    // where the next rank up starts: the lowest real (non-edge) row with a different,
+    // higher rank. edge rows (100.4999 and so on) and D's lower steps aren't new ranks
+    const next = RANK_CUTOFFS
+        .filter((c) => !c.edge && c.min > song.achievement && c.rank !== current.rank)
+        .at(-1);
+    if (!next) return null; // already at the top rank
     const rating = rateSong({ ...song, achievement: next.min });
     return { rank: next.rank, at: next.min, rating, gain: rating - song.rating };
 }

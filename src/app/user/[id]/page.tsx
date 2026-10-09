@@ -22,7 +22,8 @@ import ClaimPanel from '../../../components/ClaimPanel';
 import { getSession } from '../../../lib/auth';
 import ProfileBio from '../../../components/ProfileBio';
 import PastNames from '../../../components/PastNames';
-import ChartsPlayed from '../../../components/ChartsPlayed';
+import ChartsPlayed, { ChartsPlayedLabel } from '../../../components/ChartsPlayed';
+import { CHART_DIFFICULTIES, type DifficultyCounts } from '../../../lib/difficulties';
 import FavoriteScores from '../../../components/FavoriteScores';
 import { playStats } from '../../../lib/play-stats';
 
@@ -549,6 +550,11 @@ export default async function UserPage({ params }: UserPageProps) {
   const levelTotals = { na: {} as Record<string, number>, intl: {} as Record<string, number> };
   let naExcluded: string[] = [];
   let playedNa = 0;
+  // the same counts split by difficulty, for the popup on "unique charts played"
+  const byDifficulty = { na: {} as DifficultyCounts, intl: {} as DifficultyCounts };
+  for (const region of ['na', 'intl'] as const) {
+    for (const d of CHART_DIFFICULTIES) byDifficulty[region][d] = { played: 0, total: 0 };
+  }
 
   if (!optedOut) {
     const titles = [...new Set((player.songs ?? []).map((s) => s.title))];
@@ -559,7 +565,10 @@ export default async function UserPage({ params }: UserPageProps) {
         .toArray();
     const meta = new Map<string, SongMetaDocument>(metaDocs.map((m) => [m._id, m]));
     songs = (player.songs ?? []).map((s) => {
-      const m = meta.get(s.title);
+      // a title shared by songs in different genres (the two "Link"s) keeps each one's
+      // jacket and details under its genre, and the score's genre picks which
+      const shared = meta.get(s.title);
+      const m = shared?.by_genre?.[s.genre ?? ''] ?? shared;
       return m
   ? {
       ...s,
@@ -596,10 +605,18 @@ export default async function UserPage({ params }: UserPageProps) {
         (s) => (s.achievement ?? 0) > 0 && !excludedSet.has(titleKey(s.title)),
     ).length;
 
+    // played charts by difficulty: every one for international, NA-available ones for NA
+    for (const s of player.songs ?? []) {
+      if (!((s.achievement ?? 0) > 0)) continue;
+      const d = String(s.difficulty ?? '').toLowerCase();
+      if (byDifficulty.intl[d]) byDifficulty.intl[d].played++;
+      if (byDifficulty.na[d] && !excludedSet.has(titleKey(s.title))) byDifficulty.na[d].played++;
+    }
+
     // chart lists per level, saved nightly from maimai NET's own level pages
     const levelDocs = await client
         .db('maimai')
-        .collection<{ _id: string; charts?: { title: string }[] }>('level_charts')
+        .collection<{ _id: string; charts?: { title: string; difficulty?: string | null }[] }>('level_charts')
         .find({}, { projection: { charts: 1 } })
         .toArray();
 
@@ -607,6 +624,12 @@ export default async function UserPage({ params }: UserPageProps) {
       const charts = doc.charts ?? [];
       levelTotals.intl[doc._id] = charts.length;
       levelTotals.na[doc._id] = charts.filter((c) => !excludedSet.has(titleKey(c.title))).length;
+      // and the game's chart counts by difficulty
+      for (const c of charts) {
+        const d = String(c.difficulty ?? '').toLowerCase();
+        if (byDifficulty.intl[d]) byDifficulty.intl[d].total++;
+        if (byDifficulty.na[d] && !excludedSet.has(titleKey(c.title))) byDifficulty.na[d].total++;
+      }
     }
   }
 
@@ -705,7 +728,7 @@ export default async function UserPage({ params }: UserPageProps) {
                     {g > 0 && <div className="ov-sep" role="presentation" />}
                     {group.map((row) => (
                       <div key={row.label} style={{ display: 'contents' }}>
-                        <dt>{row.label}</dt>
+                        <dt>{row.id === 'charts-played' ? <ChartsPlayedLabel label={row.label} {...byDifficulty} /> : row.label}</dt>
                         <dd>{row.id === 'charts-played' ? <ChartsPlayed {...chartsPlayed} /> : row.value}</dd>
                       </div>
                     ))}

@@ -96,7 +96,7 @@ export function playStats(songs: Chart[] | undefined | null, totalCharts = 0): P
       [
         {
           id: 'charts-played',
-          label: 'unique charts played',
+          label: 'total charts played',
           value: totalCharts > 0 ? `${fmt(played.length)} / ${fmt(totalCharts)}` : fmt(played.length),
         },
         { label: 'average accuracy', value: average == null ? '-' : `${average.toFixed(4)}%` },
