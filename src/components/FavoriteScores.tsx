@@ -8,7 +8,6 @@ import FallbackImage from './FallbackImage';
 import { SongCard, SongDetail, bestFiftyCss, ratingGains, type Selected } from './BestFifty';
 import { PencilIcon } from './ProfileBio';
 import LoadingDots from './LoadingDots';
-import RefreshScores from './RefreshScores';
 
 /**
  * Up to five favorite scores (FAVORITES_MAX) on a profile, in a card styled like the
@@ -63,6 +62,7 @@ const css = `
   .fav-remove:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
   .fav-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 0.9rem; }
   .fav-actions .fav-spacer { flex: 1; }
+  .fav-hint { margin: 0.6rem 0 0; font-size: 0.75rem; color: var(--text-sub); }
   .fav-error { margin: 0.5rem 0 0; padding: 6px 10px; border-radius: 7px; font-size: 0.82rem;
     background: rgba(225, 29, 72, 0.12); color: #e11d48; }
 
@@ -316,8 +316,7 @@ export default function FavoriteScores({ songs, initialFavorites, canEdit }: {
             <button type="button" className="fav-btn" onClick={save} disabled={busy}>{busy ? <LoadingDots label="saving" /> : 'save'}</button>
           </div>
           {error && <p className="fav-error">{error}</p>}
-          {/* a score from today not showing up in the picker yet? pull it in */}
-          <RefreshScores />
+          <p className="fav-hint">a new score not showing up? use <b>refresh my scores</b> at the top of your profile</p>
         </>
       )}
 

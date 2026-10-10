@@ -53,9 +53,9 @@ export default function LoginHelp() {
                 phones, where they're small but the red boxes still show; tap one for full size */}
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
                 {[
-                  { src: '/loginsteps/step1.jpg', caption: '1. click on collection', alt: 'the maimai NET home page, with the collection button highlighted' },
-                  { src: '/loginsteps/step2.jpg', caption: '2. click on title', alt: 'the maimai NET collection page, with the title tab highlighted' },
-                  { src: '/loginsteps/step3.jpg', caption: '3. click set on any other title', alt: 'the maimai NET title list, each title with a set button' },
+                  { src: '/loginsteps/step1.jpg', caption: '1. click on collection', alt: 'the maimai site\'s home page, with the collection button highlighted' },
+                  { src: '/loginsteps/step2.jpg', caption: '2. click on title', alt: 'the maimai site\'s collection page, with the title tab highlighted' },
+                  { src: '/loginsteps/step3.jpg', caption: '3. click set on any other title', alt: 'the maimai site\'s title list, each title with a set button' },
                 ].map((shot) => (
                   <figure key={shot.src} style={{ margin: 0, flex: '1 1 0', minWidth: 0, maxWidth: '260px' }}>
                     <a href={shot.src} target="_blank" rel="noopener noreferrer" title="open full size">

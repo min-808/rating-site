@@ -173,7 +173,7 @@ async function post(url: string, body?: object) {
         body: JSON.stringify(body ?? {}),
     }).catch(() => null);
     // never got an answer (offline, connection dropped): an error, not a button stuck on "checking"
-    if (!res) return { ok: false, data: { error: "couldn't reach the site. check your connection and try again" } as Record<string, any> };
+    if (!res) return { ok: false, data: { error: "couldn't reach the maimai site. check your connection and try again" } as Record<string, any> };
     const data = await res.json().catch(() => ({}));
     return { ok: res.ok, data: data as Record<string, any> };
 }

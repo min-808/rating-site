@@ -38,7 +38,7 @@ const reply = (body: object, status = 200) => NextResponse.json(body, { status, 
 const MESSAGES: Record<State, string> = {
   none: 'manually pull in scores from today that haven\'t shown up yet. once a day',
   queued: 'waiting, about a minute',
-  running: 'reading your scores from maimai NET, about a minute',
+  running: 'reading your scores, about a minute',
   done: 'refreshed today. you can refresh again tomorrow',
   failed: 'the refresh didn\'t finish. you can refresh again tomorrow',
 };

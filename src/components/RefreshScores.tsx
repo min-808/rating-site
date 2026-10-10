@@ -5,10 +5,17 @@ import { useRouter } from 'next/navigation';
 import LoadingDots from './LoadingDots';
 
 /**
- * "refresh my scores", in the favorites editor: re-reads the owner's scores from
- * maimai NET (on the VPS, starting as soon as maimai NET is free), so a score from today
- * can be picked as a favorite before the nightly scrape gets to it. Once per Hawaii day.
+ * "refresh my scores", on the far right of the owner's profile header: re-reads their
+ * scores from maimai NET (on the VPS, starting as soon as maimai NET is free), so new
+ * scores and lamps show up before the nightly scrape gets to them (which only reads
+ * players whose rating changed). Once per Hawaii day.
  * See /api/profile/refresh-scores and the verify server's /refresh-scores.
+ *
+ * The header has little room, so the button's label says where it stands (refreshing,
+ * refreshed today). While it can be pressed, a note above it says why you'd need it (the
+ * nightly only re-reads players whose rating changed); the line under it only shows
+ * while it runs, or on an error.
+ * The full message is the button's tooltip.
  */
 
 type Status = {
@@ -20,15 +27,27 @@ type Status = {
 const POLL_MS = 5_000;
 
 const css = `
-  .rf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 0.75rem; padding-top: 0.75rem;
-    border-top: 1px solid var(--border-light); font-size: 0.8rem; color: var(--text-sub); }
-  .rf-btn { border: 0; border-radius: 8px; padding: 6px 14px; font: inherit; font-size: 0.85rem; font-weight: 700;
-    cursor: pointer; background: rgba(127,127,127,0.22); color: inherit; white-space: nowrap; }
-  .rf-btn:hover:not(:disabled) { background: rgba(127,127,127,0.34); }
-  .rf-btn:disabled { opacity: 0.55; cursor: default; }
+  /* bottom of the header, just above the rating card */
+  .rf { flex-shrink: 0; align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+    margin-left: auto; font-family: sans-serif; }
+  .rf-btn { border-radius: 9px; padding: 8px 18px; font: inherit; font-size: 0.9rem; font-weight: 700;
+    cursor: pointer; color: inherit; white-space: nowrap;
+    /* the same fill and edge as the stats card's side panel (total charts played) */
+    background: rgba(127,127,127,0.06); border: 1px solid var(--border-light); }
+  .rf-btn:hover:not(:disabled) { background: rgba(127,127,127,0.14); }
+  .rf-btn:disabled { opacity: 0.6; cursor: default; }
   .rf-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-  .rf-msg { flex: 1; min-width: 12rem; }
+  .rf-msg { max-width: 15rem; font-size: 0.72rem; line-height: 1.35; color: var(--text-sub); text-align: right; }
   .rf-error { color: #e11d48; }
+  /* above the button: why you'd need it */
+  .rf-why { max-width: 15rem; font-size: 0.72rem; line-height: 1.35; color: var(--text-muted); text-align: right; }
+  /* phones: no room beside the name, so it drops onto its own row under the header */
+  @media (max-width: 600px) {
+    .rf { flex-basis: 100%; flex-direction: row; align-items: center; margin-left: 0; }
+    .rf { flex-wrap: wrap; column-gap: 10px; }
+    .rf-why { flex-basis: 100%; max-width: none; text-align: left; }
+    .rf-msg { max-width: none; text-align: left; }
+  }
 `;
 
 export default function RefreshScores() {
@@ -45,11 +64,11 @@ export default function RefreshScores() {
     if (data) setStatus(data);
   };
 
-  // where it stands, when the editor opens
+  // where it stands, when the profile opens
   useEffect(() => { void load(); }, []);
 
   // while it's waiting or running, keep checking. when it finishes, redraw the profile so
-  // the new scores are in the chart picker (the editor and its picks stay as they are)
+  // the new scores show (an open favorites editor and its picks stay as they are)
   const inProgress = status?.state === 'queued' || status?.state === 'running';
   useEffect(() => {
     if (inProgress) {
@@ -72,16 +91,26 @@ export default function RefreshScores() {
     setStatus(data);
   };
 
+  // used up for today: say so on the button itself
+  const label = status?.state === 'done' || (status && !status.canRefresh && !inProgress && status.state === 'none')
+    ? 'refreshed today'
+    : status?.state === 'failed' ? 'refresh didn\'t finish' : '↻ refresh my scores';
+
   return (
     <div className="rf">
       <style>{css}</style>
-      <button type="button" className="rf-btn" onClick={refresh} disabled={sending || !status?.canRefresh}>
+      {/* the nightly only re-reads players whose rating changed, which isn't obvious */}
+      {status?.canRefresh && (
+        <span className="rf-why">scores only update overnight when your rating changes. missing some? refresh once a day</span>
+      )}
+      <button type="button" className="rf-btn" onClick={refresh} disabled={sending || !status?.canRefresh}
+        title={status?.message}>
         {sending ? <LoadingDots label="asking" />
           : inProgress ? <LoadingDots label="refreshing" />
-          : 'refresh my scores'}
+          : label}
       </button>
       <span className={`rf-msg${error ? ' rf-error' : ''}`} aria-live="polite">
-        {error ?? status?.message ?? ''}
+        {error ?? (inProgress ? status?.message : '')}
       </span>
     </div>
   );
