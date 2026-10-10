@@ -348,7 +348,7 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
                     ) : (
                         <p>claiming your profile will let you create an account that you can sign in with. by creating an account, you'll be able to edit your profile's bio, pinned scores, favorite charts, and more!</p>
                     )}
-                    <p>in order to {claimed ? 'reset your password' : 'claim your profile'}, we first need to prove that <b>{`${playerName}`}</b> is your maimai account. to do this, you'll need to temporarily change your <b>user title</b> on the maimai site, but don't change it just yet</p>
+                    <p>in order to {claimed ? 'reset your password' : 'claim your profile'}, you first need to prove that <b>{`${playerName}`}</b> is your maimai account. to do this, you'll need to temporarily change your <b>user title</b> on the maimai site, but don't change it just yet</p>
                     <p>first, press <b>start</b> below to begin</p>
                     {claimed && (
                         <p className="cp-muted">this replaces the current password and signs you out everywhere else</p>
