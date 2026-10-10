@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useChartRegion, setChartRegion } from './chart-region';
 import type { Song } from '../lib/leaderboard';
 import { toNormalWidth } from '../lib/leaderboard';
 
@@ -25,7 +26,6 @@ import { toNormalWidth } from '../lib/leaderboard';
  */
 
 type Segment = { key: string; label: string; color: string };
-type Region = 'na' | 'intl';
 type View = 'rank' | 'combo';
 
 const COMBO_SEGMENTS: Segment[] = [
@@ -36,7 +36,9 @@ const COMBO_SEGMENTS: Segment[] = [
     { key: 'applus', label: 'AP+', color: '#d94f9c' },
 ];
 
-// worst to best, left to right. colors match the rank tags on the score cards
+// worst to best (the lamp code relies on this order). drawn reversed, best on the left,
+// so the bars and legend go SSS+ ... Below A, then the gray "not played" remainder.
+// colors match the rank tags on the score cards
 const RANK_SEGMENTS: Segment[] = [
     { key: 'belowa', label: 'Below A', color: '#6b4a55' },
     { key: 'a', label: 'A', color: '#f4a7bd' },
@@ -184,9 +186,11 @@ export default function LevelChart({ songs, totals, naExcluded }: {
     naExcluded: string[]; // title keys of songs not available in North America
 }) {
     const [view, setView] = useState<View>('rank');
-    const [region, setRegion] = useState<Region>('na');
+    // shared with the rest of the profile, so "unique charts played" follows this toggle
+    const region = useChartRegion();
+    const setRegion = setChartRegion;
     const [showLow, setShowLow] = useState(false);
-    const segments = SEGMENTS_BY_VIEW[view];
+    const segments = [...SEGMENTS_BY_VIEW[view]].reverse();
     const keyOf = KEY_BY_VIEW[view];
     const regionTotals = totals[region];
     const excluded = new Set(naExcluded);

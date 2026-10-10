@@ -11,6 +11,7 @@ import {
   isNewPlayer,
 } from '../lib/leaderboard';
 import JumpIcon from '../components/JumpIcon';
+import IdCardIcon from '../components/IdCardIcon';
 import MilestoneBanner, { type Milestone } from '../components/MilestoneBanner';
 import { TIER_MILESTONES } from '../lib/rating-tiers';
 
@@ -63,7 +64,6 @@ export default async function LeaderboardPage() {
         currentRank: 1,
         previousRank: 1,
         old_names: 1,
-        rank_change: 1,
         // rank_history is only used for the new badge, so just the first entry
         rank_history: { $slice: 1 },
         // the last few history entries: the final two drive the rating delta, and the
@@ -259,6 +259,14 @@ export default async function LeaderboardPage() {
           }
         }
 
+        .past-names-icon {
+          display: inline-flex;
+          margin-left: 6px;
+          color: var(--text-sub);
+        }
+        .tooltip-container:hover .past-names-icon {
+          color: var(--text-main);
+        }
         .tooltip-container {
           position: relative;
           display: inline-flex;
@@ -382,10 +390,14 @@ export default async function LeaderboardPage() {
 
                 <td style={{ fontWeight: 'bold' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    {pastNames.length > 0 ? (
+                    <Link href={href} className="player-link">{displayName}</Link>
+
+                    {/* past names: only hovering the icon itself opens the list */}
+                    {pastNames.length > 0 && (
                       <div className="tooltip-container">
-                        <Link href={href} className="player-link">{displayName}</Link>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-sub)', marginLeft: '6px' }}>📜</span>
+                        <span className="past-names-icon">
+                          <IdCardIcon width={18} />
+                        </span>
 
                         <div className="tooltip-box">
                           <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid var(--tooltip-border)', paddingBottom: '2px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
@@ -396,8 +408,6 @@ export default async function LeaderboardPage() {
                           ))}
                         </div>
                       </div>
-                    ) : (
-                      <Link href={href} className="player-link">{displayName}</Link>
                     )}
 
                     {isNew && (

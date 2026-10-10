@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, HTMLAttributes, KeyboardEvent, ReactNode } from 'react';
 import type { Song } from '../lib/leaderboard';
 import { new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
 import FallbackImage from './FallbackImage';
@@ -81,7 +81,7 @@ function b50Total(list: Song[]) {
  * that didn't make the B50 comes out as 0, and an improvement that pushed
  * another chart out only counts what it gained over the chart it replaced.
  */
-function ratingGains(songs: Song[]): Map<string, number> {
+export function ratingGains(songs: Song[]): Map<string, number> {
     const gains = new Map<string, number>();
     const improved = songs.filter((s) => improvementInfo(s));
     if (improved.length === 0) return gains;
@@ -110,7 +110,8 @@ function ratingGains(songs: Song[]): Map<string, number> {
     return gains;
 }
 
-const css = `
+// exported so the favorite scores row can draw the same cards
+export const bestFiftyCss = `
   /* page, header, sections, grid */
   .bf-wrap { padding: 0 2rem 2rem 2rem; max-width: 1000px; margin: 0 auto; font-family: sans-serif; }
   .bf-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 1rem; }
@@ -349,13 +350,18 @@ function versionColor(version?: string): string {
 }
 
 // what the popup needs to know about the clicked card
-type Selected = { song: Song; position: number; list: string; size: number };
+export type Selected = { song: Song; position: number; list: string; size: number };
 
 // next rank up, and what the song would rate at exactly that achievement
 function nextRankInfo(song: Song) {
-    const i = RANK_CUTOFFS.findIndex((c) => song.achievement >= c.min);
-    if (i <= 0) return null; // no rank yet, or already at the top rank
-    const next = RANK_CUTOFFS[i - 1];
+    const current = RANK_CUTOFFS.find((c) => song.achievement >= c.min);
+    if (!current) return null; // no rank yet
+    // where the next rank up starts: the lowest real (non-edge) row with a different,
+    // higher rank. edge rows (100.4999 and so on) and D's lower steps aren't new ranks
+    const next = RANK_CUTOFFS
+        .filter((c) => !c.edge && c.min > song.achievement && c.rank !== current.rank)
+        .at(-1);
+    if (!next) return null; // already at the top rank
     const rating = rateSong({ ...song, achievement: next.min });
     return { rank: next.rank, at: next.min, rating, gain: rating - song.rating };
 }
@@ -398,12 +404,18 @@ function RankBadge({ rank, className }: { rank: string | undefined; className: s
     );
 }
 
-function SongCard({ song, position, onOpen, muted = false, gain = 0 }: {
+export function SongCard({ song, position, onOpen, muted = false, gain = 0, itemProps, onCardKeyDown, children }: {
     song: Song;
     position: number;
     onOpen: () => void;
     muted?: boolean;
     gain?: number;
+    // extras for the favorites editor (the best 50 uses none of these): attributes and
+    // handlers for the card's <li>, a key handler for the card itself, and anything
+    // drawn on top of it (like a remove button)
+    itemProps?: HTMLAttributes<HTMLLIElement> & { 'data-key'?: string };
+    onCardKeyDown?: (e: KeyboardEvent<HTMLButtonElement>) => void;
+    children?: ReactNode;
 }) {
     const diff = diffOf(song.difficulty);
     const rank = rankFor(song.achievement)?.rank;
@@ -413,12 +425,13 @@ function SongCard({ song, position, onOpen, muted = false, gain = 0 }: {
     const improvement = improvementInfo(song);
 
     return (
-        <li>
+        <li {...itemProps}>
             <button
                 type="button"
                 className={`bf-card${muted ? ' bf-card-muted' : ''}${improvement ? ' bf-card-new' : ''}`}
                 style={{ '--diff': diff.color } as CSSProperties}
                 onClick={onOpen}
+                onKeyDown={onCardKeyDown}
                 title={`#${position} ${song.title}`}
             >
                 <span className="bf-art-wrap">
@@ -449,6 +462,7 @@ function SongCard({ song, position, onOpen, muted = false, gain = 0 }: {
                     <span className="bf-version-band" style={{ background: versionColor(song.version) }}>{song.version}</span>
                 )}
             </button>
+            {children}
         </li>
     );
 }
@@ -527,7 +541,7 @@ function Section({ title, note, songs, extras, floor, gains, onOpen }: {
 }
 
 // The popup, using the browser's built-in <dialog> (Esc closes it, focus is handled for you)
-function SongDetail({ entry, gains, onClose }: {
+export function SongDetail({ entry, gains, onClose }: {
     entry: Selected | null; gains: Map<string, number>; onClose: () => void;
 }) {
     const ref = useRef<HTMLDialogElement>(null);
@@ -645,7 +659,7 @@ function SongDetail({ entry, gains, onClose }: {
     );
 }
 
-const chartKey = (s: Song) => `${s.difficulty}-${s.kind}-${s.title}`;
+export const chartKey = (s: Song) => `${s.difficulty}-${s.kind}-${s.title}`;
 
 // every chart in the same pool that ties the list's lowest rating but didn't make the cut
 function tiedAtFloor(all: Song[], counted: Song[], inPool: (s: Song) => boolean) {
@@ -675,7 +689,7 @@ export default function BestFifty({ data }: { data?: Song[] | null }) {
 
     return (
         <div className="bf-wrap">
-            <style>{css}</style>
+            <style>{bestFiftyCss}</style>
 
             <Section title="B15" note={`new songs (${NAMES[NAMES.length - 1]} and ${NAMES[NAMES.length - 2]})`} songs={b15}
                 extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} />

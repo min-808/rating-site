@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'FAQ - HI Maimai',
@@ -42,6 +43,8 @@ export default function Faq() {
     {
       question: "i'm a maimai player from hawaii. how do i get listed on the leaderboard?",
       highlight: true,
+      // linked from /loginhelp as /faq#get-listed
+      id: "get-listed",
       answer: (
         <>
             <p>
@@ -84,6 +87,32 @@ export default function Faq() {
       ),
     },
     {
+      question: "why don't my scores update every night?",
+      answer: (
+        <>
+            <p>
+                to cut down on requests to the maimai website, we pull your scores <b>only</b> if you gained rating that day. however, if you would like to refresh your scores manually, feel free to hit the "refresh my scores" button located in the dropdown menu when you click on your name on the top right. note that this will not update the rating number in your rating frame, but it will update your scores, your b50, and level breakdown numbers
+            </p>
+        </>
+      ),
+    },
+    {
+      question: "for some profiles, the rating shown in the frame differs from the calculated rating",
+      answer: (
+        <>
+            <p>
+                the reasoning for this varies, but it mainly boils down to the fact that these players haven't logged in on the latest version. since the b15 calculation changes depending on what the current and previous versions are, if the player had played a prism plus chart while circle was still the latest version, it'll still remain in their b15. however, once they log into circle plus to update their account, it'll leave their b15. maimai's site keeps this stale rating depending on the last version they played on, and doesn't update the calculation until the player cards in on circle plus
+            </p>
+            <p>
+                additionally, chart constants get updated every version, which can alter rating calculations if the player hasn't logged into the most recent version
+            </p>
+            <p>
+                or, as mentioned in an earlier faq, the player had done a mid-day refresh of their scores
+            </p>
+        </>
+      ),
+    },
+    {
       question: "something is broken or i have a cool new idea",
       answer: (
         <>
@@ -107,6 +136,13 @@ export default function Faq() {
 
   return (
     <main style={{ padding: '0 2rem 2rem 2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+      {/* above everything else: the most common thing people come here for */}
+      <p style={{ margin: '1rem 0 0', fontSize: '0.85rem', color: 'var(--text-sub)', lineHeight: 1.5 }}>
+        need help creating an account, or have general account questions?
+        <br />
+        visit the <Link href="/loginhelp">login help</Link> page
+      </p>
+
       <h1 style={{ borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>
         faq
       </h1>
@@ -115,6 +151,7 @@ export default function Faq() {
         {faqs.map((faq, index) => (
           <div 
             key={index} 
+            id={faq.id}
             style={{ 
               marginBottom: '2rem',
                 ...(faq.highlight ? {

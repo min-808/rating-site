@@ -9,6 +9,10 @@
   --faq-sub: #333;
   --faq-highlight-bg: #f0f9ff;
   --faq-highlight-text: #1e40af;
+
+  --step-sub: #333;
+  --step-highlight-bg: #f0f9ff;
+  --step-highlight-text: #1e40af;
   
   /* Buttons */
   --btn-bg: #f4f4f5;
@@ -38,6 +42,10 @@
   --faq-sub: #aaaaaa;
   --faq-highlight-bg: #172554;
   --faq-highlight-text: #3b82f6;
+
+  --step-sub: #aaaaaa;
+  --step-highlight-bg: #172554;
+  --step-highlight-text: #3b82f6;
   
   /* Buttons */
   --btn-bg: #1e1e1e;
@@ -49,7 +57,7 @@
   --tooltip-text: #121212;
   --tooltip-border: #cccccc;
 
-  --badge-filter: brightness(0.8) contrast(1.05);
+  --badge-filter: brightness(1); /* no darkening: same as light mode */
 
   --rating-gain: #82ff9f;
   --rating-loss: #ff8282;

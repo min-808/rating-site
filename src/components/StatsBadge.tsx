@@ -7,7 +7,7 @@ const css = `
   .bf-badge { display: inline-flex; align-items: center; justify-content: center; gap: 1rem; margin-left: auto;
     padding: 4px 16px; border-radius: 999px; background: rgba(127,127,127,0.12); }
   .bf-badge-stat { display: inline-flex; align-items: baseline; gap: 0.4rem; }
-  .bf-badge-label { font-size: 0.75rem; font-weight: 700; color: #b96de4; text-transform: lowercase; }
+  .bf-badge-label { font-size: 0.75rem; font-weight: 700; color: #2563eb; text-transform: lowercase; }
   .bf-badge-val { font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* the Best 50 block: heading on top, total / average badge underneath, centered */

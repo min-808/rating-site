@@ -86,11 +86,11 @@ export default function MilestoneBanner({ milestones, updateKey }: {
                         return (
                             <li key={`${m.href}-${m.milestone}`}>
                                 <Link href={m.href}>{m.name}</Link> reached{' '}
-                                <span className="ms-num">{m.milestone.toLocaleString()}</span> rating{' '}
-                                <span className="ms-when">{m.when}</span>
                                 {tier && (
-                                    <> - <span className="ms-tier">{tierLabel(tier)}</span></>
+                                    <> <span className="ms-tier">{tierLabel(tier)} </span></>
                                 )}
+                                <span className="ms-when">{m.when} </span>
+                                (<span className="ms-num">{m.milestone.toLocaleString()}</span> rating)
                             </li>
                         );
                     })}

@@ -57,6 +57,7 @@ export interface Song {
   improved?: string[];
   prev_achievement?: number | null;
   prev_fc?: string | null;
+  title_romaji?: string | null; // "umiyuri kaiteitan", for search. only on the profile page
 }
 
 export interface SongMetaDocument {
@@ -67,6 +68,10 @@ export interface SongMetaDocument {
   genre?: string;
   version?: string;
   version_code?: string;
+  // a title shared by songs in different genres (the two "Link"s) keeps each song's
+  // jacket and details here, under the genre its scores are listed in, e.g.
+  // { "maimai": {...}, "niconico＆VOCALOID™": {...} }. set by hand in mongosh
+  by_genre?: Record<string, { blob?: string; artist?: string; bpm?: number; version_code?: string }>;
 }
 
 const ratingFrames = [
