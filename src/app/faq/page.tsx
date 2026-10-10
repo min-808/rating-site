@@ -86,6 +86,16 @@ export default function Faq() {
       ),
     },
     {
+      question: "why don't my scores update every night?",
+      answer: (
+        <>
+            <p>
+                to cut down on requests to the maimai website, we pull your scores <b>only</b> if you gained rating that day. however, if you would like to refresh your scores manually, feel free to hit the "refresh scores" button on your profile page. note that this will not update the rating number in your rating frame, but it will update your scores, your b50, and level breakdown numbers
+            </p>
+        </>
+      ),
+    },
+    {
       question: "for some profiles, the rating shown in the frame differs from the calculated rating",
       answer: (
         <>
@@ -93,7 +103,10 @@ export default function Faq() {
                 the reasoning for this varies, but it mainly boils down to the fact that these players haven't logged in on the latest version. since the b15 calculation changes depending on what the current and previous versions are, if the player had played a prism plus chart while circle was still the latest version, it'll still remain in their b15. however, once they log into circle plus to update their account, it'll leave their b15. maimai net keeps this stale rating depending on the last version they played on, and doesn't update the calculation until the player cards in on circle plus
             </p>
             <p>
-                additionally, chart constants get updated every version, which can alter rating calculations if the player hasn't logged into the most recent version.
+                additionally, chart constants get updated every version, which can alter rating calculations if the player hasn't logged into the most recent version
+            </p>
+            <p>
+                or, as mentioned in an earlier faq, the player had done a mid-day refresh of their scores
             </p>
         </>
       ),
