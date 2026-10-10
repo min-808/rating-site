@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'FAQ - HI Maimai',
@@ -135,6 +136,13 @@ export default function Faq() {
 
   return (
     <main style={{ padding: '0 2rem 2rem 2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+      {/* above everything else: the most common thing people come here for */}
+      <p style={{ margin: '1rem 0 0', fontSize: '0.85rem', color: 'var(--text-sub)', lineHeight: 1.5 }}>
+        need help creating an account, or have general account questions?
+        <br />
+        visit the <Link href="/loginhelp">login help</Link> page
+      </p>
+
       <h1 style={{ borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>
         faq
       </h1>

@@ -52,7 +52,7 @@ async function handle() {
       // the real reason goes to Vercel's function logs
       console.error('[claim/verify] verify server lookup failed:', error);
       if (error instanceof VerifyNotConfiguredError) return fail(500, error.message);
-      return fail(503, "couldn't reach maimai NET right now. try again in a bit");
+      return fail(503, "couldn't reach the maimai site right now. try again in a bit");
     }
 
     if (!live.found || !profileChanged({ title: claim.baseline_title, icon: claim.baseline_icon }, live)) {
