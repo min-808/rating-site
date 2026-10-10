@@ -19,7 +19,6 @@ import {
 import { versionName } from '../../../lib/versions';
 import LevelChart from '../../../components/LevelChart';
 import ClaimPanel from '../../../components/ClaimPanel';
-import RefreshScores from '../../../components/RefreshScores';
 import { getSession } from '../../../lib/auth';
 import ProfileBio from '../../../components/ProfileBio';
 import PastNames from '../../../components/PastNames';
@@ -434,7 +433,6 @@ const css = `
     }
     .user-header {
       gap: 0.75rem;
-      flex-wrap: wrap;
     }
     .user-avatar {
       width: 72px;
@@ -687,8 +685,6 @@ export default async function UserPage({ params }: UserPageProps) {
                 ♡ ༘˚·⑅
             </span>
           )}
-          {/* the owner's own profile: pull in new scores without waiting for the nightly */}
-          {isOwner && !optedOut && <RefreshScores />}
         </header>
 
         <div id="claim-flow" />

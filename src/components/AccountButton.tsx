@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import FallbackImage from './FallbackImage';
 import LoadingDots from './LoadingDots';
+import { useScoreRefresh } from './RefreshScores';
 
 /**
  * Top-right account button: "sign in" when signed out. Signed in, it's their
@@ -75,6 +76,16 @@ const css = `
   .acct-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff;
     box-shadow: 0 1px 2px rgba(0,0,0,0.3); transition: transform 0.2s ease; }
   .acct-toggle[aria-checked="true"] .acct-knob { transform: translateX(14px); }
+  /* a real button inside the menu (refresh my scores), so it reads as something to press:
+     filled gray like the site's other secondary buttons */
+  .acct-action { display: block; width: calc(100% - 12px); box-sizing: border-box; margin: 4px 6px 6px; padding: 7px 10px;
+    border: 0; border-radius: 7px; background: rgba(127,127,127,0.22); color: inherit; font: inherit; font-size: 0.85rem;
+    font-weight: 700; text-align: center; cursor: pointer; }
+  .acct-action:hover:not(:disabled), .acct-action:focus-visible { background: rgba(127,127,127,0.34); outline: none; }
+  .acct-action:focus-visible { box-shadow: 0 0 0 2px #2563eb; }
+  .acct-action:disabled { opacity: 0.55; cursor: default; }
+  /* the same box for a toggle (show my scores): its name on the left, the switch on the right */
+  .acct-action.acct-toggle { display: flex; text-align: left; }
   .acct-note { padding: 0 10px 6px; font-size: 0.72rem; line-height: 1.35; color: var(--text-sub); }
   .acct-note-error { color: #e11d48; }
   @media (prefers-reduced-motion: reduce) {
@@ -148,6 +159,8 @@ function AccountMenu({ me }: { me: Extract<Me, { signedIn: true }> }) {
     const [savingScores, setSavingScores] = useState(false);
     const [scoresError, setScoresError] = useState<string | null>(null);
     useEffect(() => { setScoresHidden(Boolean(me.scoresHidden)); }, [me.scoresHidden]);
+    // "refresh my scores": asks how it stands when the menu opens, keeps going when it closes
+    const scoreRefresh = useScoreRefresh(open);
     const wrapRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -261,7 +274,7 @@ function AccountMenu({ me }: { me: Extract<Me, { signedIn: true }> }) {
                     {me.webId != null && (
                         <>
                             <div className="acct-sep" role="separator" />
-                            <button type="button" className="acct-item acct-toggle" role="menuitemcheckbox"
+                            <button type="button" className="acct-item acct-action acct-toggle" role="menuitemcheckbox"
                                 aria-checked={!scoresHidden} onClick={toggleScores} disabled={savingScores}>
                                 show my scores
                                 <span className="acct-switch" aria-hidden="true"><span className="acct-knob" /></span>
@@ -271,6 +284,23 @@ function AccountMenu({ me }: { me: Extract<Me, { signedIn: true }> }) {
                                     ? 'your best 50, play stats and favorites are hidden'
                                     : 'turn off to hide your best 50, play stats and favorites')}
                             </div>
+                            {/* pull in new scores without waiting for the nightly (hidden scores have nothing to show) */}
+                            {!scoresHidden && (
+                                <>
+                                    <div className="acct-sep" role="separator" />
+                                    <button type="button" className="acct-item acct-action" role="menuitem" onClick={scoreRefresh.refresh}
+                                        disabled={scoreRefresh.sending || !scoreRefresh.canRefresh}>
+                                        {scoreRefresh.sending ? <LoadingDots label="asking" />
+                                            : scoreRefresh.inProgress ? <LoadingDots label="refreshing" />
+                                            : `↻ ${scoreRefresh.label}`}
+                                    </button>
+                                    {scoreRefresh.note && (
+                                        <div className={`acct-note${scoreRefresh.error ? ' acct-note-error' : ''}`} role="status">
+                                            {scoreRefresh.note}
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </>
                     )}
                     <div className="acct-sep" role="separator" />

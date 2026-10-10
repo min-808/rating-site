@@ -322,7 +322,7 @@ export default function FavoriteScores({ songs, initialFavorites, canEdit }: {
             <button type="button" className="fav-btn" onClick={save} disabled={busy}>{busy ? <LoadingDots label="saving" /> : 'save'}</button>
           </div>
           {error && <p className="fav-error">{error}</p>}
-          <p className="fav-hint">a new score not showing up? use <b>refresh my scores</b> at the top of your profile</p>
+          <p className="fav-hint">a new score not showing up? use <b>refresh my scores</b> in your account menu (top right)</p>
         </>
       )}
 

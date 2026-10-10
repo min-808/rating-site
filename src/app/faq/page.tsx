@@ -90,7 +90,7 @@ export default function Faq() {
       answer: (
         <>
             <p>
-                to cut down on requests to the maimai website, we pull your scores <b>only</b> if you gained rating that day. however, if you would like to refresh your scores manually, feel free to hit the "refresh my scores" button on your profile page. note that this will not update the rating number in your rating frame, but it will update your scores, your b50, and level breakdown numbers
+                to cut down on requests to the maimai website, we pull your scores <b>only</b> if you gained rating that day. however, if you would like to refresh your scores manually, feel free to hit the "refresh my scores" button located in the dropdown menu when you click on your name on the top right. note that this will not update the rating number in your rating frame, but it will update your scores, your b50, and level breakdown numbers
             </p>
         </>
       ),
