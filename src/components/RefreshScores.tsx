@@ -6,9 +6,9 @@ import LoadingDots from './LoadingDots';
 
 /**
  * "refresh my scores", in the favorites editor: re-reads the owner's scores from
- * maimai NET (on the VPS, within a minute), so a score from today can be picked as a
- * favorite before the nightly scrape gets to it. Once per Hawaii day.
- * See /api/profile/refresh-scores and rating-scraper/refresh-worker.js.
+ * maimai NET (on the VPS, starting as soon as maimai NET is free), so a score from today
+ * can be picked as a favorite before the nightly scrape gets to it. Once per Hawaii day.
+ * See /api/profile/refresh-scores and the verify server's /refresh-scores.
  */
 
 type Status = {

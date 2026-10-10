@@ -79,6 +79,8 @@ const css = `
     background: var(--background, transparent); color: inherit; }
   .cp-field input:focus { outline: 2px solid #2563eb; outline-offset: 0; border-color: transparent; }
   .cp-hint { font-size: 0.72rem; color: var(--text-muted); }
+  /* what's going on while start or verify waits on maimai NET */
+  .cp-card .cp-progress { margin: 0.9rem 0 0; font-size: 0.8rem; color: var(--text-sub); text-align: right; }
 `;
 
 // renders a Cloudflare Turnstile widget into `boxRef` and reports its token
@@ -133,12 +135,45 @@ type Gate = { reason: 'closed' | 'busy'; message: string } | null;
 // while a claim can't start, check again this often, so start comes back by itself
 const GATE_RECHECK_MS = 30_000;
 
+/*
+ * Start and verify both have the VPS log in to maimai NET and look the player up on
+ * the friends list, which takes a few seconds to half a minute. While that runs, a
+ * line under the buttons says what's happening, and changes the longer it takes,
+ * so a slow lookup doesn't look stuck. [seconds waited, message], latest first
+ */
+const PROGRESS: Record<'start' | 'verify', Array<[number, string]>> = {
+    start: [
+        [30, 'still going, sorry for the wait!'],
+        [12, 'still looking, this can take up to a minute'],
+        [0, 'finding your profile'],
+    ],
+    verify: [
+        [30, 'still going, sorry for the wait!'],
+        [8, 'still checking, this can take up to a minute'],
+        [0, 'reading your title'],
+    ],
+};
+
+// seconds since `since` (or null), ticking once a second
+function useSecondsSince(since: number | null) {
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        if (since == null) return;
+        setNow(Date.now());
+        const t = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(t);
+    }, [since]);
+    return since == null ? 0 : Math.max(0, Math.floor((now - since) / 1000));
+}
+
 async function post(url: string, body?: object) {
     const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body ?? {}),
-    });
+    }).catch(() => null);
+    // never got an answer (offline, connection dropped): an error, not a button stuck on "checking"
+    if (!res) return { ok: false, data: { error: "couldn't reach the site. check your connection and try again" } as Record<string, any> };
     const data = await res.json().catch(() => ({}));
     return { ok: res.ok, data: data as Record<string, any> };
 }
@@ -162,6 +197,13 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
     const [error, setError] = useState<string | null>(null);
     const [note, setNote] = useState<string | null>(null);
     const [gate, setGate] = useState<Gate>(null);
+
+    // which maimai NET lookup is running, and since when, for the progress line
+    const [waiting, setWaiting] = useState<{ kind: 'start' | 'verify'; since: number } | null>(null);
+    const waited = useSecondsSince(waiting?.since ?? null);
+    const progress = waiting ? PROGRESS[waiting.kind].find(([after]) => waited >= after)?.[1] : null;
+    const progressLine = (kind: 'start' | 'verify') =>
+        waiting?.kind === kind && progress ? <p className="cp-progress" role="status">{progress}</p> : null;
 
     // intro
     const [captchaToken, setCaptchaToken] = useState('');
@@ -219,9 +261,9 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
     const cancelClaim = () => { void post('/api/claim/cancel'); close(); };
 
     const start = async () => {
-        setBusy(true); setError(null);
+        setBusy(true); setError(null); setWaiting({ kind: 'start', since: Date.now() });
         const { ok, data } = await post('/api/claim/start', { webId, captchaToken });
-        setBusy(false);
+        setBusy(false); setWaiting(null);
         if (!ok) {
             setCaptchaToken('');
             // the site updating, someone else claiming, or about to update: show it the
@@ -238,9 +280,9 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
     };
 
     const verify = async () => {
-        setBusy(true); setError(null); setNote(null);
+        setBusy(true); setError(null); setNote(null); setWaiting({ kind: 'verify', since: Date.now() });
         const { ok, data } = await post('/api/claim/verify');
-        setBusy(false);
+        setBusy(false); setWaiting(null);
         if (!ok) { setError(data.error ?? 'something went wrong'); return; }
         if (!data.verified) {
             setNote(`your title still reads "${data.currentTitle ?? '(none)'}". change it, wait a moment, then try again`);
@@ -327,6 +369,7 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
                             {busy ? <LoadingDots label="checking" /> : 'start'}
                         </button>
                     </div>
+                    {progressLine('start')}
                 </>
             )}
 
@@ -355,6 +398,7 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
                             {busy ? <LoadingDots label="checking" /> : 'verify'}
                         </button>
                     </div>
+                    {progressLine('verify')}
                 </>
             )}
 

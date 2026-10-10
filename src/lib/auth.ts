@@ -301,21 +301,26 @@ export type LivePlayer = { found: boolean; name?: string | null; title?: string 
 export class VerifyBusyError extends Error {}
 export class VerifyNotConfiguredError extends Error {}
 
-// reads the player's title and icon from maimai NET right now, through the VPS
-export async function fetchLivePlayer(userId: string): Promise<LivePlayer> {
-    const base = process.env.VERIFY_URL;
+// a request to the verify server, with its token. path starts with "/"
+export async function verifyFetch(path: string, { method = 'GET', timeoutMs = 45_000 } = {}) {
+  const base = process.env.VERIFY_URL;
   const token = process.env.VERIFY_TOKEN;
   if (!base || !token) {
     throw new VerifyNotConfiguredError(
       'profile verification is not set up on this deployment (VERIFY_URL / VERIFY_TOKEN missing)',
     );
   }
-
-  const res = await fetch(`${base.replace(/\/$/, '')}/player/${encodeURIComponent(userId)}`, {
+  return fetch(`${base.replace(/\/$/, '')}${path}`, {
+    method,
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
-    signal: AbortSignal.timeout(45_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
+}
+
+// reads the player's title and icon from maimai NET right now, through the VPS
+export async function fetchLivePlayer(userId: string): Promise<LivePlayer> {
+  const res = await verifyFetch(`/player/${encodeURIComponent(userId)}`);
   if (res.status === 429) throw new VerifyBusyError('Verification is busy right now.');
   if (!res.ok) throw new Error(`verify server answered ${res.status}`);
   return (await res.json()) as LivePlayer;
