@@ -130,16 +130,6 @@ export function checkPassword(password: string): string | null {
   return null;
 }
 
-// a starting suggestion from their in-game name; they can change it
-export function suggestUsername(name: string, webId: number) {
-  const ascii = name
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, '')
-    .slice(0, 20);
-  return ascii.length >= 3 ? ascii : `player${webId}`;
-}
-
 // ---------------------------------------------------------------------------
 // sessions
 

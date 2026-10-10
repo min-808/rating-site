@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import {
   type AccountDoc, type ClaimDoc, getDb, sha256, getClaimToken, fetchLivePlayer, VerifyBusyError, VerifyNotConfiguredError,
-  profileChanged, suggestUsername,
+  profileChanged,
   getSession,
 } from '../../../../lib/auth';
 import { releaseSlot } from '../../../../lib/claim-gate';
@@ -73,15 +73,13 @@ async function handle() {
     await releaseSlot(claim._id);
   }
 
-  // verified: suggest a username for the setup step (their old one, if this is a reclaim)
-  const [account, player] = await Promise.all([
-    db.collection<AccountDoc>('accounts').findOne({ _id: claim.user_id }, { projection: { username: 1 } }),
-    db.collection('players').findOne({ user_id: claim.user_id }, { projection: { name: 1 } }),
-  ]);
+  // verified. a reclaim keeps its username, so the setup step fills that in; a new
+  // account starts blank, so people pick their own instead of taking a suggestion
+  const account = await db.collection<AccountDoc>('accounts').findOne({ _id: claim.user_id }, { projection: { username: 1 } });
   return NextResponse.json({
     verified: true,
     existingUsername: account?.username ?? null,
-    suggestedUsername: account?.username ?? suggestUsername(String(player?.name ?? ''), claim.web_id),
+    suggestedUsername: account?.username ?? null,
   });
 }
 
