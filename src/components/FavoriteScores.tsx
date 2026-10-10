@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Song } from '../lib/leaderboard';
 import { rateSong } from '../lib/song-calc';
 import { FAVORITES_MAX, favoriteKey } from '../lib/favorites';
+import { songMatcher } from '../lib/song-search';
 import FallbackImage from './FallbackImage';
 import { SongCard, SongDetail, bestFiftyCss, ratingGains, type Selected } from './BestFifty';
 import { PencilIcon } from './ProfileBio';
@@ -173,12 +174,17 @@ export default function FavoriteScores({ songs, initialFavorites, canEdit }: {
   // the picker's list: charts not picked yet, best rating first, filtered by title
   const results = useMemo(() => {
     if (!picking) return [];
-    const q = query.trim().toLowerCase();
+    // by title, or by romaji for japanese titles ("umiyuri" finds ウミユリ海底譚). real
+    // matches first, then ones that only sound right ("end mark" for エンドマーク...)
+    const matches = songMatcher(query);
     const taken = new Set(draft);
     return [...byKey.entries()]
-      .filter(([key, s]) => !taken.has(key) && (!q || s.title.toLowerCase().includes(q)))
-      .sort(([, a], [, b]) => (b.rating - a.rating) || ((b.achievement ?? 0) - (a.achievement ?? 0)))
-      .slice(0, MAX_RESULTS);
+      .filter(([key]) => !taken.has(key))
+      .map(([key, s]) => ({ key, s, score: matches(s.title, s.title_romaji) }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => (b.score - a.score) || (b.s.rating - a.s.rating) || ((b.s.achievement ?? 0) - (a.s.achievement ?? 0)))
+      .slice(0, MAX_RESULTS)
+      .map(({ key, s }) => [key, s] as const);
   }, [picking, query, draft, byKey]);
 
   // nobody's picked anything and this isn't their profile: nothing to show

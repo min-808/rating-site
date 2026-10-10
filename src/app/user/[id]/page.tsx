@@ -566,34 +566,41 @@ export default async function UserPage({ params }: UserPageProps) {
         .find({ _id: { $in: titles } })
         .toArray();
     const meta = new Map<string, SongMetaDocument>(metaDocs.map((m) => [m._id, m]));
+
+    // same title matching as the scrapers, so full-width titles line up
+    const titleKey = (t: string) => toNormalWidth(String(t ?? '')).replace(/\s+/g, ' ').trim().toLowerCase();
+
+    // every song's NA flag (below) and romanized title, for searching the favorites picker
+    // by romaji ("umiyuri" finds ウミユリ海底譚). title_romaji comes from rating-scraper/romaji.js
+    const songFlags = await client
+        .db('maimai')
+        .collection<{ title: string; na?: string | number; title_romaji?: string | null }>('songs')
+        .find({}, { projection: { title: 1, na: 1, title_romaji: 1 } })
+        .toArray();
+    const romajiByTitle = new Map<string, string>();
+    for (const s of songFlags) if (s.title_romaji) romajiByTitle.set(titleKey(s.title), s.title_romaji);
+
     songs = (player.songs ?? []).map((s) => {
       // a title shared by songs in different genres (the two "Link"s) keeps each one's
       // jacket and details under its genre, and the score's genre picks which
       const shared = meta.get(s.title);
       const m = shared?.by_genre?.[s.genre ?? ''] ?? shared;
+      const title_romaji = romajiByTitle.get(titleKey(s.title)) ?? null;
       return m
   ? {
       ...s,
+      title_romaji,
       jacket_blob: m.blob,
       artist: m.artist,
       bpm: m.bpm,
       version: versionName(m.version_code),
       improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null,
     }
-  : { ...s, improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null };
+  : { ...s, title_romaji, improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null };
     });
-
-    // same title matching as the scrapers, so full-width titles line up
-    const titleKey = (t: string) => toNormalWidth(String(t ?? '')).replace(/\s+/g, ' ').trim().toLowerCase();
 
     // songs not available in North America (na: "0"). a title only counts as
     // excluded if every song with that title is marked, since a few titles are shared
-    const songFlags = await client
-        .db('maimai')
-        .collection<{ title: string; na?: string | number }>('songs')
-        .find({}, { projection: { title: 1, na: 1 } })
-        .toArray();
-
     const availableInNa = new Map<string, boolean>();
     for (const s of songFlags) {
       const key = titleKey(s.title);

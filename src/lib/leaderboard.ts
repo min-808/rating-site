@@ -57,6 +57,7 @@ export interface Song {
   improved?: string[];
   prev_achievement?: number | null;
   prev_fc?: string | null;
+  title_romaji?: string | null; // "umiyuri kaiteitan", for search. only on the profile page
 }
 
 export interface SongMetaDocument {
