@@ -322,10 +322,7 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
     const status = standalone || (signedInAs && !isOwner) ? null : (
         <p className="cp-status">
             {isOwner ? (
-                <>
-                    <span className="cp-pill">✓ this is you</span>
-                    <span>signed in as <b>{signedInAs}</b></span>
-                </>
+                <span className="cp-pill">✓ this is you</span>
             ) : claimed ? (
                 <span className="cp-pill">✓ claimed profile</span>
             ) : (
