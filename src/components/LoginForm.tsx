@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { announceAuthChange } from './AccountButton';
+import LoadingDots from './LoadingDots';
 
 export default function LoginForm() {
     const router = useRouter();
@@ -50,7 +51,7 @@ export default function LoginForm() {
 
             {error && <p className="lg-error">{error}</p>}
 
-            <button type="submit" className="lg-btn" disabled={busy}>{busy ? 'signing in…' : 'sign in'}</button>
+            <button type="submit" className="lg-btn" disabled={busy}>{busy ? <LoadingDots label="signing in" /> : 'sign in'}</button>
 
             <p className="lg-help">
                 <Link href="/loginhelp">don&apos;t have an account?</Link>

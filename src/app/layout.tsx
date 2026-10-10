@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from '../components/ThemeProvider';
 import ThemeToggle from '../components/ThemeToggle';
 import AccountButton from '../components/AccountButton';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </footer>
         </ThemeProvider>
       </body>
+      {process.env.GA_ID && <GoogleAnalytics gaId={process.env.GA_ID} />}
     </html>
   );
 }

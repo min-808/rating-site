@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { BIO_MAX_CHARS, bioLength, checkBio, cleanBio } from '../lib/bio';
+import LoadingDots from './LoadingDots';
 
 /**
  * The "about me" card on a profile, under the rating and rank card. Everyone sees the bio (or "no bio yet");
@@ -34,8 +35,9 @@ const css = `
     cursor: pointer; background: #2563eb; color: #fff; }
   .pb-btn:hover:not(:disabled) { background: #1d4ed8; }
   .pb-btn:disabled { opacity: 0.55; cursor: default; }
-  .pb-btn-quiet { background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); }
-  .pb-btn-quiet:hover:not(:disabled) { background: rgba(127,127,127,0.12); }
+  /* secondary buttons: filled gray, like the claim panel's, not just an outline */
+  .pb-btn-quiet { background: rgba(127,127,127,0.22); color: inherit; }
+  .pb-btn-quiet:hover:not(:disabled) { background: rgba(127,127,127,0.34); }
   .pb-error { margin: 0.5rem 0 0; padding: 6px 10px; border-radius: 7px; font-size: 0.82rem;
     background: rgba(225, 29, 72, 0.12); color: #e11d48; }
 `;
@@ -127,7 +129,7 @@ export default function ProfileBio({ initialBio, canEdit }: {
                         <div className="pb-actions">
                             <button type="button" className="pb-btn pb-btn-quiet" onClick={cancel} disabled={busy}>cancel</button>
                             <button type="button" className="pb-btn" onClick={save} disabled={busy || Boolean(problem)}>
-                                {busy ? 'saving…' : 'save'}
+                                {busy ? <LoadingDots label="saving" /> : 'save'}
                             </button>
                         </div>
                     </div>

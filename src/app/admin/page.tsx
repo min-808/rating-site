@@ -79,7 +79,7 @@ const OUTCOME_LABEL: Record<AttemptOutcome, string> = {
 };
 // "ok" says something different for each step
 const OK_LABEL: Partial<Record<AttemptKind, string>> = { login: 'signed in', 'claim-start': 'started', 'claim-cancel': 'cancelled' };
-const ACTIVITY_LABEL: Record<ActivityAction, string> = { bio: 'bio', favorites: 'favorites', scores: 'scores', 'sign-out': 'signed out' };
+const ACTIVITY_LABEL: Record<ActivityAction, string> = { bio: 'bio', favorites: 'favorites', scores: 'scores', 'refresh-scores': 'refreshed scores', 'sign-out': 'signed out' };
 
 // a favorite's chart key ("master-dx-Oshama Scramble!") as "Oshama Scramble! · DX MASTER".
 // difficulty and kind never contain a dash, so everything after the second one is the title
@@ -501,7 +501,7 @@ export default async function AdminPage({ searchParams }: {
       <section className="ad-card">
         <h2>player activity</h2>
         <p className="ad-muted" style={{ marginBottom: '0.75rem' }}>
-          bio and favorites changes, hiding or showing scores, and sign-outs, newest first. sign-ins and claims are in the tables above
+          bio and favorites changes, hiding or showing scores, score refreshes, and sign-outs, newest first. sign-ins and claims are in the tables above
         </p>
         {activity.length === 0 ? (
           <p className="ad-muted">nothing recorded yet</p>

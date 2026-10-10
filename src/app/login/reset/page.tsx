@@ -41,8 +41,9 @@ const css = `
     background: #2563eb; color: #fff; }
   .rs-btn:hover:not(:disabled) { background: #1d4ed8; }
   .rs-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-  .rs-btn-quiet { width: 100%; background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); }
-  .rs-btn-quiet:hover:not(:disabled) { background: rgba(127,127,127,0.12); }
+  /* secondary buttons: filled gray, like the claim panel's, not just an outline */
+  .rs-btn-quiet { width: 100%; background: rgba(127,127,127,0.22); color: inherit; }
+  .rs-btn-quiet:hover:not(:disabled) { background: rgba(127,127,127,0.34); }
   .rs-list { list-style: none; margin: 1rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
   .rs-list a { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 12px;
     border-radius: 8px; border: 1px solid var(--border-light); color: inherit; text-decoration: none; }

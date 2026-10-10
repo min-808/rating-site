@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import FallbackImage from './FallbackImage';
+import LoadingDots from './LoadingDots';
 
 /**
  * Top-right account button: "sign in" when signed out. Signed in, it's their
@@ -274,7 +275,7 @@ function AccountMenu({ me }: { me: Extract<Me, { signedIn: true }> }) {
                     )}
                     <div className="acct-sep" role="separator" />
                     <button type="button" className="acct-item" role="menuitem" onClick={signOut} disabled={signingOut}>
-                        {signingOut ? 'signing out…' : 'sign out'}
+                        {signingOut ? <LoadingDots label="signing out" /> : 'sign out'}
                     </button>
                 </div>
             )}

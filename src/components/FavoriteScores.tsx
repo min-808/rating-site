@@ -7,6 +7,8 @@ import { FAVORITES_MAX, favoriteKey } from '../lib/favorites';
 import FallbackImage from './FallbackImage';
 import { SongCard, SongDetail, bestFiftyCss, ratingGains, type Selected } from './BestFifty';
 import { PencilIcon } from './ProfileBio';
+import LoadingDots from './LoadingDots';
+import RefreshScores from './RefreshScores';
 
 /**
  * Up to five favorite scores (FAVORITES_MAX) on a profile, in a card styled like the
@@ -41,8 +43,9 @@ const css = `
     cursor: pointer; background: #2563eb; color: #fff; }
   .fav-btn:hover:not(:disabled) { background: #1d4ed8; }
   .fav-btn:disabled { opacity: 0.55; cursor: default; }
-  .fav-btn-quiet { background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); }
-  .fav-btn-quiet:hover:not(:disabled) { background: rgba(127,127,127,0.12); }
+  /* secondary buttons: filled gray, like the claim panel's, not just an outline */
+  .fav-btn-quiet { background: rgba(127,127,127,0.22); color: inherit; }
+  .fav-btn-quiet:hover:not(:disabled) { background: rgba(127,127,127,0.34); }
   .fav-btn:focus-visible, .fav-icon-btn:focus-visible, .fav-pick:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 
   /* editing: drag the cards themselves. the picked-up card follows the pointer (moved
@@ -310,9 +313,11 @@ export default function FavoriteScores({ songs, initialFavorites, canEdit }: {
             </button>
             <span className="fav-spacer" />
             <button type="button" className="fav-btn fav-btn-quiet" onClick={cancel} disabled={busy}>cancel</button>
-            <button type="button" className="fav-btn" onClick={save} disabled={busy}>{busy ? 'saving…' : 'save'}</button>
+            <button type="button" className="fav-btn" onClick={save} disabled={busy}>{busy ? <LoadingDots label="saving" /> : 'save'}</button>
           </div>
           {error && <p className="fav-error">{error}</p>}
+          {/* a score from today not showing up in the picker yet? pull it in */}
+          <RefreshScores />
         </>
       )}
 

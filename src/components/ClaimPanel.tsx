@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { announceAuthChange } from './AccountButton';
+import LoadingDots from './LoadingDots';
 
 /**
  * The claim strip under a profile's header, and the whole claim flow:
@@ -66,8 +67,9 @@ const css = `
     background: #2563eb; color: #fff; }
   .cp-btn:hover:not(:disabled) { background: #1d4ed8; }
   .cp-btn:disabled { opacity: 0.55; cursor: default; }
-  .cp-btn-quiet { background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); }
-  .cp-btn-quiet:hover:not(:disabled) { background: rgba(127,127,127,0.12); }
+  /* the secondary buttons (cancel, check again, start again): filled gray, not just an outline */
+  .cp-btn-quiet { background: rgba(127,127,127,0.22); color: inherit; }
+  .cp-btn-quiet:hover:not(:disabled) { background: rgba(127,127,127,0.34); }
   .cp-btn:focus-visible, .cp-link:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
   .cp-captcha { margin: 0.5rem 0; min-height: 65px; display: flex; justify-content: center; }
 
@@ -322,7 +324,7 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
                         )}
                         <button type="button" className="cp-btn" onClick={start}
                             disabled={busy || Boolean(gate) || (Boolean(captchaSiteKey) && !captchaToken)}>
-                            {busy ? 'checking…' : 'start'}
+                            {busy ? <LoadingDots label="checking" /> : 'start'}
                         </button>
                     </div>
                 </>
@@ -350,7 +352,7 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
                             {secondsLeft > 0 ? 'cancel' : 'start again'}
                         </button>
                         <button type="button" className="cp-btn" onClick={verify} disabled={busy || secondsLeft === 0}>
-                            {busy ? 'checking...' : 'verify'}
+                            {busy ? <LoadingDots label="checking" /> : 'verify'}
                         </button>
                     </div>
                 </>
@@ -380,7 +382,7 @@ export default function ClaimPanel({ webId, playerName, claimed, isOwner, signed
                     {error && <p className="cp-error">{error}</p>}
                     <div className="cp-actions">
                         <button type="submit" className="cp-btn" disabled={busy}>
-                            {busy ? 'saving…' : 'save and sign in'}
+                            {busy ? <LoadingDots label="saving" /> : 'save and sign in'}
                         </button>
                     </div>
                 </form>

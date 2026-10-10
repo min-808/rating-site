@@ -36,7 +36,9 @@ const COMBO_SEGMENTS: Segment[] = [
     { key: 'applus', label: 'AP+', color: '#d94f9c' },
 ];
 
-// worst to best, left to right. colors match the rank tags on the score cards
+// worst to best (the lamp code relies on this order). drawn reversed, best on the left,
+// so the bars and legend go SSS+ ... Below A, then the gray "not played" remainder.
+// colors match the rank tags on the score cards
 const RANK_SEGMENTS: Segment[] = [
     { key: 'belowa', label: 'Below A', color: '#6b4a55' },
     { key: 'a', label: 'A', color: '#f4a7bd' },
@@ -188,7 +190,7 @@ export default function LevelChart({ songs, totals, naExcluded }: {
     const region = useChartRegion();
     const setRegion = setChartRegion;
     const [showLow, setShowLow] = useState(false);
-    const segments = SEGMENTS_BY_VIEW[view];
+    const segments = [...SEGMENTS_BY_VIEW[view]].reverse();
     const keyOf = KEY_BY_VIEW[view];
     const regionTotals = totals[region];
     const excluded = new Set(naExcluded);

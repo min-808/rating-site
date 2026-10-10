@@ -163,6 +163,7 @@ const JOB_LABEL: Record<string, string> = {
   'import-songs': 'importing new songs',
   'friends-list': 'updating ratings',
   'friend-scores': 'updating scores',
+  'friend-scores-one': "refreshing a player's scores",
 };
 
 const inMinutes = (ms: number) => {

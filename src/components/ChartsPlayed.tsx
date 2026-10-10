@@ -33,8 +33,13 @@ const DIFFICULTY_COLOR: Record<string, string> = {
  * inside the stats card, because the card hides anything that spills outside its corners
  */
 const css = `
-  .cpl-trigger { cursor: help; text-decoration: underline dotted; text-decoration-color: rgba(127,127,127,0.6);
-    text-underline-offset: 3px; border-radius: 3px; }
+  /* longhands, plus -webkit- copies: iOS Safari drops the one-line "underline dotted" form,
+     which is why the underline went missing on phones */
+  .cpl-trigger { cursor: help; border-radius: 3px;
+    -webkit-text-decoration-line: underline; text-decoration-line: underline;
+    -webkit-text-decoration-style: dotted; text-decoration-style: dotted;
+    -webkit-text-decoration-color: rgba(127,127,127,0.6); text-decoration-color: rgba(127,127,127,0.6);
+    text-decoration-thickness: 1px; text-underline-offset: 3px; }
   .cpl-trigger:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
   /* font-family: it lives on <body>, outside the profile, which is what sets sans-serif */
   .cpl-tip { position: fixed; z-index: 60; font-family: sans-serif; padding: 8px 12px; border-radius: 8px;
@@ -149,7 +154,8 @@ export function ChartsPlayedLabel({ label, na, intl }: { label: string; na: Diff
           aria-hidden={!open}
         >
           <div className="cpl-head">played by difficulty ({region === 'na' ? 'NA' : 'international'})</div>
-          {CHART_DIFFICULTIES.map((d) => (
+          {/* re:master at the top, basic at the bottom */}
+          {[...CHART_DIFFICULTIES].reverse().map((d) => (
             <div className="cpl-row" key={d}>
               <span className="cpl-swatch" style={{ background: DIFFICULTY_COLOR[d] }} aria-hidden="true" />
               <span className="cpl-name">{DIFFICULTY_LABEL[d]}</span>

@@ -27,8 +27,9 @@ const css = `
   .lg-btn:hover:not(:disabled) { background: #1d4ed8; }
   .lg-btn:disabled { opacity: 0.6; cursor: default; }
   .lg-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-  .lg-btn-quiet { background: transparent; color: var(--text-sub); border: 1px solid var(--border-light); }
-  .lg-btn-quiet:hover:not(:disabled) { background: rgba(127,127,127,0.12); }
+  /* secondary buttons: filled gray, like the claim panel's, not just an outline */
+  .lg-btn-quiet { background: rgba(127,127,127,0.22); color: inherit; }
+  .lg-btn-quiet:hover:not(:disabled) { background: rgba(127,127,127,0.34); }
   .lg-error { margin: 0 0 0.75rem; padding: 6px 10px; border-radius: 7px; font-size: 0.82rem;
     background: rgba(225, 29, 72, 0.12); color: #e11d48; }
   .lg-help { margin: 1rem 0 0; font-size: 0.8rem; line-height: 1.5; color: var(--text-sub); }
