@@ -43,12 +43,12 @@ const css = `
   .rf-why { max-width: 15rem; font-size: 0.72rem; line-height: 1.35; color: var(--text-muted); text-align: right; }
   .rf-msg:empty { display: none; }
   /* phones: no room beside the name, so it drops under the header into a box of its own,
-     drawn like the stats card below it: the note on the left, the button on the right */
+     drawn like the stats card below it: the note, then the button under it on the left */
   @media (max-width: 600px) {
     .rf { flex-basis: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 12px;
       box-sizing: border-box; margin-left: 0; padding: 0.75rem 1rem; border: 1px solid var(--border-light); border-radius: 12px; }
     .rf-why { flex: 1 1 10rem; max-width: none; text-align: left; }
-    .rf-btn { margin-left: auto; padding: 7px 14px; font-size: 0.85rem; }
+    .rf-btn { padding: 7px 14px; font-size: 0.85rem; }
     .rf-msg { flex-basis: 100%; max-width: none; text-align: left; }
   }
 `;
