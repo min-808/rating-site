@@ -384,6 +384,24 @@ const css = `
   .rating-value {
     margin-right: 7px;
   }
+  /* the level breakdown and the best 50, each in a card like the about me */
+  .profile-box {
+    margin: 0 0 1.5rem;
+    padding: 1rem 1.25rem 1.25rem;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+  }
+  .profile-box .lc-wrap {
+    margin: 0;
+  }
+  .profile-box .bf-wrap {
+    padding: 0;
+  }
+  @media (max-width: 600px) {
+    .profile-box {
+      padding: 0.75rem 0.75rem 1rem;
+    }
+  }
   .updated {
     margin-top: 1.5rem;
     font-size: 0.8rem;
@@ -751,21 +769,23 @@ export default async function UserPage({ params }: UserPageProps) {
         <ProfileBio initialBio={account?.bio ?? null} canEdit={isOwner} />
 
         {/* favorite scores, right under the about me: claimed profiles only, and hidden
-            with the rest of the scores. the divider below separates it from the level breakdown */}
+            with the rest of the scores */}
         {account && !optedOut && (
             <FavoriteScores songs={songs ?? []} initialFavorites={account.favorites ?? []} canEdit={isOwner} />
         )}
-
-        <hr className="divider" />
 
         {optedOut ? (
         <p className="bf-hidden">best 50 scores hidden</p>
         ) : (
         <>
-            <LevelChart songs={songs} totals={levelTotals} naExcluded={naExcluded} />
-            <hr className="divider" />
-            <Best50Stats b15={new15(songs)} b35={old35(songs)} />
-            <BestFifty data={songs} />
+            {/* each in its own card, like the about me */}
+            <section className="profile-box" aria-label="level breakdown">
+              <LevelChart songs={songs} totals={levelTotals} naExcluded={naExcluded} />
+            </section>
+            <section className="profile-box" aria-label="best 50 charts">
+              <Best50Stats b15={new15(songs)} b35={old35(songs)} />
+              <BestFifty data={songs} />
+            </section>
         </>
         )}
 
