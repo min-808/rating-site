@@ -33,6 +33,16 @@ export const VERSION_NAMES: Record<string, string> = {
 };
 
 const BASES = Object.keys(VERSION_NAMES).map(Number).sort((a, b) => a - b);
+const IN_ORDER = BASES.map((b) => VERSION_NAMES[String(b)]);
+
+// the international best 15's versions, newest first. named rather than "the last two in
+// the list", since the list also has versions only japan has so far (MAGICAL). update
+// these when the international version changes
+export const NEW_POOL_VERSIONS = ['CiRCLE PLUS', 'CiRCLE'];
+// the newest version in the best 35 ("PRiSM PLUS and below")
+export const NEWEST_OLD_POOL_VERSION = IN_ORDER[IN_ORDER.indexOf(NEW_POOL_VERSIONS[NEW_POOL_VERSIONS.length - 1]) - 1];
+// versions newer than international's, newest first: only in the japanese scores (lib/jp-scores.ts)
+export const JAPAN_AHEAD_VERSIONS = IN_ORDER.slice(IN_ORDER.indexOf(NEW_POOL_VERSIONS[0]) + 1).reverse();
 
 // otoge-db codes are a version's base code plus an update number (11000 = maimai PLUS, 11007 = its 7th update),
 // so pick the highest base that is <= the code. Codes past the newest known version return undefined.

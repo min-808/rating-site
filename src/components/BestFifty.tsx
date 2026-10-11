@@ -6,7 +6,7 @@ import type { Song } from '../lib/leaderboard';
 import { new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
 import FallbackImage from './FallbackImage';
 import { StatsBadge } from './StatsBadge';
-import { VERSION_NAMES } from '../lib/versions';
+import { NEW_POOL_VERSIONS, NEWEST_OLD_POOL_VERSION } from '../lib/versions';
 
 const BADGE_BASE = 'https://img.himaimai.net/badge';
 
@@ -27,7 +27,9 @@ const SYNC_BADGES: Partial<Record<SyncTier, string>> = {
     fdxplus: `${BADGE_BASE}/fdxp.png`,
 };
 
-const NAMES = Object.values(VERSION_NAMES)
+// "a and b", "a, b and c"
+const listOf = (names: string[]) =>
+    names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 
 // how long a chart counts as "new" after it improves
 const NEW_DAYS = 1;
@@ -691,7 +693,9 @@ function tiedAtFloor(all: Song[], counted: Song[], inPool: (s: Song) => boolean)
     return { floor, extras };
 }
 
-export default function BestFifty({ data }: { data?: Song[] | null }) {
+// extraNewVersions: versions only her japanese scores have (MAGICAL), named first in the
+// B15 heading when her profile includes them (lib/jp-scores.ts)
+export default function BestFifty({ data, extraNewVersions = [] }: { data?: Song[] | null; extraNewVersions?: string[] }) {
     const [selected, setSelected] = useState<Selected | null>(null);
     const songs = data ?? [];
     const b15 = new15(songs);
@@ -705,12 +709,12 @@ export default function BestFifty({ data }: { data?: Song[] | null }) {
         <div className="bf-wrap">
             <style>{bestFiftyCss}</style>
 
-            <Section title="B15" note={`new songs (${NAMES[NAMES.length - 1]} and ${NAMES[NAMES.length - 2]})`} songs={b15}
+            <Section title="B15" note={`new songs (${listOf([...extraNewVersions, ...NEW_POOL_VERSIONS])})`} songs={b15}
                 extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} />
 
             <hr className="divider" />
 
-            <Section title="B35" note={`old songs (${NAMES[NAMES.length - 3]} and below)`} songs={b35}
+            <Section title="B35" note={`old songs (${NEWEST_OLD_POOL_VERSION} and below)`} songs={b35}
                 extras={b35Ties.extras} floor={b35Ties.floor} gains={gains} onOpen={setSelected} />
 
             <SongDetail entry={selected} gains={gains} onClose={() => setSelected(null)} />

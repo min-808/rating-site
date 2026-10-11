@@ -18,6 +18,7 @@ import {
 } from '../../../lib/leaderboard';
 import { versionName } from '../../../lib/versions';
 import LevelChart from '../../../components/LevelChart';
+import { JAPAN_AHEAD_VERSIONS } from '../../../lib/versions';
 import { mergeJpScores } from '../../../lib/jp-scores';
 import { isGf } from '../../../lib/special-players';
 import ClaimPanel from '../../../components/ClaimPanel';
@@ -777,7 +778,8 @@ export default async function UserPage({ params }: UserPageProps) {
             </section>
             <section className="profile-box" aria-label="best 50 charts">
               <Best50Stats b15={new15(songs)} b35={old35(songs)} />
-              <BestFifty data={songs} />
+              {/* her japanese scores add the versions only japan has to the B15 heading */}
+              <BestFifty data={songs} extraNewVersions={showJp ? JAPAN_AHEAD_VERSIONS : undefined} />
             </section>
         </>
         )}
