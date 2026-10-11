@@ -29,6 +29,7 @@ export const VERSION_NAMES: Record<string, string> = {
     '25500': 'PRiSM PLUS',
     '26000': 'CiRCLE',
     '26500': 'CiRCLE PLUS',
+    '27000': 'MAGiCAL', // japan only so far
 };
 
 const BASES = Object.keys(VERSION_NAMES).map(Number).sort((a, b) => a - b);
@@ -65,6 +66,7 @@ const VERSION_COLORS: Record<string, string> = {
     BUDDIES: '#d9538f',
     PRISM: '#9a6bdc',
     CIRCLE: '#ec6fc0',
+    MAGICAL: '#3ab6a0',
 };
 
 // returns a CSS `background` value (solid color, or gradient for PLUS versions)

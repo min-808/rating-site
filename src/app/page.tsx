@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { connectMongo, getMongoClient } from '../lib/connect-db';
+import { isGf } from '../lib/special-players';
 import LeaderboardRow from '../components/LeaderboardRow';
 import {
   type PlayerDocument,
@@ -218,6 +219,11 @@ export default async function LeaderboardPage() {
           text-decoration: none;
           transition: color 0.12s ease;
         }
+        /* the pink name (globals.css .gf-name): its color is the gradient showing through
+           transparent text, so the color above, and the hover blue below, can't cover it */
+        .player-link.gf-name {
+          color: transparent;
+        }
         .player-link:focus-visible {
           color: #2563eb;
           outline: 2px solid #2563eb;
@@ -240,6 +246,9 @@ export default async function LeaderboardPage() {
           }
           .lb-row:hover .player-link {
             color: #2563eb;
+          }
+          .lb-row:hover .player-link.gf-name {
+            color: transparent;
           }
           .lb-row:hover .row-chevron {
             opacity: 1;
@@ -390,7 +399,7 @@ export default async function LeaderboardPage() {
 
                 <td style={{ fontWeight: 'bold' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <Link href={href} className="player-link">{displayName}</Link>
+                    <Link href={href} className={`player-link${isGf(player.user_id) ? ' gf-name' : ''}`}>{displayName}</Link>
 
                     {/* past names: only hovering the icon itself opens the list */}
                     {pastNames.length > 0 && (

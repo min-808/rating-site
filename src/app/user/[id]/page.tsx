@@ -18,6 +18,8 @@ import {
 } from '../../../lib/leaderboard';
 import { versionName } from '../../../lib/versions';
 import LevelChart from '../../../components/LevelChart';
+import { mergeJpScores } from '../../../lib/jp-scores';
+import { isGf } from '../../../lib/special-players';
 import ClaimPanel from '../../../components/ClaimPanel';
 import { getSession } from '../../../lib/auth';
 import ProfileBio from '../../../components/ProfileBio';
@@ -33,8 +35,6 @@ interface UserPageProps {
 
 const TZ = 'Pacific/Honolulu';
 
-// keani's user_id
-const HEART_USER_ID = '102106637992476';
 
 const getPlayer = cache(async (id: string) => {
   const webId = parseInt(id, 10);
@@ -177,9 +177,6 @@ const css = `
     .user-heart {
       animation: none;
     }
-    .user-name-heart {
-      animation: none;
-    }
   }
 
   .title-plate {
@@ -232,17 +229,6 @@ const css = `
     min-width: 0;
     overflow-wrap: anywhere;
   }
-  .user-name-heart {
-  background: linear-gradient(90deg, #ff7eb3, #ffbad5, #ff7eb3);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: name-shimmer 2s linear infinite;
-}
-@keyframes name-shimmer {
-  to { background-position: 200% center; }
-}
   .user-dan {
     height: 28px;
     width: auto;
@@ -536,14 +522,14 @@ export default async function UserPage({ params }: UserPageProps) {
 
   const displayName = toNormalWidth(player.name);
 
-  const isHeartUser = String(player.user_id) === HEART_USER_ID;
+  const isHeartUser = isGf(player.user_id);
 
   // who's looking, and whether this profile has an account yet
   const session = await getSession();
   const account = await client
     .db('maimai')
-    .collection<{ _id: string; bio?: string; favorites?: string[] }>('accounts')
-    .findOne({ _id: String(player.user_id) }, { projection: { _id: 1, bio: 1, favorites: 1 } });
+    .collection<{ _id: string; bio?: string; favorites?: string[]; show_jp_scores?: boolean }>('accounts')
+    .findOne({ _id: String(player.user_id) }, { projection: { _id: 1, bio: 1, favorites: 1, show_jp_scores: 1 } });
   const isOwner = session?.userId === String(player.user_id);
 
   const pastNames = [...new Set((player.old_names ?? []).map(toNormalWidth))].filter(
@@ -562,6 +548,11 @@ export default async function UserPage({ params }: UserPageProps) {
 
   const optedOut = Boolean(player.scores_opt_out);
 
+  // her japanese-site scores, combined with her international ones (best of each chart),
+  // unless she's switched them off. everyone else: just their scores (lib/jp-scores.ts)
+  const showJp = isGf(player.user_id) && account?.show_jp_scores !== false && (player.jp_songs?.length ?? 0) > 0;
+  const playerSongs = showJp ? mergeJpScores(player.songs, player.jp_songs) : (player.songs ?? []);
+
   let songs: PlayerDocument['songs'] = [];
 
   // the "charts by level" totals, for both region views, and the songs the NA view leaves out
@@ -575,7 +566,7 @@ export default async function UserPage({ params }: UserPageProps) {
   }
 
   if (!optedOut) {
-    const titles = [...new Set((player.songs ?? []).map((s) => s.title))];
+    const titles = [...new Set(playerSongs.map((s) => s.title))];
     const metaDocs = await client
         .db('maimai')
         .collection<SongMetaDocument>('songmeta')
@@ -596,7 +587,7 @@ export default async function UserPage({ params }: UserPageProps) {
     const romajiByTitle = new Map<string, string>();
     for (const s of songFlags) if (s.title_romaji) romajiByTitle.set(titleKey(s.title), s.title_romaji);
 
-    songs = (player.songs ?? []).map((s) => {
+    songs = playerSongs.map((s) => {
       // a title shared by songs in different genres (the two "Link"s) keeps each one's
       // jacket and details under its genre, and the score's genre picks which
       const shared = meta.get(s.title);
@@ -612,7 +603,9 @@ export default async function UserPage({ params }: UserPageProps) {
       version: versionName(m.version_code),
       improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null,
     }
-  : { ...s, title_romaji, improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null };
+  // no songmeta: a japan-only song from her japanese scores brings its own version, jacket
+  // and details (scrape-jp-scores.js), anything else just shows without them
+  : { ...s, title_romaji, version: versionName(s.version_code), improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null };
     });
 
     // songs not available in North America (na: "0"). a title only counts as
@@ -626,12 +619,12 @@ export default async function UserPage({ params }: UserPageProps) {
     const excludedSet = new Set(naExcluded);
 
     // the NA "charts played": the same charts the level chart counts in its NA view
-    playedNa = (player.songs ?? []).filter(
+    playedNa = playerSongs.filter(
         (s) => (s.achievement ?? 0) > 0 && !excludedSet.has(titleKey(s.title)),
     ).length;
 
     // played charts by difficulty: every one for international, NA-available ones for NA
-    for (const s of player.songs ?? []) {
+    for (const s of playerSongs) {
       if (!((s.achievement ?? 0) > 0)) continue;
       const d = String(s.difficulty ?? '').toLowerCase();
       if (byDifficulty.intl[d]) byDifficulty.intl[d].played++;
@@ -662,7 +655,7 @@ export default async function UserPage({ params }: UserPageProps) {
   // the total is every chart in the game, from the same level pages as the level chart
   const sum = (counts: Record<string, number>) => Object.values(counts).reduce((t, n) => t + n, 0);
   const totalCharts = sum(levelTotals.intl);
-  const stats = optedOut ? null : playStats(player.songs, totalCharts);
+  const stats = optedOut ? null : playStats(playerSongs, totalCharts);
   // "unique charts played" for both regions; the level chart's toggle picks which shows
   const chartsPlayed = {
     na: { played: playedNa, total: sum(levelTotals.na) },
@@ -682,7 +675,7 @@ export default async function UserPage({ params }: UserPageProps) {
           <div className="user-heading">
             <TitlePlate name={player.title_name} plate={player.title_blob} />
             <div className="user-name-row">
-              <h1 className={`user-name${isHeartUser ? ' user-name-heart' : ''}`}>{displayName}</h1>
+              <h1 className={`user-name${isHeartUser ? ' gf-name' : ''}`}>{displayName}</h1>
               <PastNames names={pastNames} />
               <DanBadge src={player.dan_blob} fallbackSrc={player.dan} />
               <DanBadge src={player.class_rank_blob} fallbackSrc={player.class_rank} />

@@ -192,6 +192,13 @@ export const bestFiftyCss = `
              box-shadow: 0 0 0 1px rgba(255,255,255,0.85), 0 0 10px rgba(255,255,255,0.5); }
   .bf-kind { background: rgba(255,255,255,0.16); color: #fff; }
 
+  /* a chart whose score is from the japanese version (lib/jp-scores.ts): the version band
+     splits, a red "JAPAN" on the left, so the card stays the same height as the others */
+  .bf-version-band.bf-version-split { display: flex; padding: 0; }
+  .bf-version-split > span { padding: 3px 6px; }
+  .bf-jp-part { flex-shrink: 0; background: #bc002d; color: #fff; letter-spacing: 0.08em; }
+  .bf-jp-part:only-child { flex: 1; } /* no version to show: the whole band */
+  .bf-version-split > .bf-version-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bf-version-band { text-align: center; font-size: 0.68rem; font-weight: 800; padding: 3px 6px;
     color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
   .bf-version-band img { max-width: 100%; max-height: 1.2rem; object-fit: contain; }
@@ -458,7 +465,14 @@ export function SongCard({ song, position, onOpen, muted = false, gain = 0, item
                         </span>
                     </span>
                 </span>
-                {song.version && (
+                {song.source === 'jp' ? (
+                    <span className="bf-version-band bf-version-split" title="score from the japanese version">
+                        <span className="bf-jp-part">JP</span>
+                        {song.version && (
+                            <span className="bf-version-name" style={{ background: versionColor(song.version) }}>{song.version}</span>
+                        )}
+                    </span>
+                ) : song.version && (
                     <span className="bf-version-band" style={{ background: versionColor(song.version) }}>{song.version}</span>
                 )}
             </button>

@@ -34,6 +34,7 @@ type Me =
         iconFallback?: string | null;
         scoresHidden?: boolean;
         isAdmin?: boolean;
+        jpScoresShown?: boolean | null; // null or missing: no japan scores, so no switch
     };
 
 const css = `
@@ -159,6 +160,11 @@ function AccountMenu({ me }: { me: Extract<Me, { signedIn: true }> }) {
     const [savingScores, setSavingScores] = useState(false);
     const [scoresError, setScoresError] = useState<string | null>(null);
     useEffect(() => { setScoresHidden(Boolean(me.scoresHidden)); }, [me.scoresHidden]);
+    // "show japan scores": only for the account with japanese-site scores (lib/jp-scores.ts)
+    const [jpShown, setJpShown] = useState(me.jpScoresShown !== false);
+    const [savingJp, setSavingJp] = useState(false);
+    const [jpError, setJpError] = useState<string | null>(null);
+    useEffect(() => { setJpShown(me.jpScoresShown !== false); }, [me.jpScoresShown]);
     // "refresh my scores": asks how it stands when the menu opens, keeps going when it closes
     const scoreRefresh = useScoreRefresh(open);
     const wrapRef = useRef<HTMLDivElement>(null);
@@ -230,6 +236,22 @@ function AccountMenu({ me }: { me: Extract<Me, { signedIn: true }> }) {
         router.refresh(); // their profile, if it's open, shows or hides the scores right away
     };
 
+    // flips "show japan scores". the menu stays open so they can see it change
+    const toggleJp = async () => {
+        const next = !jpShown;
+        setSavingJp(true); setJpError(null);
+        const res = await fetch('/api/profile/jp-scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shown: next }),
+        }).catch(() => null);
+        const data = res ? await res.json().catch(() => ({})) : {};
+        setSavingJp(false);
+        if (!res?.ok) { setJpError(data.error ?? 'something went wrong'); return; }
+        setJpShown(Boolean(data.shown));
+        router.refresh(); // their profile, if it's open, switches over right away
+    };
+
     const signOut = async () => {
         setSigningOut(true);
         await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null);
@@ -284,6 +306,21 @@ function AccountMenu({ me }: { me: Extract<Me, { signedIn: true }> }) {
                                     ? 'your best 50, play stats and favorites are hidden'
                                     : 'turn off to hide your best 50, play stats and favorites')}
                             </div>
+                            {/* japan scores on the profile or not: only the account that has them */}
+                            {me.jpScoresShown != null && !scoresHidden && (
+                                <>
+                                    <button type="button" className="acct-item acct-action acct-toggle" role="menuitemcheckbox"
+                                        aria-checked={jpShown} onClick={toggleJp} disabled={savingJp}>
+                                        show japan scores
+                                        <span className="acct-switch" aria-hidden="true"><span className="acct-knob" /></span>
+                                    </button>
+                                    <div className={`acct-note${jpError ? ' acct-note-error' : ''}`} role="presentation">
+                                        {jpError ?? (jpShown
+                                            ? 'your profile uses your best score from either version'
+                                            : 'turn on to add your japan scores to your profile')}
+                                    </div>
+                                </>
+                            )}
                             {/* pull in new scores without waiting for the nightly (hidden scores have nothing to show) */}
                             {!scoresHidden && (
                                 <>

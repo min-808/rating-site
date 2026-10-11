@@ -74,3 +74,20 @@ body {
   border-top: 1px solid #ccc;
   margin: 1.5rem 0;
 }
+
+/* the pink, shimmering name (GF_USER_ID, lib/special-players.ts): on the leaderboard and
+   her profile. the color is a gradient showing through the text */
+.gf-name {
+  background: linear-gradient(90deg, #ff7eb3, #ffbad5, #ff7eb3);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: name-shimmer 2s linear infinite;
+}
+@keyframes name-shimmer {
+  to { background-position: 200% center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gf-name { animation: none; }
+}

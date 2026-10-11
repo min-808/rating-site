@@ -28,6 +28,7 @@ export interface PlayerDocument {
   rank_history?: RankHistoryEntry[];
   old_names?: string[];
   songs?: Song[];
+  jp_songs?: Song[]; // japanese-site scores, one player only (lib/jp-scores.ts)
   scores_opt_out: boolean;
   class_rank: string;
   class_rank_blob: string;
@@ -58,6 +59,8 @@ export interface Song {
   prev_achievement?: number | null;
   prev_fc?: string | null;
   title_romaji?: string | null; // "umiyuri kaiteitan", for search. only on the profile page
+  source?: 'jp' | null; // from the japanese version (lib/jp-scores.ts). unset: international
+  version_code?: number | null; // only on japan-only songs, which have no songmeta (scrape-jp-scores.js)
 }
 
 export interface SongMetaDocument {
