@@ -4,7 +4,8 @@
  * from a 'use client' file.
  *
  * Collections (all in the "maimai" db):
- *   accounts     { _id: user_id, username, username_lower, password_hash, created_at, updated_at }
+ *   accounts     { _id: user_id, username, username_lower, password_hash, created_at, updated_at,
+ *                  username_changed_at, past_usernames: [{ username, until }] }
  *   sessions     { _id: sha256(token), user_id, created_at, expires_at }      expires_at is a TTL index
  *   claims       { _id: sha256(token), user_id, ... delete_at }               delete_at is a TTL index
  *   rate_limits  { _id: key, count, expires_at }                              expires_at is a TTL index
@@ -27,6 +28,8 @@ export type AccountDoc = {
   password_hash: string;
   created_at: Date;
   updated_at: Date;
+  username_changed_at?: Date; // the last change in settings (not the one picked when claiming)
+  past_usernames?: Array<{ username: string; until: Date }>; // older first
 };
 
 export type SessionDoc = { _id: string; user_id: string; created_at: Date; expires_at: Date };
@@ -184,6 +187,13 @@ export async function destroySession() {
     await db.collection<SessionDoc>('sessions').deleteOne({ _id: sha256(token) });
   }
   store.delete(SESSION_COOKIE);
+}
+
+// signs every browser out of an account but this one (after a password change)
+export async function destroyOtherSessions(userId: string) {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const db = await getDb();
+  await db.collection<SessionDoc>('sessions').deleteMany({ user_id: userId, ...(token ? { _id: { $ne: sha256(token) } } : {}) });
 }
 
 // signs every browser out of an account (used when someone reclaims it)

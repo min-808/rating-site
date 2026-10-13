@@ -381,6 +381,18 @@ const css = `
   .profile-box .lc-wrap {
     margin: 0;
   }
+  .profile-box-link {
+    display: block;
+    width: fit-content;
+    margin: 0.9rem auto 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #2563eb;
+    text-decoration: none;
+  }
+  .profile-box-link:hover {
+    text-decoration: underline;
+  }
   .profile-box .bf-wrap {
     padding: 0;
   }
@@ -775,6 +787,8 @@ export default async function UserPage({ params }: UserPageProps) {
             {/* each in its own card, like the about me */}
             <section className="profile-box" aria-label="level breakdown">
               <LevelChart songs={songs} totals={levelTotals} naExcluded={naExcluded} />
+              {/* every chart in a level range, with filters (levels/page.tsx) */}
+              <Link href={`/user/${player.web_id}/levels`} className="profile-box-link">level summary →</Link>
             </section>
             <section className="profile-box" aria-label="best 50 charts">
               <Best50Stats b15={new15(songs)} b35={old35(songs)} />

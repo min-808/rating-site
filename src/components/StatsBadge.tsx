@@ -10,11 +10,13 @@ const css = `
   .bf-badge-label { font-size: 0.75rem; font-weight: 700; color: #2563eb; text-transform: lowercase; }
   .bf-badge-val { font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-/* the Best 50 block: heading on top, total / average badge underneath, centered */
-  .bf-b50 { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin: 0 0 1.5rem;
-    text-align: center; }
-  .bf-b50 h2 { margin: 0.5rem; font-size: 2rem; }
+/* the best 50 card's header, like the about me's: its small label on the left, the total /
+     average and ceiling / floor pills on the right (under the label on phones) */
+  .bf-b50 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 1.25rem; }
+  .bf-b50 h2 { margin: 0 auto 0 0; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.03em; color: var(--text-sub); }
   .bf-b50 .bf-badge { margin-left: 0; }
+  .bf-b50-pills { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  @media (max-width: 600px) { .bf-b50-pills { align-items: flex-start; } }
   .bf-badge-lg { padding: 6px 20px; gap: 1.25rem; margin-bottom: 0.25rem; }
   .bf-badge-lg .bf-badge-label { font-size: 0.85rem; }
   .bf-badge-lg .bf-badge-val { font-size: 1.20rem; }
@@ -75,9 +77,12 @@ export function Best50Stats({ b15, b35 }: { b15: Song[]; b35: Song[] }) {
     return (
         <div className="bf-b50">
             <style>{css}</style>
-            <h2>Best 50 Charts</h2>
-            <Stats songs={all} className="bf-badge-lg" />
-            <FloorCeiling songs={all} />
+            <h2>best 50 charts</h2>
+            {/* total / average on top, ceiling / floor under it, on the right */}
+            <div className="bf-b50-pills">
+                <Stats songs={all} className="bf-badge-lg" />
+                <FloorCeiling songs={all} />
+            </div>
         </div>
     );
 }

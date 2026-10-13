@@ -79,7 +79,10 @@ const OUTCOME_LABEL: Record<AttemptOutcome, string> = {
 };
 // "ok" says something different for each step
 const OK_LABEL: Partial<Record<AttemptKind, string>> = { login: 'signed in', 'claim-start': 'started', 'claim-cancel': 'cancelled' };
-const ACTIVITY_LABEL: Record<ActivityAction, string> = { bio: 'bio', favorites: 'favorites', scores: 'scores', 'refresh-scores': 'refreshed scores', 'sign-out': 'signed out' };
+const ACTIVITY_LABEL: Record<ActivityAction, string> = {
+  bio: 'bio', favorites: 'favorites', scores: 'scores', 'refresh-scores': 'refreshed scores', 'sign-out': 'signed out',
+  username: 'username', password: 'password', 'sign-out-all': 'signed out everywhere',
+};
 
 // a favorite's chart key ("master-dx-Oshama Scramble!") as "Oshama Scramble! · DX MASTER".
 // difficulty and kind never contain a dash, so everything after the second one is the title
@@ -382,6 +385,10 @@ export default async function AdminPage({ searchParams }: {
     if (a.action === 'scores') {
       return <span>{a.after === 'hidden' ? 'hid their scores' : 'showed their scores again'}</span>;
     }
+    if (a.action === 'username') {
+      return <span>{String(a.before ?? '?')} → {String(a.after ?? '?')}</span>;
+    }
+    if (a.action === 'password') return <span>changed their password</span>;
     return <span className="ad-muted">-</span>;
   };
 

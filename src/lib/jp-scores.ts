@@ -4,7 +4,7 @@ import { toNormalWidth, type Song } from './leaderboard';
  * Scores from the japanese maimai DX NET, for the one player who has them (GF_USER_ID,
  * lib/special-players.ts). rating-scraper/scrape-jp-scores.js saves them as jp_songs on
  * her player, next to her international scores (songs). When she has them switched on
- * (show_jp_scores on her account, the account menu's "show japan scores"), her profile
+ * (show_jp_scores on her account, the settings page's "show japan scores"), her profile
  * uses her best of both: each chart's higher score, from whichever version it came
  * from. Those from japan are marked source: 'jp', which the score cards show.
  *

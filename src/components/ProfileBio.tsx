@@ -17,7 +17,7 @@ const css = `
   .pb-card { margin: 0 0 1.5rem; padding: 0.75rem 1rem 0.9rem; border: 1px solid var(--border-light);
     border-radius: 12px; font-size: 0.9rem; line-height: 1.55; }
   .pb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 0.35rem; }
-  .pb-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub); }
+  .pb-label { font-size: 0.95rem; font-weight: 700; letter-spacing: 0.03em; color: var(--text-sub); }
   .pb-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
   .pb-empty { margin: 0; color: var(--text-muted, var(--text-sub)); font-style: italic; }
   .pb-pencil { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;

@@ -4,12 +4,15 @@
  *   user_activity {
  *     at, user_id, username, action, before, after, ip_hash
  *   }
- *   action: bio | favorites | scores | refresh-scores | sign-out
+ *   action: bio | favorites | scores | refresh-scores | sign-out | username | password | sign-out-all
  *     bio        before / after: the old and new bio text (null when there was none)
  *     favorites  before / after: the old and new lists of chart keys
  *     scores     before / after: "shown" or "hidden" (they hid or showed their scores)
  *     refresh-scores  asked for "refresh my scores" (nothing extra)
  *     sign-out   nothing extra
+ *     username   before / after: the old and new username (settings page)
+ *     password   changed their password (nothing extra, certainly not the password)
+ *     sign-out-all   signed every browser out
  *
  * Sign-ins and claim steps aren't here: they're already in auth_attempts
  * (lib/attempts.ts). Admin actions are in admin_log (lib/admin.ts).
@@ -23,7 +26,8 @@ import { ipTag } from './attempts';
 const KEEP_DAYS = 180;
 const COLLECTION = 'user_activity';
 
-export type ActivityAction = 'bio' | 'favorites' | 'scores' | 'refresh-scores' | 'sign-out';
+export type ActivityAction =
+  | 'bio' | 'favorites' | 'scores' | 'refresh-scores' | 'sign-out' | 'username' | 'password' | 'sign-out-all';
 
 export type ActivityDoc = {
   at: Date;

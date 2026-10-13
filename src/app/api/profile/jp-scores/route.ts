@@ -1,7 +1,7 @@
 /**
  * POST /api/profile/jp-scores   { shown: boolean }
  *
- * "show japan scores" in the account menu: whether the profile combines the player's
+ * "show japan scores" on the settings page: whether the profile combines the player's
  * japanese-site scores with their international ones (lib/jp-scores.ts). Only for the
  * one player who has japanese scores (GF_USER_ID); anyone else gets a 403. Saved as
  * show_jp_scores on their account (unset counts as shown). The player comes from the

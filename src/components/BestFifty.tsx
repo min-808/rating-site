@@ -120,8 +120,9 @@ export const bestFiftyCss = `
   .bf-head h1 { margin: 0.5rem 0; }
   .bf-sub-total { color: var(--text-sub); font-size: 0.85rem; }
   .bf-section { display: flex; align-items: baseline; gap: 0.75rem; margin: 1.5rem 0 0.75rem; }
-  .bf-section h2 { margin: 0; }
-  .bf-section > span { font-size: 0.8rem; color: var(--text-sub); }
+  /* B15 / B35: between the card's small label and the cards themselves in size */
+  .bf-section h2 { margin: 0; font-size: 1.15rem; }
+  .bf-section > span { font-size: 0.72rem; color: var(--text-sub); }
   .bf-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .bf-empty { color: var(--text-muted); font-size: 0.85rem; }
@@ -300,6 +301,8 @@ export const bestFiftyCss = `
 
   /* tied charts: dimmed so they read as "not counted", brighter on hover so they're still easy to look at */
   .bf-card-muted { opacity: 0.45; transition: opacity 0.15s ease; }
+  /* the popup for a chart they haven't played, in place of the score */
+  .bf-dlg-unplayed { margin: 0.25rem 0 0.5rem; font-size: 1.1rem; font-weight: 700; color: var(--text-sub); }
   .bf-card-muted:hover, .bf-card-muted:focus-visible { opacity: 0.85; }
 `;
 
@@ -570,15 +573,17 @@ export function SongDetail({ entry, gains, onClose }: {
     }, [entry]);
 
     const song = entry?.song;
+    // a chart they haven't played (the level summary shows those too): its details, no score
+    const isPlayed = song != null && song.achievement != null;
     const diff = song ? diffOf(song.difficulty) : null;
-    const cutoff = song ? rankFor(song.achievement) : null;
-    const [whole, decimals] = song ? song.achievement.toFixed(4).split('.') : ['', ''];
+    const cutoff = isPlayed ? rankFor(song.achievement) : null;
+    const [whole, decimals] = isPlayed ? song.achievement.toFixed(4).split('.') : ['', ''];
     const combo = song ? comboInfo(song) : null;
     const sync = song ? syncInfo(song) : null;
     const art = song?.jacket_blob || song?.jacket;
     const hasDxScore = song && song.dx_score != null && song.dx_max != null && song.dx_max > 0;
     const dxPct = hasDxScore ? ((song!.dx_score! / song!.dx_max!) * 100).toFixed(2) : null;
-    const next = song ? nextRankInfo(song) : null;
+    const next = isPlayed ? nextRankInfo(song) : null;
     const hasAp = combo?.tier === 'ap' || combo?.tier === 'applus' || Boolean(song?.ap);
     const improvement = song ? improvementInfo(song) : null;
     const gain = song ? gains.get(chartKey(song)) ?? 0 : 0;
@@ -620,15 +625,21 @@ export function SongDetail({ entry, gains, onClose }: {
 
                     <div className="bf-divider" />
 
-                    <div className="bf-score">
-                        <RankBadge rank={cutoff?.rank} className="bf-dlg-rank-img" />
-                        <span className="bf-big">{whole}.<small>{decimals}%</small></span>
-                        <Badges song={song} className="bf-dlg-badges" />
-                    </div>
-                    {hasDxScore && (
-                        <p className="bf-dxscore">{song.dx_score!.toLocaleString()} / {song.dx_max!.toLocaleString()} ({dxPct}%)</p>
+                    {isPlayed ? (
+                        <>
+                            <div className="bf-score">
+                                <RankBadge rank={cutoff?.rank} className="bf-dlg-rank-img" />
+                                <span className="bf-big">{whole}.<small>{decimals}%</small></span>
+                                <Badges song={song} className="bf-dlg-badges" />
+                            </div>
+                            {hasDxScore && (
+                                <p className="bf-dxscore">{song.dx_score!.toLocaleString()} / {song.dx_max!.toLocaleString()} ({dxPct}%)</p>
+                            )}
+                            <p className="bf-dlg-meta"><b>{song.rating} rating</b></p>
+                        </>
+                    ) : (
+                        <p className="bf-dlg-unplayed">unplayed</p>
                     )}
-                    <p className="bf-dlg-meta"><b>{song.rating} rating</b></p>
                     <p className="bf-dlg-meta">{entry.list}: #{entry.position} of {entry.size}</p>
 
                     {improvement && (
@@ -643,7 +654,7 @@ export function SongDetail({ entry, gains, onClose }: {
                         </div>
                     )}
 
-                    {next ? (
+                    {!isPlayed ? null : next ? (
                         <div className="bf-next" title="Rating at exactly the next rank's cutoff. Since this chart is in your best 50, the gain adds straight to your total rating.">
                             <span className="bf-next-label">Next rank</span>
                             <RankBadge rank={next.rank} className="bf-next-rank-img" />

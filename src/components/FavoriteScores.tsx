@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import type { Song } from '../lib/leaderboard';
 import { rateSong } from '../lib/song-calc';
 import { FAVORITES_MAX, favoriteKey } from '../lib/favorites';
@@ -25,7 +26,7 @@ const css = `
   .fav-card { margin: 0 0 1.5rem; padding: 0.75rem 1rem 0.9rem; border: 1px solid var(--border-light);
     border-radius: 12px; font-size: 0.9rem; line-height: 1.55; }
   .fav-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 0.35rem; }
-  .fav-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub); }
+  .fav-label { font-size: 0.95rem; font-weight: 700; letter-spacing: 0.03em; color: var(--text-sub); }
   .fav-pencil { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
     border: 0; border-radius: 7px; background: transparent; color: var(--text-sub); cursor: pointer; }
   .fav-pencil:hover { background: rgba(127,127,127,0.14); color: #2563eb; }
@@ -254,7 +255,7 @@ export default function FavoriteScores({ songs, initialFavorites, canEdit }: {
       <style>{css}</style>
 
       <div className="fav-head">
-        <span className="fav-label">favorite scores</span>
+        <span className="fav-label">pinned scores</span>
         {canEdit && !editing && (
           <button type="button" className="fav-pencil" onClick={startEditing}
             aria-label="edit your favorites" title="edit your favorites">
@@ -322,7 +323,7 @@ export default function FavoriteScores({ songs, initialFavorites, canEdit }: {
             <button type="button" className="fav-btn" onClick={save} disabled={busy}>{busy ? <LoadingDots label="saving" /> : 'save'}</button>
           </div>
           {error && <p className="fav-error">{error}</p>}
-          <p className="fav-hint">a new score not showing up? use <b>refresh my scores</b> in your account menu (top right)</p>
+          <p className="fav-hint">a new score not showing up? use <b>refresh my scores</b> in your <Link href="/settings">settings</Link></p>
         </>
       )}
 

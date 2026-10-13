@@ -122,18 +122,19 @@ function levelValue(level: string): number {
 const css = `
   .lc-wrap { margin: 0 0 2rem; }
 
-  /* heading, toggles and legend are centered above the bars */
-  .lc-head { display: flex; flex-direction: column; align-items: center; gap: 1.1rem; margin-bottom: 1.45rem;
-    text-align: center; }
-  .lc-head h2 { margin: 0.5rem 0 0; font-size: 2rem; }
-  .lc-toggles { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0.25rem 0; }
+  /* the card's header, like the about me's: its small label on the left, the toggles on the
+     right (under the label on phones). the legend sits under it, left-aligned */
+  .lc-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px;
+    margin-bottom: 0.9rem; }
+  .lc-head h2 { margin: 0; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.03em; color: var(--text-sub); }
+  .lc-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
   .lc-toggle { display: inline-flex; border: 1px solid var(--border-light); border-radius: 6px; padding: 2px; }
   .lc-toggle button { border: 0; background: transparent; color: var(--text-sub); font: inherit; font-size: 0.8rem;
     padding: 4px 12px; border-radius: 4px; cursor: pointer; }
   .lc-toggle button.active { background: #2563eb; color: #fff; }
   .lc-toggle button:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
 
-  .lc-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; margin-bottom: 0.75rem;
+  .lc-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 0.75rem;
     font-size: 0.75rem; color: var(--text-sub); }
   .lc-legend span { display: inline-flex; align-items: center; gap: 5px; }
   .lc-swatch { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
@@ -306,7 +307,7 @@ export default function LevelChart({ songs, totals, naExcluded }: {
             <style>{css}</style>
 
             <div className="lc-head">
-                <h2>Level Breakdown</h2>
+                <h2>level breakdown</h2>
                 <div className="lc-toggles">
                     <div className="lc-toggle" role="group" aria-label="Breakdown">
                         <button type="button" className={view === 'rank' ? 'active' : ''} aria-pressed={view === 'rank'}

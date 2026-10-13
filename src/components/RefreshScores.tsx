@@ -4,15 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
- * "refresh my scores", in the account menu (AccountButton.tsx): re-reads the player's
+ * "refresh my scores", at the top of the settings page (SettingsForms.tsx): re-reads the player's
  * scores from maimai NET (on the VPS, starting as soon as maimai NET is free), so new
  * scores and lamps show up before the nightly scrape gets to them (which only reads
  * players whose rating changed). Once per Hawaii day.
  * See /api/profile/refresh-scores and the verify server's /refresh-scores.
  *
- * useScoreRefresh(menuOpen) holds the state. It only asks how things stand when the menu
- * opens (not on every page), but once a refresh is going it keeps checking even with the
- * menu closed, and redraws the page when it's done so the new scores show.
+ * useScoreRefresh(active) holds the state. It asks how things stand when it becomes active
+ * (the settings page opening), and once a refresh is going it keeps checking until it's
+ * done, then redraws the page so the new scores show.
  */
 
 export type RefreshStatus = {
@@ -24,7 +24,8 @@ export type RefreshStatus = {
 const POLL_MS = 5_000;
 
 // why you'd need it, under the menu item while it can still be pressed
-export const REFRESH_WHY = 'scores only update overnight when your rating changes. missing some? refresh once a day';
+// (the \n is a line break: the settings page shows notes with white-space: pre-line)
+export const REFRESH_WHY = 'scores only update overnight when your rating changes\nmissing some? refresh once a day';
 
 export function useScoreRefresh(menuOpen: boolean) {
   const router = useRouter();
