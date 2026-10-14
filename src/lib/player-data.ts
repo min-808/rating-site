@@ -31,7 +31,15 @@ export function getPlayerByWebId(webId: number): Promise<PlayerDocument | null> 
   )();
 }
 
+// { expire: 0 } rather than 'max': 'max' only marks it stale, so the very next view would
+// still get the old copy (while a new one is fetched behind it). this drops it outright
+
 /** Drops one player's cached record, so their next page view reads it fresh. */
 export function clearPlayerCache(webId: number | null | undefined) {
-  if (webId != null) revalidateTag(tagFor(webId), 'max');
+  if (webId != null) revalidateTag(tagFor(webId), { expire: 0 });
+}
+
+/** Drops every player's cached record. */
+export function clearAllPlayersCache() {
+  revalidateTag(PLAYERS_TAG, { expire: 0 });
 }

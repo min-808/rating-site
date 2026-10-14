@@ -575,6 +575,19 @@ export default async function AdminPage({ searchParams }: {
         )}
       </section>
 
+      {/* ---------------- cache ---------------- */}
+      <section className="ad-card">
+        <h2>site cache</h2>
+        <div className="ad-row">
+          <p className="ad-muted">
+            profiles and the level summary keep the song list for up to 6 hours and each player&apos;s record
+            for up to 5 minutes (both cleared every night). clear them to see a song import or a fix straight away
+          </p>
+          <AdminButton action="clear-cache" label="clear site cache"
+            confirmText="clear the cached song data and player records? the next few page views will be a little slower while they're read again" />
+        </div>
+      </section>
+
       {/* ---------------- search ---------------- */}
       <section className="ad-card">
         <h2>find a player</h2>

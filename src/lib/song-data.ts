@@ -1,4 +1,4 @@
-import { unstable_cache } from 'next/cache';
+import { unstable_cache, revalidateTag } from 'next/cache';
 import { connectMongo } from './connect-db';
 import type { SongMetaDocument } from './leaderboard';
 
@@ -14,6 +14,11 @@ import type { SongMetaDocument } from './leaderboard';
  */
 
 export const SONG_DATA_TAG = 'song-data';
+
+/** Drops the cached song data now, so the next page view reads it fresh (not a stale copy first). */
+export function clearSongDataCache() {
+  revalidateTag(SONG_DATA_TAG, { expire: 0 });
+}
 const CACHE_SECONDS = 6 * 60 * 60;
 
 async function db() {

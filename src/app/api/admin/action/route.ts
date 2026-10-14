@@ -13,8 +13,12 @@
  *   show-scores     { userId }   or shows them again. works on unclaimed profiles too
  *   cancel-claim    { claimId }  ends one in-progress claim and frees the slot if it held it
  *   free-slot       {}           frees the one-claim-at-a-time slot, whoever holds it
+ *   clear-cache     {}           drops the site's cached song data and player records
+ *                                (lib/song-data.ts, lib/player-data.ts), so a song import or
+ *                                a fix shows straight away instead of within hours
  */
-import { clearPlayerCache } from '../../../../lib/player-data';
+import { clearPlayerCache, clearAllPlayersCache } from '../../../../lib/player-data';
+import { clearSongDataCache } from '../../../../lib/song-data';
 import { NextResponse } from 'next/server';
 import { type AccountDoc, type ClaimDoc, type SessionDoc, getDb } from '../../../../lib/auth';
 import { getAdmin, logAdmin } from '../../../../lib/admin';
@@ -65,6 +69,13 @@ export async function POST(req: Request) {
       const { deletedCount } = await db.collection<SessionDoc>('sessions').deleteMany({ user_id: userId });
       await logAdmin(admin, 'sign-out', userId, { username: account.username, sessions_ended: deletedCount });
       return NextResponse.json({ ok: true, sessionsEnded: deletedCount });
+    }
+
+    case 'clear-cache': {
+      clearSongDataCache();
+      clearAllPlayersCache();
+      await logAdmin(admin, 'clear-cache', null);
+      return NextResponse.json({ ok: true });
     }
 
     case 'hide-scores':

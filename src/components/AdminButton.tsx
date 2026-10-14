@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 export default function AdminButton({ action, userId, claimId, label, confirmText, danger = false }: {
     action:
         | 'clear-bio' | 'unclaim' | 'sign-out'
-        | 'hide-scores' | 'show-scores' | 'cancel-claim' | 'free-slot';
+        | 'hide-scores' | 'show-scores' | 'cancel-claim' | 'free-slot' | 'clear-cache';
     userId?: string;
     claimId?: string;
     label: string;
