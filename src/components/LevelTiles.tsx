@@ -28,6 +28,11 @@ export type TileRow = { row: string; image: string | null; badge: boolean; chart
 // total: every chart at this constant (in the chosen versions), shown or not
 export type TileLevel = { constant: string; played: number; total: number; rows: TileRow[] };
 
+// a score to two decimals, cut off rather than rounded: 100.4960% is 100.49, not 100.50,
+// which would read as SSS+. scores are saved to four decimals, so this cuts the text
+// rather than doing maths on the number (which could land a hair under and drop a digit)
+const twoDecimals = (achievement: number) => achievement.toFixed(4).slice(0, -2);
+
 const DIFF_COLOR: Record<string, string> = {
   basic: '#22a352', advanced: '#d99000', expert: '#e0403a', master: '#9b4fd1', remaster: '#b48be0',
 };
@@ -87,7 +92,7 @@ export default function LevelTiles({ levels, showRank, allScores }: {
                         <span className="ls-foot">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           {showRank && rank && <img src={rankImage(rank)} alt={rank} />}
-                          <span>{s.achievement.toFixed(2)}%</span>
+                          <span>{twoDecimals(s.achievement)}%</span>
                         </span>
                       )}
                       {/* opens the same popup as the best 50 (just the details, for an unplayed chart) */}
