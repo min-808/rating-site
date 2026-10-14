@@ -7,7 +7,7 @@ import BestFifty from '../../../components/BestFifty';
 import { Best50Stats } from '../../../components/StatsBadge';
 import { new15, old35 } from '../../../lib/song-calc';
 import FallbackImage from '../../../components/FallbackImage';
-import { connectMongo, getMongoClient } from '../../../lib/connect-db';
+import { connectMongo } from '../../../lib/connect-db';
 import {
   type PlayerDocument,
   type SongMetaDocument,
@@ -514,7 +514,9 @@ export default async function UserPage({ params }: UserPageProps) {
     notFound();
   }
 
-  const client = await getMongoClient();
+  // connectMongo, not getMongoClient: the player can come from the cache (lib/player-data.ts),
+  // so nothing may have opened the connection yet on this server
+  const client = await connectMongo();
   const metadata = await client
       .db('maimai')
       .collection('metadata')

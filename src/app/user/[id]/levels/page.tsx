@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { connectMongo, getMongoClient } from '../../../../lib/connect-db';
+import { connectMongo } from '../../../../lib/connect-db';
 import { toNormalWidth, type PlayerDocument, type SongMetaDocument } from '../../../../lib/leaderboard';
 import { VERSION_NAMES, versionName } from '../../../../lib/versions';
 import { rankImage, badgeImageFor } from '../../../../lib/badges';
@@ -273,7 +273,9 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
     : { min, max, includeUnplayed: q.unplayed === '1', versionFrom, versionTo, grades };
 
   // their scores: with her japanese ones too, when she has them switched on (same as the profile)
-  const client = await getMongoClient();
+  // connectMongo, not getMongoClient: the player can come from the cache (lib/player-data.ts),
+  // so nothing may have opened the connection yet on this server
+  const client = await connectMongo();
   const db = client.db('maimai');
   const account = isGf(player.user_id)
     ? await db.collection<{ _id: string; show_jp_scores?: boolean }>('accounts').findOne({ _id: String(player.user_id) }, { projection: { show_jp_scores: 1 } })
