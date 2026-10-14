@@ -9,6 +9,7 @@
  */
 import { NextResponse } from 'next/server';
 import { getDb, getSession, rateLimit } from '../../../../lib/auth';
+import { clearPlayerCache } from '../../../../lib/player-data';
 import { logActivity } from '../../../../lib/activity';
 
 const fail = (status: number, error: string) => NextResponse.json({ error }, { status });
@@ -29,12 +30,13 @@ export async function POST(req: Request) {
   // players.user_id may be stored as text or as a number
   const players = db.collection<{ scores_opt_out?: boolean }>('players');
   const filter = { user_id: { $in: [session.userId, Number(session.userId)] } } as object;
-  const player = await players.findOne(filter, { projection: { scores_opt_out: 1 } });
+  const player = await players.findOne(filter, { projection: { scores_opt_out: 1, web_id: 1 } });
   if (!player) return fail(404, 'no profile for this account');
 
   const before = Boolean(player.scores_opt_out);
   if (before !== hidden) {
     await players.updateOne(filter, { $set: { scores_opt_out: hidden } });
+    clearPlayerCache((player as { web_id?: number }).web_id); // their profile shows the change straight away
     await logActivity(req, session, 'scores', { before: before ? 'hidden' : 'shown', after: hidden ? 'hidden' : 'shown' });
   }
 

@@ -20,6 +20,7 @@
  */
 import { NextResponse } from 'next/server';
 import { getDb, getSession, peekRateLimit, rateLimit, verifyFetch } from '../../../../lib/auth';
+import { clearPlayerCache } from '../../../../lib/player-data';
 import { logActivity } from '../../../../lib/activity';
 
 export const dynamic = 'force-dynamic';
@@ -73,6 +74,12 @@ export async function GET() {
   const session = await getSession();
   if (!session) return reply({ error: 'sign in first' }, 401);
   const [vps, limit] = await Promise.all([vpsStatus(session.userId), peekRateLimit(playerKey(session.userId), 1)]);
+  // the refresh just saved new scores: drop their cached profile, so the page redraws with them
+  if (vps?.state === 'done') {
+    const player = await (await getDb()).collection('players')
+      .findOne({ user_id: { $in: [session.userId, Number(session.userId)] } } as object, { projection: { web_id: 1 } });
+    clearPlayerCache(player?.web_id);
+  }
   // can't reach the VPS: show the button as normal, and let a press say what's wrong
   return reply(describe(vps?.state ?? 'none', !limit.ok));
 }

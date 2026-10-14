@@ -29,6 +29,7 @@ export type SummaryChart = {
   level: string | null; // shown level, "13+"
   internal: number; // the constant, 13.7
   versionCode: number | null;
+  genre: string | null; // for the two songs that share a title (the "Link"s), whose jackets are kept by genre
   played: Song | null; // their score, with rating filled in
 };
 
@@ -39,6 +40,8 @@ export type SummaryFilters = {
   versionFrom: number | null; // a version's base code (26000), null: no lower limit
   versionTo: number | null; // a version's base code, null: no upper limit
   difficulties?: string[] | null; // only these ("expert", "master"...), null: every difficulty
+  grades?: string[] | null; // only played charts with these grades ("SSS+", "below A"...), null or empty: any
+  excludedTitles?: Set<string> | null; // NA: songs not available there (naExcluded), left out entirely
 };
 
 const SUFFIX: Record<string, string> = { basic: 'bas', advanced: 'adv', expert: 'exp', master: 'mas', remaster: 'remas' };
@@ -58,6 +61,20 @@ export function versionBase(code: number | null): number | null {
     else break;
   }
   return base;
+}
+
+/**
+ * The songs North America doesn't have (marked na "0"), by title, for the NA view (the same
+ * rule as the profile's level breakdown). A title only counts as missing if every song
+ * with it is marked, since a few titles are shared.
+ */
+export function naExcluded(songDocs: Array<{ title: string; na?: string | number | null }>): Set<string> {
+  const available = new Map<string, boolean>();
+  for (const s of songDocs) {
+    const key = titleKey(s.title);
+    available.set(key, (available.get(key) ?? false) || String(s.na) !== '0');
+  }
+  return new Set([...available].filter(([, ok]) => !ok).map(([key]) => key));
 }
 
 /** Every chart: the collection's, with the player's scores on them, plus scores it doesn't list. */
@@ -81,6 +98,7 @@ export function allCharts(songDocs: SongDoc[], scores: Song[]): SummaryChart[] {
           level: doc[field] != null ? String(doc[field]) : null,
           internal,
           versionCode: Number.isFinite(versionCode) ? versionCode : null,
+          genre: doc.catcode != null ? String(doc.catcode) : null,
           played: null,
         });
       }
@@ -95,6 +113,7 @@ export function allCharts(songDocs: SongDoc[], scores: Song[]): SummaryChart[] {
     const chart = byKey.get(key);
     if (chart) {
       chart.played = played;
+      if (s.genre) chart.genre = s.genre; // the score's genre spelling, which the jackets are kept under
       // the score's own constant, when it has one (a japanese score has japan's)
       if (Number.isFinite(s.internal_difficulty)) chart.internal = s.internal_difficulty;
     } else if (Number.isFinite(s.internal_difficulty)) {
@@ -106,6 +125,7 @@ export function allCharts(songDocs: SongDoc[], scores: Song[]): SummaryChart[] {
         level: s.level ?? null,
         internal: s.internal_difficulty,
         versionCode: s.version_code ?? null,
+        genre: s.genre ?? null,
         played,
       });
     }
@@ -135,6 +155,9 @@ export function filterCharts(charts: SummaryChart[], f: SummaryFilters): Summary
     if (level < f.min - 1e-9 || level > f.max + 1e-9) return false;
     if (!f.includeUnplayed && !c.played) return false;
     if (f.difficulties && !f.difficulties.includes(c.difficulty)) return false;
+    if (f.excludedTitles?.has(titleKey(c.title))) return false;
+    // unplayed charts have no grade: "include unplayed" decides those
+    if (f.grades?.length && c.played && !f.grades.includes(gradeOf(c))) return false;
     if (f.versionFrom != null || f.versionTo != null) {
       const base = versionBase(c.versionCode);
       if (base == null) return false;
@@ -145,28 +168,41 @@ export function filterCharts(charts: SummaryChart[], f: SummaryFilters): Summary
   });
 }
 
-// the ranks the summary counts, best first. anything under S is "below S"
-export const SUMMARY_RANKS = ['SSS+', 'SSS', 'SS+', 'SS', 'S+', 'S'] as const;
+/*
+ * The summary's counts, the way maimai NET's own level pages count them: each one is that
+ * grade (or badge) OR BETTER, out of every chart in the range. "S 494/528" is 494 charts at
+ * S or higher, the same 494 that are also counted under CLEAR.
+ */
+export const CLEAR_AT = 80; // an A or better is a clear
+export const SUMMARY_RANKS = [ // worst to best, as the game lays them out
+  { label: 'S', min: 97 }, { label: 'S+', min: 98 }, { label: 'SS', min: 99 },
+  { label: 'SS+', min: 99.5 }, { label: 'SSS', min: 100 }, { label: 'SSS+', min: 100.5 },
+] as const;
+const COMBO_TIER: Record<string, number> = { fc: 1, fcplus: 2, ap: 3, app: 4, applus: 4 };
+export const SUMMARY_COMBOS = [
+  { label: 'FC', tier: 1 }, { label: 'FC+', tier: 2 }, { label: 'AP', tier: 3 }, { label: 'AP+', tier: 4 },
+] as const;
+const SYNC_TIER: Record<string, number> = { sync: 1, fs: 2, fsplus: 3, fdx: 4, fdxplus: 5 };
+// no plain SYNC PLAY: the friend comparison pages the scores come from don't show it, so it
+// could only ever undercount (maimai NET's 401 against our 40)
+export const SUMMARY_SYNCS = [
+  { label: 'FS', tier: 2 }, { label: 'FS+', tier: 3 }, { label: 'FDX', tier: 4 }, { label: 'FDX+', tier: 5 },
+] as const;
 
 export function summarize(charts: SummaryChart[]) {
   const played = charts.filter((c) => c.played).map((c) => c.played!);
-  const ranks: Record<string, number> = Object.fromEntries([...SUMMARY_RANKS, 'below S'].map((r) => [r, 0]));
-  let fc = 0;
-  let ap = 0;
-  let fdx = 0;
-  let clears = 0;
-  for (const s of played) {
-    const rank = rankFor(s.achievement)?.rank;
-    if (rank && (SUMMARY_RANKS as readonly string[]).includes(rank)) ranks[rank]++;
-    else ranks['below S']++;
-    if ((s.achievement ?? 0) >= 80) clears++;
-    const combo = (s.fc || (s.ap ? 'ap' : '')).toLowerCase();
-    if (combo) fc++;
-    if (combo.startsWith('ap')) ap++;
-    if ((s.fs ?? '').toLowerCase().startsWith('fdx')) fdx++;
-  }
-  const average = played.length ? played.reduce((t, s) => t + (s.achievement ?? 0), 0) / played.length : null;
-  return { total: charts.length, played: played.length, average, ranks, clears, fc, ap, fdx };
+  const atLeast = (pred: (s: Song) => boolean) => played.filter(pred).length;
+  const comboTier = (s: Song) => COMBO_TIER[(s.fc || (s.ap ? 'ap' : '')).toLowerCase().replace(/[^a-z]/g, '')] ?? 0;
+  const syncTier = (s: Song) => SYNC_TIER[(s.fs || '').toLowerCase().replace(/[^a-z]/g, '')] ?? 0;
+  return {
+    total: charts.length,
+    played: played.length,
+    average: played.length ? played.reduce((t, s) => t + (s.achievement ?? 0), 0) / played.length : null,
+    clear: atLeast((s) => (s.achievement ?? 0) >= CLEAR_AT),
+    ranks: Object.fromEntries(SUMMARY_RANKS.map((r) => [r.label, atLeast((s) => (s.achievement ?? 0) >= r.min)])),
+    combos: Object.fromEntries(SUMMARY_COMBOS.map((c) => [c.label, atLeast((s) => comboTier(s) >= c.tier)])),
+    syncs: Object.fromEntries(SUMMARY_SYNCS.map((x) => [x.label, atLeast((s) => syncTier(s) >= x.tier)])),
+  };
 }
 
 /** Charts grouped by constant (by whole level below 7), highest first; in each, played best-first, then unplayed by title. */
@@ -186,6 +222,28 @@ export function groupByConstant(charts: SummaryChart[]) {
         || ((b.played?.achievement ?? 0) - (a.played?.achievement ?? 0))
         || a.title.localeCompare(b.title)),
     }));
+}
+
+// the grades a played chart can have, best first (the grade filter's choices)
+export const GRADES = ['SSS+', 'SSS', 'SS+', 'SS', 'S+', 'S', 'AAA', 'AA', 'A', 'below A'] as const;
+
+/**
+ * The grade filter's choice ("below-SSS+", "SS-up") as the grades it lets through:
+ * "below SSS+" is everything under SSS+ (SSS down to below A), "SS or better" is SS up to
+ * SSS+. Anything else: null (no filter)
+ */
+export function gradesFor(choice: string | null | undefined): string[] | null {
+  const m = String(choice ?? '').match(/^(?:below-(.+)|(.+)-up)$/);
+  if (!m) return null;
+  const i = (GRADES as readonly string[]).indexOf(m[1] ?? m[2]);
+  if (i < 0) return null;
+  return m[1] ? GRADES.slice(i + 1) : GRADES.slice(0, i + 1);
+}
+
+/** A played chart's grade ("SSS+" ... "A", or "below A"). */
+export function gradeOf(c: SummaryChart): string {
+  const rank = c.played ? rankFor(c.played.achievement)?.rank : null;
+  return rank && (GRADES as readonly string[]).includes(rank) ? rank : 'below A';
 }
 
 // how a level's charts can be split into rows, and each way's rows, best first. charts

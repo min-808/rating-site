@@ -12,13 +12,18 @@ export default function QuietSelect({ name, defaultValue, quietValue = '', optio
   name: string;
   defaultValue: string;
   quietValue?: string; // the default: picking this leaves it out of the address
-  options: Array<{ value: string; label: string }>;
+  options: Array<{ value: string; label: string; group?: string }>; // options with a group go under that heading
   ariaLabel: string;
 }) {
   const [value, setValue] = useState(defaultValue);
   return (
     <select name={value === quietValue ? undefined : name} value={value} onChange={(e) => setValue(e.target.value)} aria-label={ariaLabel}>
-      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      {options.filter((o) => !o.group).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      {[...new Set(options.filter((o) => o.group).map((o) => o.group!))].map((group) => (
+        <optgroup key={group} label={group}>
+          {options.filter((o) => o.group === group).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </optgroup>
+      ))}
     </select>
   );
 }

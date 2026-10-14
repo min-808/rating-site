@@ -20,6 +20,8 @@ import { versionName } from '../../../lib/versions';
 import LevelChart from '../../../components/LevelChart';
 import { JAPAN_AHEAD_VERSIONS } from '../../../lib/versions';
 import { mergeJpScores } from '../../../lib/jp-scores';
+import { getSongMeta, getSongFlags, getLevelCharts } from '../../../lib/song-data';
+import { getPlayerByWebId } from '../../../lib/player-data';
 import { isGf } from '../../../lib/special-players';
 import ClaimPanel from '../../../components/ClaimPanel';
 import { getSession } from '../../../lib/auth';
@@ -37,14 +39,12 @@ interface UserPageProps {
 const TZ = 'Pacific/Honolulu';
 
 
+// cached on the server for a few minutes (lib/player-data.ts), and once per request here
+// (the page and its metadata both ask)
 const getPlayer = cache(async (id: string) => {
   const webId = parseInt(id, 10);
   if (Number.isNaN(webId)) return null;
-
-  await connectMongo();
-  const client = await getMongoClient();
-  const doc = await client.db('maimai').collection('players').findOne({ web_id: webId });
-  return doc as unknown as PlayerDocument | null;
+  return getPlayerByWebId(webId);
 });
 
 export async function generateMetadata({ params }: UserPageProps): Promise<Metadata> {
@@ -580,23 +580,16 @@ export default async function UserPage({ params }: UserPageProps) {
 
   if (!optedOut) {
     const titles = [...new Set(playerSongs.map((s) => s.title))];
-    const metaDocs = await client
-        .db('maimai')
-        .collection<SongMetaDocument>('songmeta')
-        .find({ _id: { $in: titles } })
-        .toArray();
-    const meta = new Map<string, SongMetaDocument>(metaDocs.map((m) => [m._id, m]));
+    // the game's song data, cached on the server (lib/song-data.ts), not read on every view
+    const [allMeta, songFlags, levelDocs] = await Promise.all([getSongMeta(), getSongFlags(), getLevelCharts()]);
+    const wanted = new Set(titles);
+    const meta = new Map<string, SongMetaDocument>(allMeta.filter((m) => wanted.has(m._id)).map((m) => [m._id, m]));
 
     // same title matching as the scrapers, so full-width titles line up
     const titleKey = (t: string) => toNormalWidth(String(t ?? '')).replace(/\s+/g, ' ').trim().toLowerCase();
 
     // every song's NA flag (below) and romanized title, for searching the favorites picker
     // by romaji ("umiyuri" finds ウミユリ海底譚). title_romaji comes from rating-scraper/romaji.js
-    const songFlags = await client
-        .db('maimai')
-        .collection<{ title: string; na?: string | number; title_romaji?: string | null }>('songs')
-        .find({}, { projection: { title: 1, na: 1, title_romaji: 1 } })
-        .toArray();
     const romajiByTitle = new Map<string, string>();
     for (const s of songFlags) if (s.title_romaji) romajiByTitle.set(titleKey(s.title), s.title_romaji);
 
@@ -645,11 +638,6 @@ export default async function UserPage({ params }: UserPageProps) {
     }
 
     // chart lists per level, saved nightly from maimai NET's own level pages
-    const levelDocs = await client
-        .db('maimai')
-        .collection<{ _id: string; charts?: { title: string; difficulty?: string | null }[] }>('level_charts')
-        .find({}, { projection: { charts: 1 } })
-        .toArray();
 
     for (const doc of levelDocs) {
       const charts = doc.charts ?? [];

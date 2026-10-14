@@ -5,6 +5,9 @@ import { toNormalWidth, type PlayerDocument, type SongMetaDocument } from '../..
 import { VERSION_NAMES, versionName } from '../../../../lib/versions';
 import { rankImage, badgeImageFor } from '../../../../lib/badges';
 import LevelTiles, { type TileLevel } from '../../../../components/LevelTiles';
+import { getSongLevels, getSongMeta } from '../../../../lib/song-data';
+import { getPlayerByWebId } from '../../../../lib/player-data';
+import RegionRadios from '../../../../components/RegionRadios';
 import FilterBy from '../../../../components/FilterBy';
 import { CHART_DIFFICULTIES } from '../../../../lib/difficulties';
 import QuietSelect from '../../../../components/QuietSelect';
@@ -12,8 +15,8 @@ import { isGf } from '../../../../lib/special-players';
 import { mergeJpScores } from '../../../../lib/jp-scores';
 import {
   type SongDoc, type SummaryFilters, type RowSort, allCharts, filterCharts, summarize, groupByConstant, groupRows, ROW_ORDERS,
-  levelValue, levelLabel, FIRST_DECIMAL_LEVEL,
-  SUMMARY_RANKS, VERSION_BASES,
+  levelValue, levelLabel, FIRST_DECIMAL_LEVEL, GRADES, gradesFor, naExcluded,
+  SUMMARY_RANKS, SUMMARY_COMBOS, SUMMARY_SYNCS, VERSION_BASES,
 } from '../../../../lib/level-summary';
 
 /**
@@ -28,6 +31,8 @@ import {
  *   ?level=14+                  one level (14.6 to 14.9)
  *   ?range=1&min=13.0&max=15.0  a range
  *   ?by=difficulty&diff=expert&diff=master   every expert and master chart, any level
+ *   ...&grade=below-SSS%2B                  only charts below SSS+ (or grade=SS-up: SS or better)
+ *   ...&region=intl                         every chart (default: NA, without the songs it doesn't have)
  *   ...&unplayed=1&from=25000&to=26500&sort=combo
  * Charts are grouped by constant (14.5, 14.4...), and within each constant, split into rows
  * by grade (SSS+, SSS...: the default), combo (AP+, AP, FC+, FC), sync (FDX+ ... SYNC) or
@@ -41,7 +46,7 @@ type Props = {
   params: Promise<{ id: string }>;
   searchParams: Promise<{
     level?: string; range?: string; min?: string; max?: string; unplayed?: string; from?: string; to?: string; sort?: string;
-    by?: string; diff?: string | string[];
+    by?: string; diff?: string | string[]; grade?: string; region?: string;
   }>;
 };
 
@@ -51,12 +56,11 @@ const DEFAULT_LEVEL = '13';
 // the widest range: 13.0 to 15.0. wider ones load hundreds of jackets at once
 const MAX_RANGE = 2.0;
 
+// cached on the server for a few minutes (lib/player-data.ts)
 async function getPlayer(id: string) {
   const webId = parseInt(id, 10);
   if (Number.isNaN(webId)) return null;
-  await connectMongo();
-  const client = await getMongoClient();
-  return (await client.db('maimai').collection('players').findOne({ web_id: webId })) as unknown as PlayerDocument | null;
+  return getPlayerByWebId(webId);
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -138,11 +142,16 @@ const css = `
   .ls-stat { display: flex; flex-direction: column; gap: 2px; }
   .ls-stat b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
   .ls-stat span { font-size: 0.75rem; color: var(--text-sub); }
-  .ls-ranks { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; margin-top: 1rem; padding-top: 0.9rem;
+  /* the game-style counts: an image (or name) over "n/total", in rows */
+  .ls-counts { display: flex; flex-wrap: wrap; gap: 0.75rem 1.1rem; margin-top: 0.9rem; padding-top: 0.9rem;
     border-top: 1px solid var(--border-light); }
-  .ls-rank { display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .ls-rank img { height: 22px; }
-  .ls-rank-text { font-size: 0.8rem; color: var(--text-sub); height: 22px; display: flex; align-items: center; }
+  .ls-count { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 52px;
+    font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .ls-count img { height: 24px; }
+  .ls-count-text { height: 24px; display: flex; align-items: center; font-size: 0.72rem; font-weight: 800;
+    letter-spacing: 0.04em; color: var(--text-sub); }
+  .ls-count span.ls-complete { color: #fff176; text-shadow: 0 0 6px rgba(255, 230, 80, 0.35); }
+  :root[data-theme="light"] .ls-count span.ls-complete { color: #ca8a04; text-shadow: none; }
   .ls-empty { margin: 0; color: var(--text-sub); font-size: 0.9rem; }
 
   /* the charts, one row of tiles per constant */
@@ -195,6 +204,18 @@ const css = `
   }
 `;
 
+// one of the summary's counts: its rank or badge image (or name), and "n/total", in the
+// fully-played yellow when it's all of them
+function SummaryCount({ label, image, n, total }: { label: string; image: string | null; n: number; total: number }) {
+  return (
+    <div className="ls-count" title={`${label} or better: ${n} of ${total}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {image ? <img src={image} alt={label} /> : <span className="ls-count-text">{label}</span>}
+      <span className={n >= total && total > 0 ? 'ls-complete' : undefined}>{n}/{total}</span>
+    </div>
+  );
+}
+
 export default async function LevelSummaryPage({ params, searchParams }: Props) {
   const { id } = await params;
   const q = await searchParams;
@@ -244,9 +265,12 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
   // by difficulty instead: every level, just the ticked difficulties
   const byDifficulty = q.by === 'difficulty';
   const difficulties = [q.diff ?? []].flat().filter((d) => (CHART_DIFFICULTIES as readonly string[]).includes(d));
+  // "below SSS+" / "SS or better" (nothing picked: any grade)
+  const gradeChoice = gradesFor(q.grade) ? q.grade! : '';
+  const grades = gradesFor(gradeChoice);
   const filters: SummaryFilters = byDifficulty
-    ? { min: 1, max: 15, includeUnplayed: q.unplayed === '1', versionFrom, versionTo, difficulties }
-    : { min, max, includeUnplayed: q.unplayed === '1', versionFrom, versionTo };
+    ? { min: 1, max: 15, includeUnplayed: q.unplayed === '1', versionFrom, versionTo, difficulties, grades }
+    : { min, max, includeUnplayed: q.unplayed === '1', versionFrom, versionTo, grades };
 
   // their scores: with her japanese ones too, when she has them switched on (same as the profile)
   const client = await getMongoClient();
@@ -257,36 +281,57 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
   const showJp = isGf(player.user_id) && account?.show_jp_scores !== false && (player.jp_songs?.length ?? 0) > 0;
   const scores = showJp ? mergeJpScores(player.songs, player.jp_songs) : (player.songs ?? []);
 
-  const songDocs = await db.collection<SongDoc>('songs').find({}, { projection: { _id: 0, key: 0, title_kana: 0, title_romaji: 0 } }).toArray();
+  // the game's song data, cached on the server (lib/song-data.ts), not read on every view
+  const [songDocs, metaDocs] = await Promise.all([getSongLevels(), getSongMeta()]);
+  // NA (the default): without the songs North America doesn't have, like the profile's level breakdown
+  const region = q.region === 'intl' ? 'intl' : 'na';
+  if (region === 'na') filters.excludedTitles = naExcluded(songDocs);
   const everyChart = allCharts(songDocs, scores);
   const charts = filterCharts(everyChart, filters);
-  // how many charts each constant really has (in these versions), played or not, so a
-  // level can tell it's fully played even when unplayed charts aren't being shown
+  // how many charts each constant really has (in these versions), and how many of those
+  // they've played, whatever's being shown: unplayed charts hidden, or only some grades.
+  // so "played / total" and "every chart played" are always the real numbers
   const totalAt = new Map<string, number>();
-  for (const c of filterCharts(everyChart, { ...filters, includeUnplayed: true })) {
+  const playedAt = new Map<string, number>();
+  const rangeCharts = filterCharts(everyChart, { ...filters, includeUnplayed: true, grades: null });
+  for (const c of rangeCharts) {
     const k = levelLabel(levelValue(c));
     totalAt.set(k, (totalAt.get(k) ?? 0) + 1);
+    if (c.played) playedAt.set(k, (playedAt.get(k) ?? 0) + 1);
   }
-  // the summary's "played / total" counts every chart in range too, not just the ones shown
-  const summary = { ...summarize(charts), total: [...totalAt.values()].reduce((t, n) => t + n, 0) };
+  // the summary counts like the game's own level pages: every chart in the range, whatever's
+  // being shown, each grade and badge "or better"
+  const summary = summarize(rangeCharts);
 
   // by constant, highest first, and within each a row per grade, combo or sync
   const sort: RowSort = q.sort && q.sort in ROW_ORDERS ? (q.sort as RowSort) : 'grade';
   // a row's label image: its rank, or its combo / sync badge. none for "unplayed" and the like
   const rowImage = (row: string) => (sort === 'grade' ? ((ROW_ORDERS.grade as readonly string[]).slice(0, 9).includes(row) ? rankImage(row) : null) : badgeImageFor(row));
 
-  // jackets and details (for the popup) of what's shown
-  const titles = [...new Set(charts.map((c) => c.title))];
-  const metaDocs = await db.collection<SongMetaDocument>('songmeta')
-    .find({ _id: { $in: titles } }, { projection: { blob: 1, artist: 1, bpm: 1, version_code: 1 } })
-    .toArray();
-  const metaOf = new Map(metaDocs.map((m) => [m._id, m]));
+  // jackets and details (for the popup). songmeta is keyed by the title as people's scores
+  // spell it, which isn't always the songs collection's spelling (full-width spaces, say),
+  // so: the exact title first, then the same title spelled loosely ("TRUST" and "Trust" are
+  // different songs, so the exact match has to win)
+  const looseTitle = (t: string) => toNormalWidth(String(t ?? '')).normalize('NFKC').replace(/\s+/g, ' ').trim().toLowerCase();
+  const metaExact = new Map(metaDocs.map((m) => [m._id, m]));
+  const metaLoose = new Map(metaDocs.map((m) => [looseTitle(m._id), m]));
+  const metaFor = (title: string) => metaExact.get(title) ?? metaLoose.get(looseTitle(title));
+  // a jacket: by genre for the songs that share a title (the "Link"s), else the title's.
+  // genres are matched loosely too: the song list and maimai NET spell some differently
+  const jacketFor = (title: string, genre: string | null | undefined) => {
+    const m = metaFor(title);
+    if (!m) return null;
+    const byGenre = m.by_genre ?? {};
+    const wanted = genre ? looseTitle(genre) : null;
+    const match = wanted ? Object.entries(byGenre).find(([g]) => looseTitle(g) === wanted)?.[1] : null;
+    return match?.blob ?? m.blob ?? Object.values(byGenre).find((g) => g.blob)?.blob ?? null;
+  };
   // a score as the popup wants it: jacket, version and details filled in, dates as text
   const forPopup = (s: (typeof scores)[number]) => {
-    const m = metaOf.get(s.title);
+    const m = metaFor(s.title);
     return {
       ...s,
-      jacket_blob: m?.blob ?? s.jacket_blob,
+      jacket_blob: jacketFor(s.title, s.genre) ?? s.jacket_blob,
       artist: m?.artist ?? s.artist,
       bpm: m?.bpm ?? s.bpm,
       version: versionName(m?.version_code ?? s.version_code),
@@ -296,19 +341,19 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
 
   // an unplayed chart for the popup: its details, and no score (achievement null)
   const unplayedInfo = (c: (typeof charts)[number]) => {
-    const m = metaOf.get(c.title);
+    const m = metaFor(c.title);
     return {
       title: c.title, kind: c.kind, difficulty: c.difficulty, level: c.level ?? '', genre: '',
       internal_difficulty: c.internal, achievement: null as unknown as number, rating: 0,
       new_pool: false, ap: false,
-      jacket_blob: m?.blob, artist: m?.artist, bpm: m?.bpm,
+      jacket_blob: jacketFor(c.title, c.genre) ?? undefined, artist: m?.artist, bpm: m?.bpm,
       version: versionName(m?.version_code ?? c.versionCode),
     };
   };
 
   const levels: TileLevel[] = groupByConstant(charts).map((g) => ({
     constant: g.constant,
-    played: g.charts.filter((c) => c.played).length,
+    played: playedAt.get(g.constant) ?? 0,
     total: totalAt.get(g.constant) ?? g.charts.length,
     rows: groupRows(g.charts, sort).map((r) => ({
       row: r.row,
@@ -320,7 +365,7 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
         kind: c.kind,
         difficulty: c.difficulty,
         internal: c.internal,
-        jacket: metaOf.get(c.title)?.blob ?? c.played?.jacket ?? null,
+        jacket: jacketFor(c.title, c.genre) ?? c.played?.jacket ?? null,
         song: c.played ? forPopup(c.played) : null,
         info: c.played ? forPopup(c.played) : unplayedInfo(c),
       })),
@@ -328,6 +373,14 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
   }));
   // every score they have, for the popup's "new PB: +N" (what it added to their best 50)
   const allScores = scores.map((s) => ({ ...s, improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null }));
+
+  // the grade filter: any, below each grade (SSS+ down to A), each grade or better (SSS+,
+  // which is just SSS+, down to A)
+  const gradeChoices = [
+    { value: '', label: 'any' },
+    ...GRADES.slice(0, -1).map((g) => ({ value: `below-${g}`, label: `below ${g}`, group: 'below' })),
+    ...GRADES.slice(0, -1).map((g, i) => ({ value: `${g}-up`, label: i === 0 ? `${g} only` : `${g} or better`, group: 'or better' })),
+  ];
 
   // "all" (sent as nothing), then every version
   const versionChoices = [
@@ -362,6 +415,12 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
             { value: 'sync', label: 'sync' },
           ]} />
         </label>
+        {/* "any" stays out of the address */}
+        <label className="ls-field">
+          <span>grades</span>
+          <QuietSelect name="grade" defaultValue={gradeChoice} ariaLabel="grades" options={gradeChoices} />
+        </label>
+        <RegionRadios region={region} />
         <label className="ls-check">
           <input type="checkbox" name="unplayed" value="1" defaultChecked={filters.includeUnplayed} />
           include unplayed
@@ -377,24 +436,19 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
             <div className="ls-stats">
               {/* every chart in the range played: the same yellow as a fully played level */}
               <div className="ls-stat">
-                <b className={summary.total > 0 && summary.played >= summary.total ? 'ls-complete' : undefined}>{summary.played} / {summary.total}</b>
+                <b className={summary.played >= summary.total ? 'ls-complete' : undefined}>{summary.played} / {summary.total}</b>
                 <span>charts played</span>
               </div>
               <div className="ls-stat"><b>{summary.average == null ? '-' : `${summary.average.toFixed(4)}%`}</b><span>average accuracy</span></div>
-              <div className="ls-stat"><b>{summary.clears}</b><span>cleared (80%+)</span></div>
-              <div className="ls-stat"><b>{summary.fc}</b><span>FC or better</span></div>
-              <div className="ls-stat"><b>{summary.ap}</b><span>AP or better</span></div>
-              <div className="ls-stat"><b>{summary.fdx}</b><span>FDX or better</span></div>
             </div>
-            <div className="ls-ranks">
-              {SUMMARY_RANKS.map((r) => (
-                <div className="ls-rank" key={r}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={rankImage(r)} alt={r} title={r} />
-                  {summary.ranks[r]}
-                </div>
-              ))}
-              <div className="ls-rank"><span className="ls-rank-text">below S</span>{summary.ranks['below S']}</div>
+            {/* like the game's level pages: each is that grade or badge or better, out of every chart */}
+            <div className="ls-counts">
+              <SummaryCount label="CLEAR" image={null} n={summary.clear} total={summary.total} />
+              {SUMMARY_RANKS.map((r) => <SummaryCount key={r.label} label={r.label} image={rankImage(r.label)} n={summary.ranks[r.label]} total={summary.total} />)}
+            </div>
+            <div className="ls-counts">
+              {SUMMARY_COMBOS.map((c) => <SummaryCount key={c.label} label={c.label} image={badgeImageFor(c.label)} n={summary.combos[c.label]} total={summary.total} />)}
+              {SUMMARY_SYNCS.map((x) => <SummaryCount key={x.label} label={x.label} image={badgeImageFor(x.label)} n={summary.syncs[x.label]} total={summary.total} />)}
             </div>
           </>
         )}

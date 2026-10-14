@@ -14,6 +14,7 @@
  *   cancel-claim    { claimId }  ends one in-progress claim and frees the slot if it held it
  *   free-slot       {}           frees the one-claim-at-a-time slot, whoever holds it
  */
+import { clearPlayerCache } from '../../../../lib/player-data';
 import { NextResponse } from 'next/server';
 import { type AccountDoc, type ClaimDoc, type SessionDoc, getDb } from '../../../../lib/auth';
 import { getAdmin, logAdmin } from '../../../../lib/admin';
@@ -70,8 +71,11 @@ export async function POST(req: Request) {
     case 'show-scores': {
       if (!userId) return fail(400, 'missing userId');
       const hide = action === 'hide-scores';
-      const { matchedCount } = await db.collection('players').updateOne(playerFilter(userId), { $set: { scores_opt_out: hide } });
-      if (!matchedCount) return fail(404, 'no player with that id');
+      const player = await db.collection('players').findOneAndUpdate(
+        playerFilter(userId), { $set: { scores_opt_out: hide } }, { projection: { web_id: 1 } },
+      );
+      if (!player) return fail(404, 'no player with that id');
+      clearPlayerCache(player.web_id); // their profile shows the change straight away
       await logAdmin(admin, action, userId);
       return NextResponse.json({ ok: true });
     }

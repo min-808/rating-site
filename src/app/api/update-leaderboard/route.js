@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { connectMongo, getMongoClient } from '../../../lib/connect-db';
 
 export const dynamic = 'force-dynamic';
@@ -21,6 +21,11 @@ export async function GET(request) {
   );
 
   revalidatePath('/');
+  // the song data profiles and the level summary keep cached (lib/song-data.ts), so a
+  // song import shows up by the next morning
+  revalidateTag('song-data', 'max');
+  // and every player's cached record (lib/player-data.ts), so the night's scores show
+  revalidateTag('players', 'max');
 
   return NextResponse.json({ success: true });
 }
