@@ -289,3 +289,27 @@ export function groupRows(charts: SummaryChart[], by: RowSort) {
       || a.title.localeCompare(b.title)),
   }));
 }
+
+/**
+ * The level (as the game shows it: "13", "13+") they've played the most charts at, or null
+ * if they haven't played any. From 7 up, x.0 to x.5 is "x" and x.6 to x.9 is "x+"; below
+ * 7 levels are whole numbers. A tie goes to the higher level. The level summary opens on it.
+ */
+export function mostPlayedLevel(scores: Song[]): string | null {
+  const counts = new Map<string, { n: number; value: number }>();
+  for (const s of scores) {
+    const internal = s.internal_difficulty;
+    if (!((s.achievement ?? 0) > 0) || !Number.isFinite(internal)) continue;
+    const whole = Math.floor(internal + 1e-9);
+    const plus = internal >= FIRST_DECIMAL_LEVEL && internal - whole >= 0.6 - 1e-9;
+    const label = `${whole}${plus ? '+' : ''}`;
+    const entry = counts.get(label) ?? { n: 0, value: whole + (plus ? 0.5 : 0) };
+    entry.n++;
+    counts.set(label, entry);
+  }
+  let best: [string, { n: number; value: number }] | null = null;
+  for (const entry of counts) {
+    if (!best || entry[1].n > best[1].n || (entry[1].n === best[1].n && entry[1].value > best[1].value)) best = entry;
+  }
+  return best?.[0] ?? null;
+}

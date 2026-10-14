@@ -15,7 +15,7 @@ import { isGf } from '../../../../lib/special-players';
 import { mergeJpScores } from '../../../../lib/jp-scores';
 import {
   type SongDoc, type SummaryFilters, type RowSort, allCharts, filterCharts, summarize, groupByConstant, groupRows, ROW_ORDERS,
-  levelValue, levelLabel, FIRST_DECIMAL_LEVEL, GRADES, gradesFor, naExcluded,
+  levelValue, levelLabel, FIRST_DECIMAL_LEVEL, GRADES, gradesFor, naExcluded, mostPlayedLevel,
   SUMMARY_RANKS, SUMMARY_COMBOS, SUMMARY_SYNCS, VERSION_BASES,
 } from '../../../../lib/level-summary';
 
@@ -250,10 +250,24 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
     );
   }
 
+  // their scores: with her japanese ones too, when she has them switched on (same as the profile)
+  // connectMongo, not getMongoClient: the player can come from the cache (lib/player-data.ts),
+  // so nothing may have opened the connection yet on this server
+  const client = await connectMongo();
+  const db = client.db('maimai');
+  const account = isGf(player.user_id)
+    ? await db.collection<{ _id: string; show_jp_scores?: boolean }>('accounts').findOne({ _id: String(player.user_id) }, { projection: { show_jp_scores: 1 } })
+    : null;
+  const showJp = isGf(player.user_id) && account?.show_jp_scores !== false && (player.jp_songs?.length ?? 0) > 0;
+  const scores = showJp ? mergeJpScores(player.songs, player.jp_songs) : (player.songs ?? []);
+
   // the filters, from the address
-  // one level ("14", "14+"), or a range ("range" ticked, or an old link with just min and max)
+  // one level ("14", "14+"), or a range ("range" ticked, or an old link with just min and max).
+  // no level asked for: the one they've played the most charts at
   const isRange = q.range === '1' || (q.level == null && q.min != null && q.max != null);
-  const levelText = (q.level ?? '').trim() && levelSpan(q.level!) ? q.level!.trim() : DEFAULT_LEVEL;
+  const levelText = (q.level ?? '').trim() && levelSpan(q.level!)
+    ? q.level!.trim()
+    : mostPlayedLevel(scores) ?? DEFAULT_LEVEL;
   const [levelLow, levelHigh] = levelSpan(levelText)!;
   let min = isRange ? parseLevel(q.min, levelLow) : levelLow;
   let max = isRange ? parseLevel(q.max, min + 1) : levelHigh;
@@ -276,17 +290,6 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
   const filters: SummaryFilters = byDifficulty
     ? { min: 1, max: 15, includeUnplayed: q.unplayed === '1', versionFrom, versionTo, difficulties, grades }
     : { min, max, includeUnplayed: q.unplayed === '1', versionFrom, versionTo, grades };
-
-  // their scores: with her japanese ones too, when she has them switched on (same as the profile)
-  // connectMongo, not getMongoClient: the player can come from the cache (lib/player-data.ts),
-  // so nothing may have opened the connection yet on this server
-  const client = await connectMongo();
-  const db = client.db('maimai');
-  const account = isGf(player.user_id)
-    ? await db.collection<{ _id: string; show_jp_scores?: boolean }>('accounts').findOne({ _id: String(player.user_id) }, { projection: { show_jp_scores: 1 } })
-    : null;
-  const showJp = isGf(player.user_id) && account?.show_jp_scores !== false && (player.jp_songs?.length ?? 0) > 0;
-  const scores = showJp ? mergeJpScores(player.songs, player.jp_songs) : (player.songs ?? []);
 
   // the game's song data, cached on the server (lib/song-data.ts), not read on every view
   const [songDocs, metaDocs] = await Promise.all([getSongLevels(), getSongMeta()]);
