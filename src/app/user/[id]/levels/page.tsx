@@ -118,7 +118,11 @@ const css = `
   .ls-form input[type="number"], .ls-form select { font: inherit; font-size: 0.9rem; padding: 6px 8px; border-radius: 7px;
     border: 1px solid var(--border-light); background: transparent; color: inherit; }
   .ls-form input[type="number"] { width: 5rem; }
-  .ls-form select option { color: initial; }
+  /* the dropdown menus' own colors, set outright on the options AND the option groups (the
+     grades dropdown's "below" / "or better"). some browsers (Opera GX) give grouped options
+     the page's text color on a white menu otherwise, which is light text on white in dark
+     mode. the site's button colors, so the menus match the light or dark theme */
+  .ls-form select option, .ls-form select optgroup { background-color: var(--btn-bg); color: var(--btn-text); }
   /* a checkbox on its own in the filter row ("include unplayed") sits level with the middle
      of the dropdowns next to it: the row lines things up along their bottom edge, and a
      dropdown is taller than a line of text */
