@@ -119,8 +119,13 @@ const css = `
     border: 1px solid var(--border-light); background: transparent; color: inherit; }
   .ls-form input[type="number"] { width: 5rem; }
   .ls-form select option { color: initial; }
-  .ls-check { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; padding-bottom: 6px; cursor: pointer; }
+  /* a checkbox on its own in the filter row ("include unplayed") sits level with the middle
+     of the dropdowns next to it: the row lines things up along their bottom edge, and a
+     dropdown is taller than a line of text */
+  .ls-check { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; padding-bottom: 9px; cursor: pointer; }
   .ls-check-inline { padding-bottom: 0; margin-left: 4px; }
+  /* the same for the na / international radios, which have no label above them either */
+  .ls-region { padding-bottom: 9px; }
   .ls-note { font-size: 0.72rem; color: var(--text-muted); }
   .ls-form input.ls-level { width: 4rem; font: inherit; font-size: 0.9rem; padding: 6px 8px; border-radius: 7px;
     border: 1px solid var(--border-light); background: transparent; color: inherit; }

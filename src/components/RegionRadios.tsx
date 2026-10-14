@@ -11,8 +11,7 @@ import { useState } from 'react';
 export default function RegionRadios({ region }: { region: 'na' | 'intl' }) {
   const [value, setValue] = useState(region);
   return (
-    <div className="ls-field">
-      <span>region</span>
+    <div className="ls-field ls-region">
       <span className="ls-pair" role="radiogroup" aria-label="region">
         <label className="ls-check ls-check-inline">
           <input type="radio" checked={value === 'na'} onChange={() => setValue('na')} />
