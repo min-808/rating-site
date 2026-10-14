@@ -1,5 +1,5 @@
 import { unstable_cache, revalidateTag } from 'next/cache';
-import { connectMongo, getMongoClient } from './connect-db';
+import { connectMongo } from './connect-db';
 import type { PlayerDocument } from './leaderboard';
 
 /**
@@ -21,8 +21,8 @@ const tagFor = (webId: number) => `player-${webId}`;
 export function getPlayerByWebId(webId: number): Promise<PlayerDocument | null> {
   return unstable_cache(
     async () => {
-      await connectMongo();
-      const doc = await (await getMongoClient()).db('maimai').collection('players').findOne({ web_id: webId });
+      const client = await connectMongo();
+      const doc = await client.db('maimai').collection('players').findOne({ web_id: webId });
       // plain JSON, which is what the cache keeps (dates come back as text)
       return doc ? (JSON.parse(JSON.stringify(doc)) as PlayerDocument) : null;
     },

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
-import { connectMongo, getMongoClient } from '../../../lib/connect-db';
+import { connectMongo } from '../../../lib/connect-db';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +10,7 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  await connectMongo();
-  const client = await getMongoClient();
+  const client = await connectMongo();
   const db = client.db('maimai');
 
   await db.collection('metadata').updateOne(

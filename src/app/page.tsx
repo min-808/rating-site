@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { connectMongo, getMongoClient } from '../lib/connect-db';
+import { connectMongo } from '../lib/connect-db';
 import { isGf } from '../lib/special-players';
 import LeaderboardRow from '../components/LeaderboardRow';
 import {
@@ -47,8 +47,7 @@ function daysAgoLabel(date: Date, updateDate: Date) {
 }
 
 export default async function LeaderboardPage() {
-  await connectMongo();
-  const client = await getMongoClient();
+  const client = await connectMongo();
   const db = client.db('maimai');
 
   // fetch

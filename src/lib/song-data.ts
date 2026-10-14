@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { connectMongo, getMongoClient } from './connect-db';
+import { connectMongo } from './connect-db';
 import type { SongMetaDocument } from './leaderboard';
 
 /**
@@ -17,8 +17,7 @@ export const SONG_DATA_TAG = 'song-data';
 const CACHE_SECONDS = 6 * 60 * 60;
 
 async function db() {
-  await connectMongo();
-  return (await getMongoClient()).db('maimai');
+  return (await connectMongo()).db('maimai');
 }
 
 // cached, and plain JSON (what the cache stores), so no ObjectIds or Dates come back

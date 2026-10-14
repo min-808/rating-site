@@ -15,7 +15,7 @@
  */
 import crypto from 'node:crypto';
 import { cookies } from 'next/headers';
-import { connectMongo, getMongoClient } from './connect-db';
+import { connectMongo } from './connect-db';
 
 export const SESSION_COOKIE = 'hm_session';
 export const CLAIM_COOKIE = 'hm_claim';
@@ -56,8 +56,7 @@ export type RateLimitDoc = { _id: string; count: number; expires_at: Date };
 // database
 
 export async function getDb() {
-  await connectMongo();
-  const client = await getMongoClient();
+  const client = await connectMongo();
   return client.db('maimai');
 }
 
