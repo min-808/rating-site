@@ -21,6 +21,7 @@
 import { NextResponse } from 'next/server';
 import { getDb, getSession, peekRateLimit, rateLimit, verifyFetch } from '../../../../lib/auth';
 import { clearPlayerCache } from '../../../../lib/player-data';
+import { adminIds } from '../../../../lib/admin';
 import { logActivity } from '../../../../lib/activity';
 
 export const dynamic = 'force-dynamic';
@@ -45,8 +46,11 @@ const MESSAGES: Record<State, string> = {
 };
 
 // what the editor shows. usedToday: today's refresh is spent, even if the VPS has
-// forgotten it (after a restart)
-function describe(state: State, usedToday: boolean) {
+// forgotten it (after a restart). unlimited: an admin, who can go again once it's over
+function describe(state: State, usedToday: boolean, unlimited = false) {
+  if (unlimited && (state === 'done' || state === 'failed')) {
+    return { state, canRefresh: true, message: MESSAGES[state].replace(/\. you can refresh again tomorrow$/, '') };
+  }
   if (state === 'none' && usedToday) {
     return { state, canRefresh: false, message: 'already refreshed today. you can refresh again tomorrow' };
   }
@@ -73,6 +77,7 @@ async function playerFor(userId: string) {
 export async function GET() {
   const session = await getSession();
   if (!session) return reply({ error: 'sign in first' }, 401);
+  const unlimited = adminIds().includes(session.userId);
   const [vps, limit] = await Promise.all([vpsStatus(session.userId), peekRateLimit(playerKey(session.userId), 1)]);
   // the refresh just saved new scores: drop their cached profile, so the page redraws with them
   if (vps?.state === 'done') {
@@ -81,7 +86,7 @@ export async function GET() {
     clearPlayerCache(player?.web_id);
   }
   // can't reach the VPS: show the button as normal, and let a press say what's wrong
-  return reply(describe(vps?.state ?? 'none', !limit.ok));
+  return reply(describe(vps?.state ?? 'none', !unlimited && !limit.ok, unlimited));
 }
 
 export async function POST(req: Request) {
@@ -92,28 +97,30 @@ export async function POST(req: Request) {
   if (!player) return reply({ error: 'no profile for this account' }, 404);
   if (player.scores_opt_out) return reply({ error: 'your scores are hidden. turn on "show my scores" first' }, 400);
   const userId = String(player.user_id);
+  // admins have no daily limit, and don't count towards the site's
+  const unlimited = adminIds().includes(session.userId);
 
   // checked without counting: they're only used up once the VPS has started it
-  if (!(await peekRateLimit(playerKey(userId), 1)).ok) {
+  if (!unlimited && !(await peekRateLimit(playerKey(userId), 1)).ok) {
     return reply({ ...describe('none', true), error: 'already refreshed today. you can refresh again tomorrow' }, 409);
   }
-  if (!(await peekRateLimit(siteKey(), SITE_DAILY_MAX)).ok) {
+  if (!unlimited && !(await peekRateLimit(siteKey(), SITE_DAILY_MAX)).ok) {
     return reply({ error: 'lots of people have refreshed today. try again tomorrow' }, 429);
   }
 
   let res: Response;
   try {
-    res = await verifyFetch(`/refresh-scores/${encodeURIComponent(userId)}`, { method: 'POST', timeoutMs: 10_000 });
+    res = await verifyFetch(`/refresh-scores/${encodeURIComponent(userId)}${unlimited ? '?again=1' : ''}`, { method: 'POST', timeoutMs: 10_000 });
   } catch {
     return reply({ error: 'couldn\'t reach the server. try again later' }, 503);
   }
   const body = (await res.json().catch(() => ({}))) as Partial<VpsStatus>;
   // already going (a double press): show how it's going
-  if (res.status === 409 && body.state) return reply(describe(body.state, true));
+  if (res.status === 409 && body.state) return reply(describe(body.state, true, unlimited));
   if (res.status === 429) return reply({ error: 'a few refreshes are already going. try again in a few minutes' }, 429);
   if (res.status !== 202) return reply({ error: 'couldn\'t start the refresh. try again later' }, 502);
 
-  await Promise.all([rateLimit(playerKey(userId), 1, DAY_MS), rateLimit(siteKey(), SITE_DAILY_MAX, DAY_MS)]);
+  if (!unlimited) await Promise.all([rateLimit(playerKey(userId), 1, DAY_MS), rateLimit(siteKey(), SITE_DAILY_MAX, DAY_MS)]);
   await logActivity(req, session, 'refresh-scores');
   return reply(describe('queued', true));
 }

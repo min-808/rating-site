@@ -71,7 +71,8 @@ export function useScoreRefresh(menuOpen: boolean) {
   };
 
   // what the item says: used up for today, didn't finish, or the button itself
-  const label = status?.state === 'done' || (status && !status.canRefresh && !inProgress && status.state === 'none')
+  const label = status?.canRefresh && status.state !== 'none' ? 'refresh again'
+    : status?.state === 'done' || (status && !status.canRefresh && !inProgress && status.state === 'none')
     ? 'refreshed today'
     : status?.state === 'failed' ? 'refresh didn\'t finish' : 'refresh my scores';
 
