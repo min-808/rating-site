@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { connectMongo } from '../lib/connect-db';
 import { isGf } from '../lib/special-players';
 import LeaderboardRow from '../components/LeaderboardRow';
+import LeaderboardSearch from '../components/LeaderboardSearch';
+import { playerSearchText } from '../lib/player-search';
 import {
   type PlayerDocument,
   getFrameForRating,
@@ -375,115 +377,120 @@ export default async function LeaderboardPage() {
         Automatically updates every day at midnight
       </p>
 
-      <table className="leaderboard-table">
-        <thead>
-          <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-strong)' }}>
-            <th>Rank</th>
-            <th>Player</th>
-            <th style={{ textAlign: 'center' }}>Rating</th>
-            <th style={{ textAlign: 'center' }}>
-              Rank Change <span className="header-subtext">(24hr)</span>
-            </th>
-            <th style={{ textAlign: 'center' }}>
-              Rating Change <span className="header-subtext">(24hr)</span>
-            </th>
-            <th aria-hidden="true"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {players.map((player, index) => {
-            const rankChange = calculateRankChange(player);
-            // the 24hr change only looks at the last two history entries, same as before
-            // the banner started loading a few more
-            const ratingChange = calculateRatingChange({ ...player, history: (player.history ?? []).slice(-2) });
+      <LeaderboardSearch
+          texts={players.map((p) => playerSearchText(toNormalWidth(p.name), (p.old_names ?? []).map(toNormalWidth)))}
+      >
 
-            const isNew = isNewPlayer(player, updateDate);
+        <table className="leaderboard-table">
+          <thead>
+            <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-strong)' }}>
+              <th>Rank</th>
+              <th>Player</th>
+              <th style={{ textAlign: 'center' }}>Rating</th>
+              <th style={{ textAlign: 'center' }}>
+                Rank Change <span className="header-subtext">(24hr)</span>
+              </th>
+              <th style={{ textAlign: 'center' }}>
+                Rating Change <span className="header-subtext">(24hr)</span>
+              </th>
+              <th aria-hidden="true"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((player, index) => {
+              const rankChange = calculateRankChange(player);
+              // the 24hr change only looks at the last two history entries, same as before
+              // the banner started loading a few more
+              const ratingChange = calculateRatingChange({ ...player, history: (player.history ?? []).slice(-2) });
 
-            const displayName = toNormalWidth(player.name);
-            const rawPastNames = player.old_names || [];
-            const pastNames = [...new Set(rawPastNames.map(toNormalWidth))];
-            // pastNames = pastNames.filter(name => name.toLowerCase() !== displayName.toLowerCase()); // filter out casing name changes, idk if ill include this
+              const isNew = isNewPlayer(player, updateDate);
 
-            const href = `/user/${player.web_id}`;
+              const displayName = toNormalWidth(player.name);
+              const rawPastNames = player.old_names || [];
+              const pastNames = [...new Set(rawPastNames.map(toNormalWidth))];
+              // pastNames = pastNames.filter(name => name.toLowerCase() !== displayName.toLowerCase()); // filter out casing name changes, idk if ill include this
 
-            return (
-              <LeaderboardRow key={player._id} href={href}>
-                <td>#{index + 1}</td>
+              const href = `/user/${player.web_id}`;
 
-                <td style={{ fontWeight: 'bold' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <Link href={href} className={`player-link${isGf(player.user_id) ? ' gf-name' : ''}`}>{displayName}</Link>
+              return (
+                  <LeaderboardRow key={player._id} href={href} searchText={playerSearchText(displayName, pastNames)}>
+                  <td>#{index + 1}</td>
 
-                    {/* past names: only hovering the icon itself opens the list */}
-                    {pastNames.length > 0 && (
-                      <div className="tooltip-container">
-                        <span className="past-names-icon">
-                          <IdCardIcon width={18} />
-                        </span>
+                  <td style={{ fontWeight: 'bold' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                      <Link href={href} className={`player-link${isGf(player.user_id) ? ' gf-name' : ''}`}>{displayName}</Link>
 
-                        <div className="tooltip-box">
-                          <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid var(--tooltip-border)', paddingBottom: '2px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                            formerly known as
+                      {/* past names: only hovering the icon itself opens the list */}
+                      {pastNames.length > 0 && (
+                        <div className="tooltip-container">
+                          <span className="past-names-icon">
+                            <IdCardIcon width={18} />
+                          </span>
+
+                          <div className="tooltip-box">
+                            <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid var(--tooltip-border)', paddingBottom: '2px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                              formerly known as
+                            </div>
+                            {pastNames.map((name, idx) => (
+                              <div key={idx} style={{ padding: '2px 0' }}>• {name}</div>
+                            ))}
                           </div>
-                          {pastNames.map((name, idx) => (
-                            <div key={idx} style={{ padding: '2px 0' }}>• {name}</div>
-                          ))}
                         </div>
-                      </div>
+                      )}
+
+                      {isNew && (
+                        <span style={{
+                          marginLeft: '8px',
+                          backgroundColor: 'var(--rating-loss)',
+                          color: 'white',
+                          fontSize: '0.65rem',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontWeight: 'bold',
+                          letterSpacing: '0.5px'
+                        }}>
+                          NEW!
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  <td style={{ textAlign: 'center' }}>
+                    <div
+                      className="rating-badge"
+                      style={{ backgroundImage: `url(${getFrameForRating(player.rating)})` }}
+                    >
+                      {player.rating}
+                    </div>
+                  </td>
+
+                  <td style={{ textAlign: 'center' }}>
+                    {rankChange > 0 ? (
+                      <span style={{ color: 'var(--rating-gain)', fontWeight: '500' }}>▲ +{rankChange}</span>
+                    ) : rankChange < 0 ? (
+                      <span style={{ color: 'var(--rating-loss)', fontWeight: '500' }}>▼ -{Math.abs(rankChange)}</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-sub)' }}>-</span>
                     )}
+                  </td>
 
-                    {isNew && (
-                      <span style={{
-                        marginLeft: '8px',
-                        backgroundColor: 'var(--rating-loss)',
-                        color: 'white',
-                        fontSize: '0.65rem',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontWeight: 'bold',
-                        letterSpacing: '0.5px'
-                      }}>
-                        NEW!
-                      </span>
+                  <td style={{ textAlign: 'center' }}>
+                    {ratingChange > 0 ? (
+                      <span style={{ color: 'var(--rating-gain)', fontWeight: '500' }}>+{ratingChange.toLocaleString()}</span>
+                    ) : ratingChange < 0 ? (
+                      <span style={{ color: 'var(--rating-loss)', fontWeight: '500' }}>{ratingChange.toLocaleString()}</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-sub)' }}>0</span>
                     )}
-                  </div>
-                </td>
+                  </td>
 
-                <td style={{ textAlign: 'center' }}>
-                  <div
-                    className="rating-badge"
-                    style={{ backgroundImage: `url(${getFrameForRating(player.rating)})` }}
-                  >
-                    {player.rating}
-                  </div>
-                </td>
-
-                <td style={{ textAlign: 'center' }}>
-                  {rankChange > 0 ? (
-                    <span style={{ color: 'var(--rating-gain)', fontWeight: '500' }}>▲ +{rankChange}</span>
-                  ) : rankChange < 0 ? (
-                    <span style={{ color: 'var(--rating-loss)', fontWeight: '500' }}>▼ -{Math.abs(rankChange)}</span>
-                  ) : (
-                    <span style={{ color: 'var(--text-sub)' }}>-</span>
-                  )}
-                </td>
-
-                <td style={{ textAlign: 'center' }}>
-                  {ratingChange > 0 ? (
-                    <span style={{ color: 'var(--rating-gain)', fontWeight: '500' }}>+{ratingChange.toLocaleString()}</span>
-                  ) : ratingChange < 0 ? (
-                    <span style={{ color: 'var(--rating-loss)', fontWeight: '500' }}>{ratingChange.toLocaleString()}</span>
-                  ) : (
-                    <span style={{ color: 'var(--text-sub)' }}>0</span>
-                  )}
-                </td>
-
-                <td className="row-chevron" aria-hidden="true">›</td>
-              </LeaderboardRow>
-            );
-          })}
-        </tbody>
-      </table>
+                  <td className="row-chevron" aria-hidden="true">›</td>
+                </LeaderboardRow>
+              );
+            })}
+          </tbody>
+        </table>
+      </LeaderboardSearch>
     </main>
   );
 }

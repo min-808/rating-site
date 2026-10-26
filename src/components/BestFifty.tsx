@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, HTMLAttributes, KeyboardEvent, ReactNode } from 'react';
-import type { Song } from '../lib/leaderboard';
-import { new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
+import { toNormalWidth, type Song } from '../lib/leaderboard';
+import { compareSongs, new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
+import { songMatcher } from '../lib/song-search';
 import FallbackImage from './FallbackImage';
 import { StatsBadge } from './StatsBadge';
 import { NEW_POOL_VERSIONS, NEWEST_OLD_POOL_VERSION } from '../lib/versions';
@@ -304,6 +305,42 @@ export const bestFiftyCss = `
   /* the popup for a chart they haven't played, in place of the score */
   .bf-dlg-unplayed { margin: 0.25rem 0 0.5rem; font-size: 1.1rem; font-weight: 700; color: var(--text-sub); }
   .bf-card-muted:hover, .bf-card-muted:focus-visible { opacity: 0.85; }
+  
+  /* ============ SEARCH (above B15) ============ */
+  .bf-search { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 1rem 0 0.25rem; }
+  .bf-search input { flex: 1; min-width: 200px; font: inherit; font-size: 0.9rem; padding: 8px 12px;
+    border-radius: 8px; border: 1px solid var(--border-light); background: transparent; color: inherit; }
+  .bf-search input:focus { outline: 2px solid #2563eb; outline-offset: 0; border-color: transparent; }
+  .bf-search-count { font-size: 0.78rem; color: var(--text-sub); white-space: nowrap; }
+ 
+  /* ============ POPUP: more details ============ */
+  .bf-dialog { width: min(560px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+  .bf-dlg-subline { margin: 0.25rem 0 0; font-size: 0.8rem; color: #9a9a9e; overflow-wrap: anywhere; }
+  .bf-section-label { margin: 0 0 0.5rem; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em;
+    text-transform: uppercase; color: #7a7a7e; }
+  .bf-stars { color: #f5c531; letter-spacing: 1px; margin-left: 6px; }
+  .bf-prev { margin: 0 0 0.2rem; font-size: 0.8rem; color: #9a9a9e; font-variant-numeric: tabular-nums; }
+ 
+  /* rating at each rank, for this chart's constant */
+  .bf-ranktable { width: 100%; border-collapse: collapse; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+  .bf-ranktable th { text-align: left; font-size: 0.68rem; font-weight: 700; color: #7a7a7e; padding: 0 6px 4px; }
+  .bf-ranktable td { padding: 4px 6px; border-top: 1px solid #1c1c1f; color: #cfcfcf; }
+  .bf-ranktable td:last-child, .bf-ranktable th:last-child { text-align: right; }
+  .bf-ranktable img { height: 20px; width: auto; display: block; }
+  .bf-ranktable tr.is-reached td { color: #fff; }
+  .bf-ranktable tr.is-current td { background: rgba(37,99,235,0.18); }
+  .bf-ranktable tr.is-current td:first-child { border-radius: 6px 0 0 6px; }
+  .bf-ranktable tr.is-current td:last-child { border-radius: 0 6px 6px 0; }
+  .bf-ranktable .bf-rt-gain { color: #82ff9f; font-weight: 700; }
+  .bf-ranktable .bf-rt-note { color: #7a7a7e; font-style: italic; }
+ 
+  .bf-links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bf-link { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 9px;
+    background: #19191c; border: 1px solid #2a2a2e; color: #fff; text-decoration: none; font-size: 0.82rem; font-weight: 700; }
+  .bf-link:hover { background: #212124; border-color: #3a3a40; }
+  .bf-link small { display: block; font-size: 0.66rem; font-weight: 600; color: #9a9a9e; }
+  .bf-link svg { color: #e5484d; flex-shrink: 0; }
+  .bf-link svg[stroke] { color: #5aa2ff; }
 `;
 
 const DIFFS: Record<string, { label: string; color: string }> = {
@@ -363,6 +400,39 @@ function versionColor(version?: string): string {
 
 // what the popup needs to know about the clicked card
 export type Selected = { song: Song; position: number; list: string; size: number };
+
+// DX score stars, from how much of the chart's DX score was reached
+const DX_STAR_STEPS = [97, 95, 93, 90, 85];
+function dxStars(pct: number) {
+    const i = DX_STAR_STEPS.findIndex((min) => pct >= min);
+    return i === -1 ? 0 : 5 - i;
+}
+
+// ranks worth showing in the "rating by rank" table
+const TABLE_RANKS = ['S', 'S+', 'SS', 'SS+', 'SSS', 'SSS+'];
+
+// what this chart would rate at the start of each rank, with no AP
+function ratingByRank(song: Song) {
+    return RANK_CUTOFFS
+        .filter((c) => !c.edge && TABLE_RANKS.includes(c.rank))
+        .map((c) => ({ rank: c.rank, at: c.min, rating: rateSong({ ...song, achievement: c.min, ap: false }) }));
+        // RANK_CUTOFFS is already highest first, so the table reads SSS+ down to S
+}
+
+// every place a chart can be looked up. add more here (mai-notes, niconico...) and they
+// show up in the popup: { label, sub, icon ('play' or 'search'), href }
+function externalLinks(song: Song, diffLabel: string) {
+    const yt = (q: string) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+    const isDx = /dx/i.test(song.kind ?? '');
+    // mai-notes has no link we can build from a title, so this is a web search limited to
+    // that site: it finds the song's page without saving a link for every song
+    const maiNotes = `https://www.google.com/search?q=${encodeURIComponent(`site:mai-notes.com ${song.title}`)}`;
+    return [
+        { label: 'Chart gameplay', sub: 'YouTube', icon: 'play', href: yt(`${song.title} maimai${isDx ? ' DX' : ''} ${diffLabel}`.trim()) },
+        { label: 'Song / MV', sub: 'YouTube', icon: 'play', href: yt(`${song.title} ${song.artist ?? ''}`.trim()) },
+        { label: 'Chart viewer', sub: 'mai-notes', icon: 'search', href: maiNotes },
+    ];
+}
 
 // next rank up, and what the song would rate at exactly that achievement
 function nextRankInfo(song: Song) {
@@ -487,12 +557,17 @@ export function SongCard({ song, position, onOpen, muted = false, gain = 0, item
 }
 
 // passes a click handler down, and reports which card was opened
-function Section({ title, note, songs, extras, floor, gains, onOpen }: {
+function Section({ title, note, songs, extras, floor, gains, onOpen, keep }: {
     title: string; note: string; songs: Song[]; extras: Song[]; floor: number | null;
     gains: Map<string, number>;
     onOpen: (s: Selected) => void;
+    keep: (s: Song) => boolean; // the search filter
 }) {
     const [showExtras, setShowExtras] = useState(false);
+
+    // filtered, but each chart keeps its real place in the list (#7 stays #7)
+    const shown = songs.map((song, i) => ({ song, pos: i + 1 })).filter(({ song }) => keep(song));
+    const shownExtras = extras.map((song, i) => ({ song, pos: i + 1 })).filter(({ song }) => keep(song));
 
     return (
         <section>
@@ -503,21 +578,23 @@ function Section({ title, note, songs, extras, floor, gains, onOpen }: {
             </div>
             {songs.length === 0 ? (
                 <p className="bf-empty">no rated songs here yet</p>
+            ) : shown.length === 0 ? (
+                <p className="bf-empty">no charts in {title} match your search</p>
             ) : (
                 <ul className="bf-grid">
-                    {songs.map((song, i) => (
+                    {shown.map(({ song, pos }) => (
                         <SongCard
                             key={chartKey(song)}
                             song={song}
-                            position={i + 1}
+                            position={pos}
                             gain={gains.get(chartKey(song))}
-                            onOpen={() => onOpen({ song, position: i + 1, list: title, size: songs.length })}
+                            onOpen={() => onOpen({ song, position: pos, list: title, size: songs.length })}
                         />
                     ))}
                 </ul>
             )}
 
-            {extras.length > 0 && (
+            {shownExtras.length > 0 && (
                 <>
                     <button
                         type="button"
@@ -525,7 +602,7 @@ function Section({ title, note, songs, extras, floor, gains, onOpen }: {
                         aria-expanded={showExtras}
                         onClick={() => setShowExtras((v) => !v)}
                     >
-                        {showExtras ? 'hide' : 'show'} {extras.length} more chart{extras.length === 1 ? '' : 's'} tied at the floor ({floor})
+                        {showExtras ? 'hide' : 'show'} {shownExtras.length} more chart{shownExtras.length === 1 ? '' : 's'} tied at the floor ({floor})
                         <span className={`bf-extra-chev${showExtras ? ' open' : ''}`} aria-hidden="true">▾</span>
                     </button>
 
@@ -535,16 +612,16 @@ function Section({ title, note, songs, extras, floor, gains, onOpen }: {
                                 these scores tie your {title} floor but don't count toward your rating
                             </p>
                             <ul className="bf-grid">
-                                {extras.map((song, i) => (
+                                {shownExtras.map(({ song, pos }) => (
                                     <SongCard
                                         key={chartKey(song)}
                                         song={song}
-                                        position={i + 1}
+                                        position={pos}
                                         muted
                                         gain={gains.get(chartKey(song))}
                                         onOpen={() => onOpen({
                                             song,
-                                            position: i + 1,
+                                            position: pos,
                                             list: `${title} ties (not counted)`,
                                             size: extras.length,
                                         })}
@@ -587,9 +664,14 @@ export function SongDetail({ entry, gains, onClose }: {
     const hasAp = combo?.tier === 'ap' || combo?.tier === 'applus' || Boolean(song?.ap);
     const improvement = song ? improvementInfo(song) : null;
     const gain = song ? gains.get(chartKey(song)) ?? 0 : 0;
-    const searchUrl = song
-        ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.title} maimai ${diff?.label ?? ''}`)}`
-        : '#';
+    const stars = dxPct != null ? dxStars(Number(dxPct)) : 0;
+    const links = song && diff ? externalLinks(song, diff.label) : [];
+    const rankRows = isPlayed && song.internal_difficulty != null ? ratingByRank(song) : [];
+    const hasPrev = isPlayed && song.prev_achievement != null;
+    // the facts grid: only what the song actually has
+    // one small line under the artist: genre and BPM, whichever the song has
+    const genreBpm = song ? [song.genre, song.bpm ? `${song.bpm} BPM` : null].filter(Boolean).join(' · ') : '';
+
 
     return (
         <dialog
@@ -619,7 +701,7 @@ export function SongDetail({ entry, gains, onClose }: {
                             </div>
                             <h3 className="bf-dlg-title">{song.title}</h3>
                             {song.artist && <p className="bf-dlg-artist">{song.artist}</p>}
-                            {song.bpm && <p className="bf-dlg-artist">{song.bpm} BPM</p>}
+                            {genreBpm && <p className="bf-dlg-subline">{genreBpm}</p>}
                         </div>
                     </div>
 
@@ -633,9 +715,13 @@ export function SongDetail({ entry, gains, onClose }: {
                                 <Badges song={song} className="bf-dlg-badges" />
                             </div>
                             {hasDxScore && (
-                                <p className="bf-dxscore">{song.dx_score!.toLocaleString()} / {song.dx_max!.toLocaleString()} ({dxPct}%)</p>
+                                <p className="bf-dxscore">
+                                    {song.dx_score!.toLocaleString()} / {song.dx_max!.toLocaleString()} ({dxPct}%)
+                                    {stars > 0 && <span className="bf-stars" title={`${stars} DX star${stars === 1 ? '' : 's'}`}>{'★'.repeat(stars)}</span>}
+                                </p>
                             )}
                             <p className="bf-dlg-meta"><b>{song.rating} rating</b></p>
+                            {hasPrev && <p className="bf-prev">previous best: {song.prev_achievement!.toFixed(4)}%</p>}
                         </>
                     ) : (
                         <p className="bf-dlg-unplayed">unplayed</p>
@@ -677,9 +763,53 @@ export function SongDetail({ entry, gains, onClose }: {
                         )
                     )}
 
-                    <div className="bf-icon-row">
-                        {/* keep your three <a className="bf-icon-btn"> links (YouTube, mai-notes, MV) exactly as they were */}
-                    </div>
+                    {rankRows.length > 0 && (
+                        <>
+                            <div className="bf-divider" />
+                            <p className="bf-section-label">Rating by rank</p>
+                            <table className="bf-ranktable">
+                                <thead><tr><th>Rank</th><th>Needs</th><th>Rating</th><th>vs. yours</th></tr></thead>
+                                <tbody>
+                                {rankRows.map((row) => {
+                                    const reached = song.achievement >= row.at;
+                                    const delta = row.rating - song.rating;
+                                    return (
+                                        <tr key={row.rank} className={`${reached ? 'is-reached' : ''}${cutoff?.rank === row.rank ? ' is-current' : ''}`}>
+                                            <td><RankBadge rank={row.rank} className="bf-next-rank-img" /></td>
+                                            <td>{row.at.toFixed(4)}%</td>
+                                            <td>{row.rating}</td>
+                                            <td>
+                                                {cutoff?.rank === row.rank ? <span className="bf-rt-note">current</span>
+                                                    : delta > 0 ? <span className="bf-rt-gain">+{delta}</span>
+                                                        : <span className="bf-rt-note">{delta < 0 ? delta : '-'}</span>}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                </tbody>
+                            </table>
+                            <p className="bf-dlg-meta" style={{ marginTop: '0.4rem' }}>An AP or AP+ adds +1 on top of any rank.</p>
+                        </>
+                    )}
+
+                    {links.length > 0 && (
+                        <>
+                            <div className="bf-divider" />
+                            <p className="bf-section-label">Watch &amp; look up</p>
+                            <div className="bf-links">
+                                {links.map((l) => (
+                                    <a key={l.label} className="bf-link" href={l.href} target="_blank" rel="noopener noreferrer">
+                                        {l.icon === 'search' ? (
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>
+                                        ) : (
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                                        )}
+                                        <span>{l.label}<small>{l.sub}</small></span>
+                                    </a>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
         </dialog>
@@ -699,15 +829,17 @@ function tiedAtFloor(all: Song[], counted: Song[], inPool: (s: Song) => boolean)
         .filter((s) => inPool(s) && !countedKeys.has(chartKey(s)))
         // raw songs don't carry a rating yet; work it out the same way new15 / old35 do
         .map((s) => ({ ...s, rating: s.rating ?? rateSong(s) }))
-        .filter((s) => Math.floor(s.rating) === floor);
+        .filter((s) => Math.floor(s.rating) === floor)
+        .sort(compareSongs);
 
     return { floor, extras };
 }
 
 // extraNewVersions: versions only her japanese scores have (MAGICAL), named first in the
-// B15 heading when her profile includes them (lib/jp-scores.ts)
+// B15 heading when the profile includes them (lib/jp-scores.ts)
 export default function BestFifty({ data, extraNewVersions = [] }: { data?: Song[] | null; extraNewVersions?: string[] }) {
     const [selected, setSelected] = useState<Selected | null>(null);
+    const [query, setQuery] = useState('');
     const songs = data ?? [];
     const b15 = new15(songs);
     const b35 = old35(songs);
@@ -716,17 +848,41 @@ export default function BestFifty({ data, extraNewVersions = [] }: { data?: Song
     const b35Ties = tiedAtFloor(songs, b35, (s) => !s.new_pool);
     const gains = ratingGains(songs);
 
+    // the search box: title or romaji (songMatcher, the same search the favorites picker uses),
+    // or the artist. it only hides cards, so every chart keeps its place and the stats don't move
+    const trimmed = query.trim();
+    const keep = useMemo(() => {
+        if (!trimmed) return () => true;
+        const match = songMatcher(trimmed);
+        const q = toNormalWidth(trimmed).normalize('NFKC').toLowerCase();
+        return (s: Song) =>
+            match(s.title, s.title_romaji) > 0 ||
+            toNormalWidth(s.artist ?? '').normalize('NFKC').toLowerCase().includes(q);
+    }, [trimmed]);
+    const matchCount = trimmed ? [...b15, ...b35].filter(keep).length : 0;
+
     return (
         <div className="bf-wrap">
             <style>{bestFiftyCss}</style>
 
+            <div className="bf-search">
+                <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="search these songs (title, romaji or artist)"
+                    aria-label="search best 50 songs"
+                />
+                {trimmed && <span className="bf-search-count">{matchCount} of {b15.length + b35.length} charts</span>}
+            </div>
+
             <Section title="B15" note={`new songs (${listOf([...extraNewVersions, ...NEW_POOL_VERSIONS])})`} songs={b15}
-                extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} />
+                     extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} keep={keep} />
 
             <hr className="divider" />
 
             <Section title="B35" note={`old songs (${NEWEST_OLD_POOL_VERSION} and below)`} songs={b35}
-                extras={b35Ties.extras} floor={b35Ties.floor} gains={gains} onOpen={setSelected} />
+                     extras={b35Ties.extras} floor={b35Ties.floor} gains={gains} onOpen={setSelected} keep={keep} />
 
             <SongDetail entry={selected} gains={gains} onClose={() => setSelected(null)} />
         </div>
