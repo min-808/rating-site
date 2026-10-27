@@ -43,7 +43,7 @@ export default function LeaderboardSearch({ texts, children }: { texts: string[]
                     type="search"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="search players (including past names)"
+                    placeholder="search players"
                     aria-label="search players"
                 />
                 {words.length > 0 && <span className="lbs-count">{count} of {texts.length} players</span>}

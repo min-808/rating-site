@@ -524,11 +524,11 @@ export function SongDetail({ entry, gains, onClose }: {
                     ) : cutoff && (
                         hasAp ? (
                             <div className="bf-next">
-                                <span className="bf-next-max">Max rank reached, no more rating to gain from this chart</span>
+                                <span className="bf-next-max">max rank reached, no more rating to gain from this chart</span>
                             </div>
                         ) : (
-                            <div className="bf-next" title="An AP or AP+ adds a 1 rating bonus to this chart. Since it's in your best 50, it adds straight to your total.">
-                                <span className="bf-next-label">Next</span>
+                            <div className="bf-next" title="an AP or AP+ adds a 1 rating bonus to this chart. since it's in your best 50, it adds straight to your total">
+                                <span className="bf-next-label">next</span>
                                 <span className="bf-next-need">AP or AP+</span>
                                 <span className="bf-next-rating">→ {song.rating + 1} rating</span>
                                 <span className="bf-next-gain">+1</span>
@@ -561,7 +561,7 @@ export function SongDetail({ entry, gains, onClose }: {
                                 })}
                                 </tbody>
                             </table>
-                            <p className="bf-dlg-meta" style={{ marginTop: '0.4rem' }}>An AP or AP+ adds +1 on top of any rank.</p>
+                            <p className="bf-dlg-meta" style={{ marginTop: '0.4rem' }}>an AP or AP+ adds +1 on top of any rank</p>
                         </>
                     )}
 
