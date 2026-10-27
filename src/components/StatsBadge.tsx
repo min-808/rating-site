@@ -10,10 +10,11 @@ const css = `
   .bf-badge-label { font-size: 0.75rem; font-weight: 700; color: #2563eb; text-transform: lowercase; }
   .bf-badge-val { font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-/* the best 50 card's header, like the about me's: its small label on the left, the total /
-     average and ceiling / floor pills on the right (under the label on phones) */
+  /* the best 50 card's header, like the about me's: its title on the left, the total /
+     average and ceiling / floor pills on the right (under the title on phones) */
   .bf-b50 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 1.25rem; }
-  .bf-b50 h2 { margin: 0 auto 0 0; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.03em; color: var(--text-sub); }
+  /* big enough to fill the height of the two stacked pills beside it */
+  .bf-b50 h2 { margin: 0 auto 0 0; font-size: 1.6rem; font-weight: 800; line-height: 1.15; }
   .bf-b50 .bf-badge { margin-left: 0; }
   .bf-b50-pills { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
   @media (max-width: 600px) { .bf-b50-pills { align-items: flex-start; } }
