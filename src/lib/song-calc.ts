@@ -65,14 +65,29 @@ export function rateSong(song: Song): number {
   return Math.floor((levelTenths * units * factorThousandths) / 100_000_000) + (song.ap ? 1 : 0);
 }
 
+/**
+ * The order charts are listed in, best first: rating, then difficulty (the chart's
+ * constant), then accuracy. The last step is the title, only so equal charts always come
+ * out in the same order. Used by the best 50 and by the charts tied at its floor.
+ */
+export function compareSongs(a: Song, b: Song): number {
+  return (
+      ((b.rating ?? 0) - (a.rating ?? 0)) ||
+      ((b.internal_difficulty ?? 0) - (a.internal_difficulty ?? 0)) ||
+      ((b.achievement ?? 0) - (a.achievement ?? 0)) ||
+      String(a.title ?? '').localeCompare(String(b.title ?? ''))
+  );
+}
+
 // returns copies with a rating attached, best first
 function topRated(songs: Song[], count: number): Song[] {
   return songs
-    .map((song) => ({ ...song, rating: rateSong(song) }))
-    .filter((song) => song.rating > 0)
-    .sort((a, b) => (b.rating - a.rating) || ((b.achievement ?? 0) - (a.achievement ?? 0)))
-    .slice(0, count);
+      .map((song) => ({ ...song, rating: rateSong(song) }))
+      .filter((song) => song.rating > 0)
+      .sort(compareSongs)
+      .slice(0, count);
 }
+
 
 export function new15(songs: Song[]): Song[] {
   return topRated(songs.filter((song) => song.new_pool), 15);

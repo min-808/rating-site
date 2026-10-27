@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, HTMLAttributes, KeyboardEvent, ReactNode } from 'react';
-import type { Song } from '../lib/leaderboard';
-import { new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
+import { toNormalWidth, type Song } from '../lib/leaderboard';
+import { compareSongs, new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
+import { songMatcher } from '../lib/song-search';
+import { bestFiftyCss } from './best-fifty-css';
 import FallbackImage from './FallbackImage';
 import { StatsBadge } from './StatsBadge';
 import { NEW_POOL_VERSIONS, NEWEST_OLD_POOL_VERSION } from '../lib/versions';
@@ -112,199 +114,9 @@ export function ratingGains(songs: Song[]): Map<string, number> {
     return gains;
 }
 
-// exported so the favorite scores row can draw the same cards
-export const bestFiftyCss = `
-  /* page, header, sections, grid */
-  .bf-wrap { padding: 0 2rem 2rem 2rem; max-width: 1000px; margin: 0 auto; font-family: sans-serif; }
-  .bf-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 1rem; }
-  .bf-head h1 { margin: 0.5rem 0; }
-  .bf-sub-total { color: var(--text-sub); font-size: 0.85rem; }
-  .bf-section { display: flex; align-items: baseline; gap: 0.75rem; margin: 1.5rem 0 0.75rem; }
-  /* B15 / B35: between the card's small label and the cards themselves in size */
-  .bf-section h2 { margin: 0; font-size: 1.15rem; }
-  .bf-section > span { font-size: 0.72rem; color: var(--text-sub); }
-  .bf-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-  .bf-empty { color: var(--text-muted); font-size: 0.85rem; }
-
-    /* ============ CARD ============ */
-  .bf-card { position: relative; isolation: isolate; display: flex; flex-direction: column; width: 100%;
-    min-width: 0; padding: 0; overflow: hidden; text-align: left; font: inherit; color: #fff;
-    background: #141416; border: none; border-radius: 12px; cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-  .bf-card:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.45); }
-  .bf-card:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-
-  .bf-art-wrap { position: relative; aspect-ratio: 1 / 1.02; width: 100%; overflow: hidden; }
-  .bf-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .bf-dim { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
-
-  .bf-rating-badge { position: absolute; top: 0; right: 0; padding: 5px 10px 5px 12px;
-    background: linear-gradient(135deg, #b768d6, #de7cce); color: #fff; font-weight: 800;
-    font-size: 1.15rem; line-height: 1; border-radius: 0 12px 0 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.35);
-    font-variant-numeric: tabular-nums; }
-
-  /* top-right corner: the level badge, with the "new" banner hanging underneath it */
-  .bf-corner { position: absolute; top: 0; right: 0; display: flex; flex-direction: column;
-    align-items: flex-end; gap: 3px; }
-
-  /* top-right badge: the chart's difficulty value, in the difficulty color */
-  .bf-level-badge { padding: 5px 10px 5px 12px;
-    background: var(--diff); color: #fff; font-weight: 800; font-size: 1.1rem; line-height: 1;
-    border-radius: 0 12px 0 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.65);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.35); font-variant-numeric: tabular-nums; }
-
-  /* Re:MASTER only: lavender-to-pink from the in-game result header, pale edge, navy text outline */
-  .bf-level-remaster { background: linear-gradient(135deg, #c592e0 0%, #b96de4 45%, #ff50b9 100%);
-    text-shadow: 0 0 3px #2a3679, 0 1px 2px #2a3679;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.35), inset 0 0 0 1px #ffebff; }
-    
-  /* text block over the bottom of the art: 3 rows.
-   padding-top sets how tall the fade zone is; the stops set how fast it goes dark. */
-  .bf-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 6px 4px;
-    display: flex; flex-direction: column; gap: 1px;
-    background: linear-gradient(to top,
-      rgba(0,0,0,1) 0%, rgba(0,0,0,0.96) 15%, rgba(0,0,0,0.70) 30%,
-      rgba(0,0,0,0.65) 70%, rgba(0,0,0,0.2) 95%, rgba(0,0,0,0) 100%); }
-  .bf-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
-  .bf-rating { font-size: 1.3rem; font-weight: 800; color: #fff; line-height: 1.1;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-variant-numeric: tabular-nums; }
-  .bf-ach { font-size: 0.85rem; font-weight: 700; color: #e9e9e9; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .bf-title { flex: 1; min-width: 0; font-size: 0.78rem; font-weight: 700;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
-  .bf-kind-row { display: flex; justify-content: flex-end; margin-top: 2px; }
-
-  .bf-tag { font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; flex-shrink: 0; }
-
-  /* rank colors build up: red/pink (A to AAA), gold (S to SS+), rainbow (SSS, SSS+) */
-  .bf-none { background: rgba(255,255,255,0.18); color: #fff; }
-  .bf-r-a    { background: #f4a7bd; color: #4a0f22; }
-  .bf-r-aa   { background: #e0527f; color: #fff; }
-  .bf-r-aaa  { background: linear-gradient(135deg, #d92d4a, #e8407a); color: #fff;
-               box-shadow: 0 0 6px rgba(232,64,122,0.55); }
-  .bf-r-s    { background: #d9b45a; color: #3b2a00; }
-  .bf-r-sp   { background: #e6c04a; color: #3b2a00; }
-  .bf-r-ss   { background: linear-gradient(135deg, #f5d04a, #e0a51f); color: #3b2500;
-               box-shadow: 0 0 6px rgba(245,208,74,0.5); }
-  .bf-r-ssp  { background: linear-gradient(135deg, #fff0a0, #f5c531 45%, #e09a12); color: #3b2500;
-               box-shadow: 0 0 0 1px rgba(255,243,176,0.8), 0 0 9px rgba(255,214,80,0.75); }
-  .bf-r-sss  { background: linear-gradient(135deg, #fffdf2, #ffeeb0 45%, #f5d56e); color: #4a3200;
-             box-shadow: 0 0 0 1px rgba(255,252,230,0.95), 0 0 10px rgba(255,236,160,0.85); }
-  .bf-r-sssp { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.7);
-             background: linear-gradient(90deg, #ff5a5a, #ffb84d, #f2e85a, #5cd67f, #4db8ff, #a06bff);
-             box-shadow: 0 0 0 1px rgba(255,255,255,0.85), 0 0 10px rgba(255,255,255,0.5); }
-  .bf-kind { background: rgba(255,255,255,0.16); color: #fff; }
-
-  /* a chart whose score is from the japanese version (lib/jp-scores.ts): the version band
-     splits, a red "JAPAN" on the left, so the card stays the same height as the others */
-  .bf-version-band.bf-version-split { display: flex; padding: 0; }
-  .bf-version-split > span { padding: 3px 6px; }
-  .bf-jp-part { flex-shrink: 0; background: #bc002d; color: #fff; letter-spacing: 0.08em; }
-  .bf-jp-part:only-child { flex: 1; } /* no version to show: the whole band */
-  .bf-version-split > .bf-version-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bf-version-band { text-align: center; font-size: 0.68rem; font-weight: 800; padding: 3px 6px;
-    color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
-  .bf-version-band img { max-width: 100%; max-height: 1.2rem; object-fit: contain; }
-
-  /* ============ POPUP ============ */
-  .bf-dialog { width: min(480px, calc(100vw - 2rem)); padding: 0; border: 1px solid #232326;
-    border-radius: 14px; background: #0e0e10; color: #fff; font-family: sans-serif; }
-  .bf-dialog::backdrop { background: rgba(0,0,0,0.6); }
-  .bf-dlg { position: relative; padding: 1.1rem; }
-  .bf-dlg-x { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center; background: transparent; border: none;
-    color: #cfcfcf; cursor: pointer; }
-  .bf-dlg-x:hover { background: rgba(255,255,255,0.08); color: #fff; }
-  .bf-dlg-head { display: flex; gap: 0.9rem; align-items: flex-start; margin-bottom: 0.85rem; padding-right: 26px; }
-  .bf-dlg-art { width: 116px; height: 116px; object-fit: cover; border-radius: 8px; flex-shrink: 0;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-  .bf-dlg-info { min-width: 0; }
-  .bf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.5rem; }
-  .bf-chip { font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 5px;
-    background: #1c1c1f; color: #cfcfcf; border: 1px solid #2c2c30; }
-  .bf-chip-version { border: none; color: #fff; }
-  .bf-chip-diff { background: var(--diff); color: #fff; border: none; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
-  .bf-dlg-title { margin: 0 0 0.3rem; font-size: 1.25rem; font-weight: 800; overflow-wrap: anywhere; }
-  .bf-dlg-artist { margin: 0; font-size: 0.8rem; color: #9a9a9e; }
-  .bf-dlg-artist + .bf-dlg-artist { margin-top: 0.8rem; }
-  .bf-divider { height: 1px; background: #232326; margin: 0.85rem 0; }
-  .bf-score { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 0.4rem; }
-  .bf-rank-pill { font-size: 0.85rem; font-weight: 800; padding: 4px 12px; border-radius: 999px; }
-  .bf-big { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .bf-big small { font-size: 1.02rem; color: #b7b7bb; font-weight: 700; }
-  .bf-dxscore { margin: 0 0 0.25rem; font-size: 0.85rem; color: #cfcfcf; font-variant-numeric: tabular-nums; }
-  .bf-dlg-meta { margin: 0 0 0.2rem; font-size: 0.75rem; color: #7a7a7e; }
-  .bf-next { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0.6rem 0 0.2rem;
-    padding: 8px 10px; border-radius: 9px; background: #16161a; border: 1px solid #232326; font-size: 0.8rem; color: #cfcfcf; }
-  .bf-next-label { color: #9a9a9e; font-weight: 700; }
-  .bf-next-need, .bf-next-rating { font-variant-numeric: tabular-nums; }
-  .bf-next-gain { font-weight: 800; color: #82ff9f; font-variant-numeric: tabular-nums; }
-  .bf-next-max { color: #9a9a9e; font-style: italic; }
-  .bf-icon-row { display: flex; gap: 10px; margin-top: 0.6rem; }
-  .bf-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;
-    border-radius: 9px; background: #19191c; border: 1px solid #2a2a2e; color: #e5484d; }
-  .bf-icon-btn:hover { background: #212124; }
-
-  .bf-card-badges { position: absolute; top: 0px; left: 3px; display: flex; gap: 3px; }
-  .bf-card-badges img { height: 38px; width: auto; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
-
-  .bf-dlg-badges { display: inline-flex; gap: 6px; align-items: center; }
-  .bf-dlg-badges img { height: 38px; width: auto; }
-
-  .bf-rank-img { height: 26px; width: auto; flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
-  .bf-dlg-rank-img { height: 34px; width: auto; }
-
-  .bf-next-rank-img { height: 24px; width: auto; flex-shrink: 0; }
-
-  .bf-card-badges { position: absolute; top: 0; left: 3px; display: flex; gap: 3px; isolation: isolate; }
-  .bf-card-badges img { height: 38px; width: auto;
-    filter: drop-shadow(0 0 1px rgba(255,255,255,0.9)) drop-shadow(0 2px 4px rgba(0,0,0,0.85)); }
-
-  .bf-card-badges::before { content: ''; position: absolute; z-index: -1; inset: -4px -24px -18px -8px;
-    background: radial-gradient(ellipse at top left, rgba(0,0,0,0.6), transparent 70%); pointer-events: none; }
-
-  .bf-card-badges img { height: 38px; width: auto;
-    filter: saturate(1.15) brightness(1.05)
-          drop-shadow(0 0 1px rgba(255,255,255,0.9)) drop-shadow(0 2px 4px rgba(0,0,0,0.85)); }
-
-  .bf-rank-img { height: 26px; width: auto; flex-shrink: 0;
-    filter: drop-shadow(0 0 1px rgba(255,255,255,0.8)) drop-shadow(0 2px 3px rgba(0,0,0,0.85)); }
-
-  .bf-dlg-badges img, .bf-dlg-rank-img { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
-
-  @media (max-width: 600px) {
-    .bf-wrap { padding: 0 0.5rem 1rem 0.5rem; }
-    .bf-section { flex-wrap: wrap; }
-    .bf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
-  }
-
-  /* expand / collapse button for the tied charts */
-  .bf-extra-toggle { display: flex; align-items: center; gap: 6px; margin: 0.75rem auto 0; padding: 6px 14px;
-    border-radius: 999px; border: 1px solid var(--border-light); background: transparent;
-    color: var(--text-sub); font: inherit; font-size: 0.8rem; cursor: pointer; }
-  .bf-extra-toggle:hover { color: #2563eb; border-color: #2563eb; }
-  .bf-extra-chev { display: inline-block; transition: transform 0.2s ease; }
-  .bf-extra-chev.open { transform: rotate(180deg); }
-  .bf-extra-note { margin: 0.6rem 0; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
-
-  /* recently improved charts: a ring around the card and a banner under the level badge */
-  .bf-new { background: linear-gradient(135deg, #ff4d8d, #ff8a3d); color: #fff;
-    text-shadow: 0 1px 1px rgba(0,0,0,0.35); box-shadow: 0 0 6px rgba(255,90,120,0.6);
-    font-variant-numeric: tabular-nums; }
-  .bf-card-new { box-shadow: 0 0 0 2px #ff5a87, 0 0 10px rgba(255,90,135,0.45); }
-  .bf-card-new:hover { box-shadow: 0 0 0 2px #ff5a87, 0 4px 14px rgba(255,90,135,0.55); }
-  .bf-new-banner { padding: 2px 4px 2px 6px; border-radius: 8px 0 0 8px; font-size: 0.62rem; font-weight: 800;
-    letter-spacing: 0.04em; line-height: 1.3; white-space: nowrap; }
-  .bf-dlg-new { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 0.5rem 0 0.2rem;
-    font-size: 0.8rem; color: #cfcfcf; font-variant-numeric: tabular-nums; }
-  .bf-dlg-new-date { color: #7a7a7e; margin-left: auto; }
-
-  /* tied charts: dimmed so they read as "not counted", brighter on hover so they're still easy to look at */
-  .bf-card-muted { opacity: 0.45; transition: opacity 0.15s ease; }
-  /* the popup for a chart they haven't played, in place of the score */
-  .bf-dlg-unplayed { margin: 0.25rem 0 0.5rem; font-size: 1.1rem; font-weight: 700; color: var(--text-sub); }
-  .bf-card-muted:hover, .bf-card-muted:focus-visible { opacity: 0.85; }
-`;
+// the styles live in best-fifty-css.ts; re-exported so the favorite scores row can still
+// import them from here
+export { bestFiftyCss };
 
 const DIFFS: Record<string, { label: string; color: string }> = {
     basic: { label: 'Basic', color: '#22a352' },
@@ -363,6 +175,39 @@ function versionColor(version?: string): string {
 
 // what the popup needs to know about the clicked card
 export type Selected = { song: Song; position: number; list: string; size: number };
+
+// DX score stars, from how much of the chart's DX score was reached
+const DX_STAR_STEPS = [97, 95, 93, 90, 85];
+function dxStars(pct: number) {
+    const i = DX_STAR_STEPS.findIndex((min) => pct >= min);
+    return i === -1 ? 0 : 5 - i;
+}
+
+// ranks worth showing in the "rating by rank" table
+const TABLE_RANKS = ['S', 'S+', 'SS', 'SS+', 'SSS', 'SSS+'];
+
+// what this chart would rate at the start of each rank, with no AP
+function ratingByRank(song: Song) {
+    return RANK_CUTOFFS
+        .filter((c) => !c.edge && TABLE_RANKS.includes(c.rank))
+        .map((c) => ({ rank: c.rank, at: c.min, rating: rateSong({ ...song, achievement: c.min, ap: false }) }));
+    // RANK_CUTOFFS is already highest first, so the table reads SSS+ down to S
+}
+
+// every place a chart can be looked up. add more here (mai-notes, niconico...) and they
+// show up in the popup: { label, sub, icon ('play' or 'search'), href }
+function externalLinks(song: Song, diffLabel: string) {
+    const yt = (q: string) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+    const isDx = /dx/i.test(song.kind ?? '');
+    // mai-notes has no link we can build from a title, so this is a web search limited to
+    // that site: it finds the song's page without saving a link for every song
+    const maiNotes = `https://www.google.com/search?q=${encodeURIComponent(`site:mai-notes.com ${song.title}`)}`;
+    return [
+        { label: 'Chart gameplay', sub: 'YouTube', icon: 'play', href: yt(`${song.title} maimai${isDx ? ' DX' : ''} ${diffLabel}`.trim()) },
+        { label: 'Song / MV', sub: 'YouTube', icon: 'play', href: yt(`${song.title} ${song.artist ?? ''}`.trim()) },
+        { label: 'Chart viewer', sub: 'mai-notes', icon: 'search', href: maiNotes },
+    ];
+}
 
 // next rank up, and what the song would rate at exactly that achievement
 function nextRankInfo(song: Song) {
@@ -487,12 +332,17 @@ export function SongCard({ song, position, onOpen, muted = false, gain = 0, item
 }
 
 // passes a click handler down, and reports which card was opened
-function Section({ title, note, songs, extras, floor, gains, onOpen }: {
+function Section({ title, note, songs, extras, floor, gains, onOpen, keep }: {
     title: string; note: string; songs: Song[]; extras: Song[]; floor: number | null;
     gains: Map<string, number>;
     onOpen: (s: Selected) => void;
+    keep: (s: Song) => boolean; // the search filter
 }) {
     const [showExtras, setShowExtras] = useState(false);
+
+    // filtered, but each chart keeps its real place in the list (#7 stays #7)
+    const shown = songs.map((song, i) => ({ song, pos: i + 1 })).filter(({ song }) => keep(song));
+    const shownExtras = extras.map((song, i) => ({ song, pos: i + 1 })).filter(({ song }) => keep(song));
 
     return (
         <section>
@@ -503,21 +353,23 @@ function Section({ title, note, songs, extras, floor, gains, onOpen }: {
             </div>
             {songs.length === 0 ? (
                 <p className="bf-empty">no rated songs here yet</p>
+            ) : shown.length === 0 ? (
+                <p className="bf-empty">no charts in {title} match your search</p>
             ) : (
                 <ul className="bf-grid">
-                    {songs.map((song, i) => (
+                    {shown.map(({ song, pos }) => (
                         <SongCard
                             key={chartKey(song)}
                             song={song}
-                            position={i + 1}
+                            position={pos}
                             gain={gains.get(chartKey(song))}
-                            onOpen={() => onOpen({ song, position: i + 1, list: title, size: songs.length })}
+                            onOpen={() => onOpen({ song, position: pos, list: title, size: songs.length })}
                         />
                     ))}
                 </ul>
             )}
 
-            {extras.length > 0 && (
+            {shownExtras.length > 0 && (
                 <>
                     <button
                         type="button"
@@ -525,7 +377,7 @@ function Section({ title, note, songs, extras, floor, gains, onOpen }: {
                         aria-expanded={showExtras}
                         onClick={() => setShowExtras((v) => !v)}
                     >
-                        {showExtras ? 'hide' : 'show'} {extras.length} more chart{extras.length === 1 ? '' : 's'} tied at the floor ({floor})
+                        {showExtras ? 'hide' : 'show'} {shownExtras.length} more chart{shownExtras.length === 1 ? '' : 's'} tied at the floor ({floor})
                         <span className={`bf-extra-chev${showExtras ? ' open' : ''}`} aria-hidden="true">▾</span>
                     </button>
 
@@ -535,16 +387,16 @@ function Section({ title, note, songs, extras, floor, gains, onOpen }: {
                                 these scores tie your {title} floor but don't count toward your rating
                             </p>
                             <ul className="bf-grid">
-                                {extras.map((song, i) => (
+                                {shownExtras.map(({ song, pos }) => (
                                     <SongCard
                                         key={chartKey(song)}
                                         song={song}
-                                        position={i + 1}
+                                        position={pos}
                                         muted
                                         gain={gains.get(chartKey(song))}
                                         onOpen={() => onOpen({
                                             song,
-                                            position: i + 1,
+                                            position: pos,
                                             list: `${title} ties (not counted)`,
                                             size: extras.length,
                                         })}
@@ -587,9 +439,12 @@ export function SongDetail({ entry, gains, onClose }: {
     const hasAp = combo?.tier === 'ap' || combo?.tier === 'applus' || Boolean(song?.ap);
     const improvement = song ? improvementInfo(song) : null;
     const gain = song ? gains.get(chartKey(song)) ?? 0 : 0;
-    const searchUrl = song
-        ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.title} maimai ${diff?.label ?? ''}`)}`
-        : '#';
+    const stars = dxPct != null ? dxStars(Number(dxPct)) : 0;
+    const links = song && diff ? externalLinks(song, diff.label) : [];
+    const rankRows = isPlayed && song.internal_difficulty != null ? ratingByRank(song) : [];
+    const hasPrev = isPlayed && song.prev_achievement != null;
+    // one small line under the artist: genre and BPM, whichever the song has
+    const genreBpm = song ? [song.genre, song.bpm ? `${song.bpm} BPM` : null].filter(Boolean).join(' · ') : '';
 
     return (
         <dialog
@@ -619,7 +474,7 @@ export function SongDetail({ entry, gains, onClose }: {
                             </div>
                             <h3 className="bf-dlg-title">{song.title}</h3>
                             {song.artist && <p className="bf-dlg-artist">{song.artist}</p>}
-                            {song.bpm && <p className="bf-dlg-artist">{song.bpm} BPM</p>}
+                            {genreBpm && <p className="bf-dlg-subline">{genreBpm}</p>}
                         </div>
                     </div>
 
@@ -633,9 +488,13 @@ export function SongDetail({ entry, gains, onClose }: {
                                 <Badges song={song} className="bf-dlg-badges" />
                             </div>
                             {hasDxScore && (
-                                <p className="bf-dxscore">{song.dx_score!.toLocaleString()} / {song.dx_max!.toLocaleString()} ({dxPct}%)</p>
+                                <p className="bf-dxscore">
+                                    {song.dx_score!.toLocaleString()} / {song.dx_max!.toLocaleString()} ({dxPct}%)
+                                    {stars > 0 && <span className="bf-stars" title={`${stars} DX star${stars === 1 ? '' : 's'}`}>{'★'.repeat(stars)}</span>}
+                                </p>
                             )}
                             <p className="bf-dlg-meta"><b>{song.rating} rating</b></p>
+                            {hasPrev && <p className="bf-prev">previous best: {song.prev_achievement!.toFixed(4)}%</p>}
                         </>
                     ) : (
                         <p className="bf-dlg-unplayed">unplayed</p>
@@ -677,9 +536,53 @@ export function SongDetail({ entry, gains, onClose }: {
                         )
                     )}
 
-                    <div className="bf-icon-row">
-                        {/* keep your three <a className="bf-icon-btn"> links (YouTube, mai-notes, MV) exactly as they were */}
-                    </div>
+                    {rankRows.length > 0 && (
+                        <>
+                            <div className="bf-divider" />
+                            <p className="bf-section-label">Rating by rank</p>
+                            <table className="bf-ranktable">
+                                <thead><tr><th>Rank</th><th>Needs</th><th>Rating</th><th>vs. yours</th></tr></thead>
+                                <tbody>
+                                {rankRows.map((row) => {
+                                    const reached = song.achievement >= row.at;
+                                    const delta = row.rating - song.rating;
+                                    return (
+                                        <tr key={row.rank} className={`${reached ? 'is-reached' : ''}${cutoff?.rank === row.rank ? ' is-current' : ''}`}>
+                                            <td><RankBadge rank={row.rank} className="bf-next-rank-img" /></td>
+                                            <td>{row.at.toFixed(4)}%</td>
+                                            <td>{row.rating}</td>
+                                            <td>
+                                                {cutoff?.rank === row.rank ? <span className="bf-rt-note">current</span>
+                                                    : delta > 0 ? <span className="bf-rt-gain">+{delta}</span>
+                                                        : <span className="bf-rt-note">{delta < 0 ? delta : '-'}</span>}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                </tbody>
+                            </table>
+                            <p className="bf-dlg-meta" style={{ marginTop: '0.4rem' }}>An AP or AP+ adds +1 on top of any rank.</p>
+                        </>
+                    )}
+
+                    {links.length > 0 && (
+                        <>
+                            <div className="bf-divider" />
+                            <p className="bf-section-label">Watch &amp; look up</p>
+                            <div className="bf-links">
+                                {links.map((l) => (
+                                    <a key={l.label} className="bf-link" href={l.href} target="_blank" rel="noopener noreferrer">
+                                        {l.icon === 'search' ? (
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>
+                                        ) : (
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                                        )}
+                                        <span>{l.label}<small>{l.sub}</small></span>
+                                    </a>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
         </dialog>
@@ -699,7 +602,8 @@ function tiedAtFloor(all: Song[], counted: Song[], inPool: (s: Song) => boolean)
         .filter((s) => inPool(s) && !countedKeys.has(chartKey(s)))
         // raw songs don't carry a rating yet; work it out the same way new15 / old35 do
         .map((s) => ({ ...s, rating: s.rating ?? rateSong(s) }))
-        .filter((s) => Math.floor(s.rating) === floor);
+        .filter((s) => Math.floor(s.rating) === floor)
+        .sort(compareSongs);
 
     return { floor, extras };
 }
@@ -708,6 +612,7 @@ function tiedAtFloor(all: Song[], counted: Song[], inPool: (s: Song) => boolean)
 // B15 heading when her profile includes them (lib/jp-scores.ts)
 export default function BestFifty({ data, extraNewVersions = [] }: { data?: Song[] | null; extraNewVersions?: string[] }) {
     const [selected, setSelected] = useState<Selected | null>(null);
+    const [query, setQuery] = useState('');
     const songs = data ?? [];
     const b15 = new15(songs);
     const b35 = old35(songs);
@@ -716,17 +621,41 @@ export default function BestFifty({ data, extraNewVersions = [] }: { data?: Song
     const b35Ties = tiedAtFloor(songs, b35, (s) => !s.new_pool);
     const gains = ratingGains(songs);
 
+    // the search box: title or romaji (songMatcher, the same search the favorites picker uses),
+    // or the artist. it only hides cards, so every chart keeps its place and the stats don't move
+    const trimmed = query.trim();
+    const keep = useMemo(() => {
+        if (!trimmed) return () => true;
+        const match = songMatcher(trimmed);
+        const q = toNormalWidth(trimmed).normalize('NFKC').toLowerCase();
+        return (s: Song) =>
+            match(s.title, s.title_romaji) > 0 ||
+            toNormalWidth(s.artist ?? '').normalize('NFKC').toLowerCase().includes(q);
+    }, [trimmed]);
+    const matchCount = trimmed ? [...b15, ...b35].filter(keep).length : 0;
+
     return (
         <div className="bf-wrap">
             <style>{bestFiftyCss}</style>
 
+            <div className="bf-search">
+                <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="search these songs (title, romaji or artist)"
+                    aria-label="search best 50 songs"
+                />
+                {trimmed && <span className="bf-search-count">{matchCount} of {b15.length + b35.length} charts</span>}
+            </div>
+
             <Section title="B15" note={`new songs (${listOf([...extraNewVersions, ...NEW_POOL_VERSIONS])})`} songs={b15}
-                extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} />
+                     extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} keep={keep} />
 
             <hr className="divider" />
 
             <Section title="B35" note={`old songs (${NEWEST_OLD_POOL_VERSION} and below)`} songs={b35}
-                extras={b35Ties.extras} floor={b35Ties.floor} gains={gains} onOpen={setSelected} />
+                     extras={b35Ties.extras} floor={b35Ties.floor} gains={gains} onOpen={setSelected} keep={keep} />
 
             <SongDetail entry={selected} gains={gains} onClose={() => setSelected(null)} />
         </div>
