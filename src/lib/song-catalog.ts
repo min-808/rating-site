@@ -110,10 +110,25 @@ export async function getCatalogSong(id: string): Promise<CatalogSong | null> {
 }
 
 /** The slimmed-down song the list page sends to the browser. */
-export function toBrowserSong(s: CatalogSong): BrowserSong {
+function toBrowserSong(s: CatalogSong): BrowserSong {
   const charts: BrowserChart[] = s.charts.map((c) => [c.kind === 'dx' ? 1 : 0, CHART_DIFFICULTIES.indexOf(c.difficulty), c.internal]);
   return {
     id: s.id, title: s.title, romaji: s.romaji, artist: s.artist, genre: s.genre, version: s.version,
-    versionCode: s.versionCode, jacket: s.jacket, na: s.na, bpm: s.bpm, charts,
+    versionCode: s.versionCode, jacket: s.jacket, na: s.na, charts,
   };
+}
+
+/**
+ * The whole list for the browser. Every jacket address starts the same way (the blob
+ * store's address), and that part would otherwise be sent once per song, so it is sent once
+ * as jacketBase and cut off each song's jacket; the browser puts it back (jacketBase + jacket).
+ */
+export function toBrowserList(catalog: CatalogSong[]): { songs: BrowserSong[]; jacketBase: string } {
+  const songs = catalog.map(toBrowserSong);
+  const jackets = songs.map((s) => s.jacket).filter((j): j is string => Boolean(j));
+  let base = jackets[0] ?? '';
+  for (const j of jackets) while (base && !j.startsWith(base)) base = base.slice(0, -1);
+  base = base.slice(0, base.lastIndexOf('/') + 1); // only whole folders
+  if (base.length < 12) return { songs, jacketBase: '' };
+  return { songs: songs.map((s) => ({ ...s, jacket: s.jacket ? s.jacket.slice(base.length) : null })), jacketBase: base };
 }

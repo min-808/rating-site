@@ -19,9 +19,8 @@ export type BrowserSong = {
   genre: string | null;
   version: string | null;
   versionCode: number | null;
-  jacket: string | null;
+  jacket: string | null; // without the start every jacket address shares (see toBrowserList)
   na: boolean;
-  bpm: number | null;
   charts: BrowserChart[];
 };
 

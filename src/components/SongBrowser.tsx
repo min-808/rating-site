@@ -13,7 +13,7 @@ import { songPagesCss } from './song-pages-css';
  * /songs: every song, searchable. Everything filters in the browser as you type (the list
  * is sent once), using lib/song-browse.ts. Search finds a title (also its romaji, so
  * "umiyuri" finds a japanese title) or an artist. Shows 60 at a time; the search is kept in
- * the address (?q=) so a search can be shared. Each card opens the song's page.
+ * the address (?q=) so a search can be shared (read once the page is open). Each card opens the song's page.
  */
 
 const PAGE_SIZE = 60;
@@ -31,8 +31,8 @@ function cardPills(song: BrowserSong, f: BrowseFilters) {
   }));
 }
 
-export default function SongBrowser({ songs, initialQuery = '' }: { songs: BrowserSong[]; initialQuery?: string }) {
-  const [f, setF] = useState<BrowseFilters>({ ...DEFAULT_FILTERS, query: initialQuery });
+export default function SongBrowser({ songs, jacketBase = '' }: { songs: BrowserSong[]; jacketBase?: string }) {
+  const [f, setF] = useState<BrowseFilters>(DEFAULT_FILTERS);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const set = <K extends keyof BrowseFilters>(key: K, value: BrowseFilters[K]) => {
     setF((prev) => ({ ...prev, [key]: value }));
@@ -43,12 +43,22 @@ export default function SongBrowser({ songs, initialQuery = '' }: { songs: Brows
   const results = useMemo(() => browse(songs, f), [songs, f]);
   const changed = JSON.stringify({ ...f, query: '' }) !== JSON.stringify({ ...DEFAULT_FILTERS, query: '' }) || f.query !== '';
 
+  // a shared link (/songs?q=...) fills the search box. read here, in the browser, so the
+  // page itself doesn't depend on the request and can be kept and served to everyone
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) setF((prev) => ({ ...prev, query: q }));
+    setReady(true);
+  }, []);
+
   // keep the search in the address, without adding a history entry for every keystroke
   useEffect(() => {
+    if (!ready) return; // not before the address has been read, or it would erase it
     const url = new URL(window.location.href);
     if (f.query.trim()) url.searchParams.set('q', f.query.trim()); else url.searchParams.delete('q');
     window.history.replaceState(null, '', url);
-  }, [f.query]);
+  }, [f.query, ready]);
 
   return (
     <>
@@ -108,7 +118,7 @@ export default function SongBrowser({ songs, initialQuery = '' }: { songs: Brows
             <li key={song.id}>
               <Link href={`/songs/${song.id}`} className="sg-link">
                 <div className="sg-jacket">
-                  {song.jacket ? <FallbackImage src={song.jacket} alt="" /> : <span aria-hidden="true">♪</span>}
+                  {song.jacket ? <FallbackImage src={jacketBase + song.jacket} alt="" /> : <span aria-hidden="true">♪</span>}
                 </div>
                 <div className="sg-info">
                   <p className="sg-name">{song.title}</p>

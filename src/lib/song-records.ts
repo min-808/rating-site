@@ -81,13 +81,3 @@ export function getSongRecords(song: Pick<CatalogSong, 'key' | 'titles'>): Promi
     tags: [PLAYERS_TAG],
   })(song.titles);
 }
-
-/** One chart's records, best first: accuracy, then DX score, then name so ties stay put. */
-export function recordsForChart(all: ChartRecord[], kind: string, difficulty: string): ChartRecord[] {
-  return all
-    .filter((r) => r.kind === kind && r.difficulty === difficulty)
-    .sort((a, b) =>
-      (b.achievement - a.achievement)
-      || ((b.dxScore ?? 0) - (a.dxScore ?? 0))
-      || a.name.localeCompare(b.name));
-}
