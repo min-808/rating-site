@@ -7,7 +7,7 @@ import { versionName } from './versions';
 import type { BrowserSong, BrowserChart } from './song-browse';
 
 /**
- * Every song in the game, for the song pages (/songs): the songs collection's charts and
+ * Every song in the game, for the song pages (/charts): the songs collection's charts and
  * versions, songmeta's jacket / artist / BPM, and the romanized titles for searching. All
  * three are already cached on the server (lib/song-data.ts); this joins them once and keeps
  * the result as long as they are kept, cleared by the same nightly job. Server only.
@@ -30,7 +30,7 @@ export type CatalogChart = {
 };
 
 export type CatalogSong = {
-  id: string; // the address: /songs/<id> (lib/song-id.ts)
+  id: string; // the address: /charts/<id> (lib/song-id.ts)
   key: string; // what's saved for it (hearts): the folded title, plus "|<artist>" for the newer of two songs sharing a title
   title: string;
   romaji: string | null;
@@ -156,7 +156,7 @@ export const getCatalog = unstable_cache(build, ['song-catalog-v4'] /* v2: the b
   tags: [SONG_DATA_TAG],
 });
 
-// an address as it comes in: maybe still percent-encoded (/songs/%E3%82%AC…)
+// an address as it comes in: maybe still percent-encoded (/charts/%E3%82%AC…)
 const decoded = (id: string) => {
   try { return decodeURIComponent(id); } catch { return id; }
 };
@@ -169,7 +169,7 @@ export async function getCatalogSong(id: string): Promise<CatalogSong | null> {
 
 /**
  * Where an address that isn't a song's own now goes, or null: the plain address of songs
- * that got the artist added (/songs/link: the oldest of them), and old base64 addresses.
+ * that got the artist added (/charts/link: the oldest of them), and old base64 addresses.
  */
 export async function songAddressRedirect(id: string): Promise<string | null> {
   const wanted = decoded(id);

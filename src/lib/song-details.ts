@@ -6,7 +6,7 @@ import { chartId } from './song-view';
 import type { CatalogSong } from './song-catalog';
 
 /**
- * The extra details on a song's page (/songs/[id]): each chart's designer and note counts,
+ * The extra details on a song's page (/charts/[id]): each chart's designer and note counts,
  * the full BPM range and when the song came to international. They're only shown there, so
  * they're read per song (one small read, kept like the rest of the song data) rather than
  * added to the whole song list, which every page that lists songs keeps in memory.

@@ -3,7 +3,7 @@
  *                                                       or  { signedIn: true, ids: string[] }
  * POST /api/profile/favorite-songs  { id, favorite }    ->  { favorite }
  *
- * The signed-in player's hearted songs. ids are song ids (the /songs/<id> address,
+ * The signed-in player's hearted songs. ids are song ids (the /charts/<id> address,
  * lib/song-id.ts); they are kept on the account as song keys (lib/song-catalog.ts), which
  * don't change when an address does. The account comes from the
  * session, never from the request. Adding checks that the song exists and that the list

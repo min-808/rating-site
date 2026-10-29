@@ -17,12 +17,12 @@ import type { SongDetails } from '../lib/song-details';
 import { fetchMe } from './me';
 
 /**
- * A song's page (/songs/<id>): the cover banner with the chart picker, then the ranking
+ * A song's page (/charts/<id>): the cover banner with the chart picker, then the ranking
  * (the best score as a card, everyone else as a table) beside a column of details.
  * (Layout inspired by osu!'s beatmap page.)
  *
  * Every chart's ranking arrives with the page, so picking a chart is instant and never asks
- * the server. The open chart is kept in the address after the #, e.g. /songs/<id>#dx-master
+ * the server. The open chart is kept in the address after the #, e.g. /charts/<id>#dx-master
  * (chart ids are built in lib/song-view.ts: "std-" or "dx-" + the difficulty). Because the
  * address has no ?query, the page itself can be cached.
  *
@@ -34,7 +34,7 @@ const RANKING_ROWS_PER_PAGE = 50;
 
 /** The song's own details, shown in the banner and the info box. */
 export type SongInfo = {
-  id: string; // the song's address (/songs/<id>), also used by the favorite heart
+  id: string; // the song's address (/charts/<id>), also used by the favorite heart
   title: string;
   artist: string | null;
   genre: string | null;
@@ -227,7 +227,7 @@ export default function SongPageView({ song, view, details }: { song: SongInfo; 
     <main className="song-page">
       <style>{songDetailCss}</style>
       <style>{favoriteHeartCss}</style>
-      <p className="song-back-link"><Link href="/songs">&larr; all songs</Link></p>
+      <p className="song-back-link"><Link href="/charts">&larr; all charts</Link></p>
 
       <div className="song-card">
         {/* ============ banner: cover, tags, title, chart picker ============ */}

@@ -3,7 +3,7 @@ import { toNormalWidth } from './leaderboard';
 import { NEW_POOL_VERSIONS } from './versions';
 
 /**
- * Searching and filtering the song list (/songs). Plain module, so it runs in the browser
+ * Searching and filtering the song list (/charts). Plain module, so it runs in the browser
  * (the list filters as you type) and can be tested on its own.
  */
 

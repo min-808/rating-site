@@ -59,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             <header className="site-nav">
               <Link href="/" className="site-link">leaderboard</Link>
-              <Link href="/songs" className="site-link">songs</Link>
+              <Link href="/charts" className="site-link">charts</Link>
               <Link href="/faq" className="site-link">faq</Link>
             </header>
           </div>

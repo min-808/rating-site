@@ -12,7 +12,7 @@ export default function NotFound() {
       <p style={{ margin: 0, lineHeight: '1.5', marginBottom: '1rem' }}>404 not found</p>
       <p style={{ margin: 0, lineHeight: '1.5', marginBottom: '1rem' }}>this song does not exist :c</p>
       <p style={{ margin: 0, lineHeight: '1.5' }}>
-        <Link href="/songs">go back to the songs</Link>
+        <Link href="/charts">go back to the charts</Link>
       </p>
     </main>
   );

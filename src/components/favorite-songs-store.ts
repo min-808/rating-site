@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react';
 
 /**
  * Which songs the signed-in player has hearted, shared by every heart on the page. The
- * list is fetched once (the first heart to appear asks), so 60 hearts on /songs make one
+ * list is fetched once (the first heart to appear asks), so 60 hearts on /charts make one
  * request, not 60, and it lives as long as the page does. Tapping a heart changes it right
  * away and tells the server; if the server says no, it goes back and says why.
  */

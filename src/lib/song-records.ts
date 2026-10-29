@@ -6,7 +6,7 @@ import { toNormalWidth, type Song } from './leaderboard';
 import type { CatalogSong } from './song-catalog';
 
 /**
- * Everyone's scores on one song, for its leaderboard (/songs/[id]). There is no table of
+ * Everyone's scores on one song, for its leaderboard (/charts/[id]). There is no table of
  * scores per song, so this reads the players who have the song in their saved scores and
  * keeps only that song's entries (the database does the trimming, so little leaves it).
  * Players who hide their scores aren't included.

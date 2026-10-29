@@ -449,7 +449,7 @@ export function SongDetail({ entry, gains, onClose }: {
     const hasPrev = isPlayed && song.prev_achievement != null;
     // one small line under the artist: genre and BPM, whichever the song has
     const genreBpm = song ? [song.genre, song.bpm ? `${song.bpm} BPM` : null].filter(Boolean).join(' · ') : '';
-    // the song's own page (/songs/<id>), for the title link and the heart
+    // the song's own page (/charts/<id>), for the title link and the heart
     // song_page when the server gave one (a title two songs share, lib/song-catalog.ts withSongPages)
     const songPageId = song ? song.song_page ?? titleSlug(song.title) : '';
 
@@ -484,7 +484,7 @@ export function SongDetail({ entry, gains, onClose }: {
                             </div>
                             <h3 className="bf-dlg-title">
                                 {/* the title opens the song's page: every chart and who has the top score */}
-                                <Link href={`/songs/${encodeURIComponent(songPageId)}`} className="bf-dlg-title-link" title="open the song's page">
+                                <Link href={`/charts/${encodeURIComponent(songPageId)}`} className="bf-dlg-title-link" title="open the song's page">
                                     {displayTitle(song.title)}
                                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
                                 </Link>

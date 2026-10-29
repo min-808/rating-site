@@ -14,7 +14,7 @@ import { songPagesCss } from './song-pages-css';
 import { displayTitle } from '../lib/song-id';
 
 /**
- * /songs: every song, searchable. Everything filters in the browser as you type (the list
+ * /charts: every song, searchable. Everything filters in the browser as you type (the list
  * is sent once), using lib/song-browse.ts. Search finds a title (also its romaji, so
  * "umiyuri" finds a japanese title) or an artist. Shows 60 at a time; the search and the
  * drop-downs are kept in the address (?q=...&sort=...), so a search can be shared and going
@@ -162,8 +162,8 @@ export default function SongBrowser({ songs, jacketBase = '' }: { songs: Browser
             type="search"
             value={filters.query}
             onChange={(event) => setFilter('query', event.target.value)}
-            placeholder="search songs"
-            aria-label="search songs"
+            placeholder="search charts"
+            aria-label="search charts"
           />
         </label>
 
@@ -260,7 +260,7 @@ export default function SongBrowser({ songs, jacketBase = '' }: { songs: Browser
         <ul className="sg-grid">
           {matchingSongs.slice(0, visibleSongCount).map((song) => (
             <li key={song.id} className="sg-item">
-              <Link href={`/songs/${encodeURIComponent(song.id)}`} className="sg-link">
+              <Link href={`/charts/${encodeURIComponent(song.id)}`} className="sg-link">
                 {/* the jacket again, very faded, behind the whole card. same address as the small one, so it is downloaded once */}
                 {song.jacket && <FallbackImage src={jacketBase + song.jacket} alt="" className="sg-bg" />}
                 <div className="sg-jacket">

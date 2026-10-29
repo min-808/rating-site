@@ -9,7 +9,7 @@ import { isGf } from '../../../lib/special-players';
 import { titleInWords } from '../../../lib/song-id';
 
 /**
- * /songs/[id]: one song, laid out like osu!'s beatmap page (components/SongPageView.tsx).
+ * /charts/[id]: one song, laid out like osu!'s beatmap page (components/SongPageView.tsx).
  *
  * The page reads nothing from the request (no cookies, no ?query: the chart being looked
  * at lives after the # and is read in the browser), so Next keeps the finished page and
@@ -45,7 +45,7 @@ export default async function SongPage({ params }: Props) {
   if (!song) {
     // an old base64 address, or the plain address of songs that got the artist added: sent on
     const moved = await songAddressRedirect(id);
-    if (moved) permanentRedirect(`/songs/${encodeURIComponent(moved)}`);
+    if (moved) permanentRedirect(`/charts/${encodeURIComponent(moved)}`);
     notFound();
   }
 

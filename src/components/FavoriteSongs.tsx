@@ -17,7 +17,7 @@ const SHOWN = 12;
 function Card({ song }: { song: FavoriteSongItem }) {
   return (
     <li>
-      <Link href={`/songs/${encodeURIComponent(song.id)}`} className="fs-item">
+      <Link href={`/charts/${encodeURIComponent(song.id)}`} className="fs-item">
         {song.jacket && <FallbackImage src={song.jacket} alt="" className="fs-bg" />}
         <span className="fs-jacket">{song.jacket && <FallbackImage src={song.jacket} alt="" />}</span>
         <span className="fs-text">
@@ -43,7 +43,7 @@ export default function FavoriteSongs({ songs, isOwner }: { songs: FavoriteSongI
 
       {songs.length === 0 ? (
         <p className="fs-empty">
-          nothing here yet. tap the heart on a song in <Link href="/songs">the song list</Link> to add it.
+          nothing here yet. tap the heart on a song in <Link href="/charts">the song list</Link> to add it.
         </p>
       ) : (
         <>

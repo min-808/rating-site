@@ -1,5 +1,5 @@
 /**
- * Favorite songs (the hearts on /songs and on a song's page), shared by the API route that
+ * Favorite songs (the hearts on /charts and on a song's page), shared by the API route that
  * enforces the limit and the places that show them. Plain module.
  *
  * Not the same as the five favorite *scores* on a profile (lib/favorites.ts): those are

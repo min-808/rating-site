@@ -6,7 +6,7 @@ import { loadFavoriteSongs, setSongFavorite, useFavoriteSongs } from './favorite
 
 /**
  * The heart that favorites a song, like osu!'s: an outline until it's hearted, then filled.
- * One on each card of /songs and one on a song's page. Not signed in: tapping explains
+ * One on each card of /charts and one on a song's page. Not signed in: tapping explains
  * instead (the hearts are saved on the account). Whatever shows hearts draws
  * favoriteHeartCss once (favorite-heart-css.ts).
  */

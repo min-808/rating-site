@@ -1,5 +1,5 @@
 /**
- * Styles for a song's page (/songs/[id]) (components/SongPageView.tsx).
+ * Styles for a song's page (/charts/[id]) (components/SongPageView.tsx).
  * Layout: a banner with the cover and the chart picker, then the ranking on the left and
  * the details on the right. The page keeps its own dark palette (the --song-* colors)
  * whichever theme the site is in. (The layout was inspired by osu!'s beatmap page.)
