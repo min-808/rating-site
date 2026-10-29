@@ -44,6 +44,7 @@ export interface Song {
   internal_difficulty: number;
   new_pool: boolean;
   rating: number;
+  song_page?: string; // its song page's address, when it isn't simply its title's (lib/song-catalog.ts withSongPages)
   ap: boolean;
   jacket?: string;
   jacket_blob?: string;

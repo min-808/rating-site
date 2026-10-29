@@ -17,7 +17,7 @@ const SHOWN = 12;
 function Card({ song }: { song: FavoriteSongItem }) {
   return (
     <li>
-      <Link href={`/songs/${song.id}`} className="fs-item">
+      <Link href={`/songs/${encodeURIComponent(song.id)}`} className="fs-item">
         {song.jacket && <FallbackImage src={song.jacket} alt="" className="fs-bg" />}
         <span className="fs-jacket">{song.jacket && <FallbackImage src={song.jacket} alt="" />}</span>
         <span className="fs-text">

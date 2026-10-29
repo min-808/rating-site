@@ -35,9 +35,10 @@ const cached = <T>(key: string, read: () => Promise<T>) =>
 const SUFFIXES = ['bas', 'adv', 'exp', 'mas', 'remas'];
 
 /** Every song, with what the level summary needs: its charts' levels and constants, version, genre, NA availability. */
-export type SongLevelsDoc = { title: string; version?: string; intl?: string; na?: string | number; catcode?: string; [field: string]: unknown };
-export const getSongLevels = cached<SongLevelsDoc[]>('song-levels-v2', async () => {
-  const projection: Record<string, 0 | 1> = { _id: 0, title: 1, version: 1, intl: 1, na: 1, catcode: 1 };
+export type SongLevelsDoc = { title: string; artist?: string; version?: string; intl?: string; na?: string | number; catcode?: string; [field: string]: unknown };
+// v3: artist, which tells apart two songs that share a title (lib/song-catalog.ts)
+export const getSongLevels = cached<SongLevelsDoc[]>('song-levels-v3', async () => {
+  const projection: Record<string, 0 | 1> = { _id: 0, title: 1, artist: 1, version: 1, intl: 1, na: 1, catcode: 1 };
   for (const s of SUFFIXES) {
     for (const prefix of ['', 'dx_']) {
       projection[`${prefix}lev_${s}`] = 1;

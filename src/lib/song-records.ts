@@ -35,7 +35,8 @@ export type ChartRecord = {
 const CACHE_SECONDS = 5 * 60;
 const diffKey = (d: string) => String(d ?? '').toLowerCase().replace(/[^a-z]/g, '');
 
-async function read(titles: string[]): Promise<ChartRecord[]> {
+// scoreGenre: when two songs share the title, only the scores listed under this song's genre
+async function read(titles: string[], scoreGenre: string | null): Promise<ChartRecord[]> {
   const client = await connectMongo();
   const wanted = new Set(titles.map((t) => toNormalWidth(t).replace(/\s+/g, ' ').trim().toLowerCase()));
 
@@ -44,7 +45,12 @@ async function read(titles: string[]): Promise<ChartRecord[]> {
     {
       $project: {
         _id: 0, web_id: 1, user_id: 1, name: 1, pfp: 1, pfp_blob: 1,
-        songs: { $filter: { input: '$songs', as: 's', cond: { $in: ['$$s.title', titles] } } },
+        songs: {
+          $filter: {
+            input: '$songs', as: 's',
+            cond: scoreGenre ? { $and: [{ $in: ['$$s.title', titles] }, { $eq: ['$$s.genre', scoreGenre] }] } : { $in: ['$$s.title', titles] },
+          },
+        },
       },
     },
   ]).toArray();
@@ -75,9 +81,9 @@ async function read(titles: string[]): Promise<ChartRecord[]> {
   return records;
 }
 
-export function getSongRecords(song: Pick<CatalogSong, 'key' | 'titles'>): Promise<ChartRecord[]> {
-  return unstable_cache(read, ['song-records-v1', song.key], {
+export function getSongRecords(song: Pick<CatalogSong, 'key' | 'titles' | 'scoreGenre'>): Promise<ChartRecord[]> {
+  return unstable_cache(read, ['song-records-v2', song.key], {
     revalidate: CACHE_SECONDS,
     tags: [PLAYERS_TAG],
-  })(song.titles);
+  })(song.titles, song.scoreGenre);
 }
