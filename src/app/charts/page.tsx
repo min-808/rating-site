@@ -24,6 +24,10 @@ export default async function SongsPage() {
 
   return (
     <main className="sg-main">
+      {/* same as the leaderboard's (app/page.tsx). remove once maimai NET is back */}
+      <p className="sg-notice" role="status">
+        the chart leaderboards are currently paused while the maimai website is down. sorry for the inconvenience!
+      </p>
       <h1>
         HI Maimai Chart{' '}
         <span className="sg-title-end">
