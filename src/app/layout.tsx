@@ -74,9 +74,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             fontSize: '0.875rem',
             fontFamily: 'sans-serif'
           }}>
-            made by min
+            made by min &amp; sora
             <br />
-            discord/twt: @waitaamin
+            discord/twt: @waitaamin &amp; @soratsky
             <br />
             <br />
             &lt;3
