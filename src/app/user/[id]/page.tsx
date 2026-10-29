@@ -31,7 +31,7 @@ import ChartsPlayed, { ChartsPlayedLabel } from '../../../components/ChartsPlaye
 import { CHART_DIFFICULTIES, type DifficultyCounts } from '../../../lib/difficulties';
 import FavoriteScores from '../../../components/FavoriteScores';
 import FavoriteSongs, { type FavoriteSongItem } from '../../../components/FavoriteSongs';
-import { getCatalog } from '../../../lib/song-catalog';
+import { getCatalog, withSongPages } from '../../../lib/song-catalog';
 import { playStats } from '../../../lib/play-stats';
 
 interface UserPageProps {
@@ -628,6 +628,10 @@ export default async function UserPage({ params }: UserPageProps) {
   // and details (scrape-jp-scores.js), anything else just shows without them
   : { ...s, title_romaji, version: versionName(s.version_code), improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null };
     });
+
+    // the song page each score's popup links to, for the few whose isn't just their title's
+    // (a title two songs share). the song list is already kept on the server: no extra read
+    songs = withSongPages(songs, await getCatalog());
 
     // songs not available in North America (na: "0"). a title only counts as
     // excluded if every song with that title is marked, since a few titles are shared

@@ -4,20 +4,26 @@
  * POST /api/profile/favorite-songs  { id, favorite }    ->  { favorite }
  *
  * The signed-in player's hearted songs. ids are song ids (the /songs/<id> address,
- * lib/song-id.ts); they are kept on the account as song keys. The account comes from the
+ * lib/song-id.ts); they are kept on the account as song keys (lib/song-catalog.ts), which
+ * don't change when an address does. The account comes from the
  * session, never from the request. Adding checks that the song exists and that the list
  * isn't full (FAVORITE_SONGS_MAX); removing never fails for a song that isn't there.
  */
 import { NextResponse } from 'next/server';
 import { type AccountDoc, getDb, getSession, rateLimit } from '../../../../lib/auth';
 import { FAVORITE_SONGS_MAX } from '../../../../lib/favorite-songs';
-import { getCatalogSong } from '../../../../lib/song-catalog';
-import { songId, songKeyFromId } from '../../../../lib/song-id';
+import { getCatalog, getCatalogSong } from '../../../../lib/song-catalog';
 
 export const dynamic = 'force-dynamic';
 
 const fail = (status: number, error: string) => NextResponse.json({ error }, { status });
 const NO_STORE = { 'Cache-Control': 'no-store' };
+
+// saved keys -> today's addresses. a key no song has any more is left out
+async function idsFor(keys: string[]) {
+  const idByKey = new Map((await getCatalog()).map((song) => [song.key, song.id]));
+  return keys.flatMap((key) => (idByKey.has(key) ? [idByKey.get(key)!] : []));
+}
 
 export async function GET() {
   const session = await getSession();
@@ -28,7 +34,7 @@ export async function GET() {
     .collection<AccountDoc>('accounts')
     .findOne({ _id: session.userId }, { projection: { favorite_songs: 1 } });
   return NextResponse.json(
-    { signedIn: true, ids: (account?.favorite_songs ?? []).map(songId) },
+    { signedIn: true, ids: await idsFor(account?.favorite_songs ?? []) },
     { headers: NO_STORE },
   );
 }
@@ -49,8 +55,8 @@ export async function POST(req: Request) {
   const accounts = (await getDb()).collection<AccountDoc>('accounts');
 
   if (!body.favorite) {
-    const key = songKeyFromId(body.id);
-    if (key !== null) await accounts.updateOne({ _id: session.userId }, { $pull: { favorite_songs: key } });
+    const song = await getCatalogSong(body.id);
+    if (song) await accounts.updateOne({ _id: session.userId }, { $pull: { favorite_songs: song.key } });
     return NextResponse.json({ favorite: false });
   }
 
