@@ -9,9 +9,9 @@ export function songLinks(o: { title: string; artist?: string | null; kind?: str
   const yt = (q: string) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
   const isDx = /dx/i.test(o.kind ?? '');
   return [
-    { label: 'Chart gameplay', sub: 'YouTube', icon: 'play', href: yt(`${o.title} maimai${isDx ? ' DX' : ''} ${o.difficultyLabel ?? ''}`.trim()) },
-    { label: 'Song / MV', sub: 'YouTube', icon: 'play', href: yt(`${o.title} ${o.artist ?? ''}`.trim()) },
+    { label: 'chart gameplay', sub: 'YouTube', icon: 'play', href: yt(`${o.title} maimai${isDx ? ' DX' : ''} ${o.difficultyLabel ?? ''}`.trim()) },
+    { label: 'song / MV', sub: 'YouTube', icon: 'play', href: yt(`${o.title} ${o.artist ?? ''}`.trim()) },
     // mai-notes can't be linked to from a title, so this searches that site
-    { label: 'Chart viewer', sub: 'mai-notes', icon: 'search', href: `https://www.google.com/search?q=${encodeURIComponent(`site:mai-notes.com ${o.title}`)}` },
+    { label: 'chart viewer', sub: 'mai-notes', icon: 'search', href: `https://www.google.com/search?q=${encodeURIComponent(`site:mai-notes.com ${o.title}`)}` },
   ];
 }

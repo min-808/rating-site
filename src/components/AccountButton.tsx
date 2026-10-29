@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import FallbackImage from './FallbackImage';
 import LoadingDots from './LoadingDots';
+import { fetchMe, type Me } from './me';
 
 /**
  * Top-right account button: "sign in" when signed out. Signed in, it's their
@@ -22,17 +23,6 @@ export const AUTH_EVENT = 'hm-auth-changed';
 export function announceAuthChange() {
     window.dispatchEvent(new Event(AUTH_EVENT));
 }
-
-type Me =
-    | { signedIn: false }
-    | {
-        signedIn: true;
-        username: string;
-        webId: number | null;
-        icon?: string | null;
-        iconFallback?: string | null;
-        isAdmin?: boolean;
-    };
 
 const css = `
   /* same look as the leaderboard / faq buttons in the header */
@@ -94,9 +84,8 @@ export default function AccountButton() {
     useEffect(() => {
         let cancelled = false;
         const check = () =>
-            fetch('/api/auth/me', { cache: 'no-store' })
-                .then((r) => r.json())
-                .then((data: Me) => { if (!cancelled) setMe(data); })
+            fetchMe() // shared with anything else on the page asking at the same time (me.ts)
+                .then((data) => { if (!cancelled) setMe(data); })
                 .catch(() => { if (!cancelled) setMe({ signedIn: false }); });
 
         check();
