@@ -6,7 +6,11 @@ import { toNormalWidth, type Song } from '../lib/leaderboard';
 import { compareSongs, new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
 import { songMatcher } from '../lib/song-search';
 import { bestFiftyCss } from './best-fifty-css';
+import Link from 'next/link';
 import FallbackImage from './FallbackImage';
+import FavoriteHeart from './FavoriteHeart';
+import { favoriteHeartCss } from './favorite-heart-css';
+import { songId, displayTitle } from '../lib/song-id';
 import { StatsBadge } from './StatsBadge';
 import { NEW_POOL_VERSIONS, NEWEST_OLD_POOL_VERSION } from '../lib/versions';
 
@@ -445,6 +449,8 @@ export function SongDetail({ entry, gains, onClose }: {
     const hasPrev = isPlayed && song.prev_achievement != null;
     // one small line under the artist: genre and BPM, whichever the song has
     const genreBpm = song ? [song.genre, song.bpm ? `${song.bpm} BPM` : null].filter(Boolean).join(' · ') : '';
+    // the song's own page (/songs/<id>), for the title link and the heart
+    const songPageId = song ? songId(song.title) : '';
 
     return (
         <dialog
@@ -456,6 +462,9 @@ export function SongDetail({ entry, gains, onClose }: {
         >
             {entry && song && diff && (
                 <div className="bf-dlg" key={`${song.difficulty}-${song.kind}-${song.title}`} style={{ '--diff': diff.color } as CSSProperties}>
+                    <style>{favoriteHeartCss}</style>
+                    {/* top right: favorite the song, then close */}
+                    <FavoriteHeart id={songPageId} className="bf-dlg-heart" />
                     <button type="button" className="bf-dlg-x" onClick={onClose} aria-label="Close">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                             <path d="M5 5l14 14M19 5L5 19" />
@@ -472,7 +481,13 @@ export function SongDetail({ entry, gains, onClose }: {
                                 <span className="bf-chip">{/dx/i.test(song.kind ?? '') ? 'DX' : 'STD'}</span>
                                 <span className="bf-chip bf-chip-diff">{diff.label} {song.internal_difficulty?.toFixed(1)}</span>
                             </div>
-                            <h3 className="bf-dlg-title">{song.title}</h3>
+                            <h3 className="bf-dlg-title">
+                                {/* the title opens the song's page: every chart and who has the top score */}
+                                <Link href={`/songs/${songPageId}`} className="bf-dlg-title-link" title="open the song's page">
+                                    {displayTitle(song.title)}
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+                                </Link>
+                            </h3>
                             {song.artist && <p className="bf-dlg-artist">{song.artist}</p>}
                             {genreBpm && <p className="bf-dlg-subline">{genreBpm}</p>}
                         </div>

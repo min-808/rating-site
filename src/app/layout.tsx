@@ -7,15 +7,20 @@ import AccountButton from '../components/AccountButton';
 import { GoogleAnalytics } from '@next/third-parties/google';
 
 /*
- * The bar at the top: leaderboard and faq centered, the account button and theme toggle
- * pinned to the right. On narrow screens there isn't room for both, so the right-hand
- * pair would cover the faq button: there, everything goes in one centered row instead
- * (leaderboard, faq, account, then the toggle), each button as wide as its text. (The account button's look is in AccountButton.tsx.)
+ * The bar at the top: leaderboard, songs and faq centered, the account button and theme
+ * toggle on the right. On narrow screens there isn't room for both side by side: there,
+ * everything goes in one centered row instead (leaderboard, songs, faq, account, then the
+ * toggle), each button as wide as its text. (The account button's look is in AccountButton.tsx.)
  */
 const siteTopCss = `
-  .site-top { max-width: 800px; margin: 0 auto; padding-top: 0.5rem; font-family: sans-serif; position: relative; }
-  .site-tools { position: absolute; right: 1rem; top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-  .site-nav { display: flex; justify-content: center; gap: 1rem; margin-bottom: 0.5rem; }
+  /* three columns: an empty one on the left, the nav links in the middle, the account
+     button + theme toggle on the right. The two outer columns are the same width, so the
+     links stay centered, and each column gets its own space, so the account button can
+     never sit on top of a link and swallow its clicks. */
+  .site-top { max-width: 800px; margin: 0 auto 0.5rem; padding: 0.5rem 1rem 0; box-sizing: border-box; font-family: sans-serif;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 1rem; }
+  .site-nav { grid-column: 2; grid-row: 1; display: flex; justify-content: center; gap: 1rem; }
+  .site-tools { grid-column: 3; grid-row: 1; justify-self: end; display: flex; align-items: center; gap: 0.5rem; }
   .site-link { padding: 0.4rem 1rem; background-color: var(--btn-bg); border: 1px solid var(--btn-border);
     border-radius: 6px; text-decoration: none; color: var(--btn-text); font-weight: bold; }
 

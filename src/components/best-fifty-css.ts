@@ -108,16 +108,25 @@ export const bestFiftyCss = `
     display: flex; align-items: center; justify-content: center; background: transparent; border: none;
     color: #cfcfcf; cursor: pointer; }
   .bf-dlg-x:hover { background: rgba(255,255,255,0.08); color: #fff; }
-  .bf-dlg-head { display: flex; gap: 0.9rem; align-items: flex-start; margin-bottom: 0.85rem; padding-right: 26px; }
+  .bf-dlg-head { display: flex; gap: 0.9rem; align-items: flex-start; margin-bottom: 0.85rem; padding-right: 66px; } /* room for the heart + close button */
+  /* the favorite heart, just left of the close button */
+  .fh.bf-dlg-heart { position: absolute; top: 9px; right: 44px; color: #cfcfcf; } /* .fh.: beats the heart's own position: relative */
+  .fh.bf-dlg-heart.is-on { color: #ff4d8d; }
   .bf-dlg-art { width: 116px; height: 116px; object-fit: cover; border-radius: 8px; flex-shrink: 0;
     box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
   .bf-dlg-info { min-width: 0; }
-  .bf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.5rem; }
+  .bf-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 0.5rem; }
   .bf-chip { font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 5px;
     background: #1c1c1f; color: #cfcfcf; border: 1px solid #2c2c30; }
-  .bf-chip-version { border: none; color: #fff; }
-  .bf-chip-diff { background: var(--diff); color: #fff; border: none; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+  .bf-chip-version { border: 1px solid transparent; color: #fff; }
+  .bf-chip-diff { background: var(--diff); color: #fff; border: 1px solid transparent; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
   .bf-dlg-title { margin: 0 0 0.3rem; font-size: 1.25rem; font-weight: 800; overflow-wrap: anywhere; }
+  /* the title links to the song's page: looks like the title, underlines on hover, with a small arrow */
+  .bf-dlg-title-link { color: inherit; text-decoration: none; }
+  .bf-dlg-title-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .bf-dlg-title-link:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; border-radius: 4px; }
+  .bf-dlg-title-link svg { display: inline-block; vertical-align: -1px; margin-left: 4px; opacity: 0.55; }
+  .bf-dlg-title-link:hover svg { opacity: 1; }
   .bf-dlg-artist { margin: 0; font-size: 0.8rem; color: #9a9a9e; }
   .bf-dlg-artist + .bf-dlg-artist { margin-top: 0.8rem; }
   .bf-divider { height: 1px; background: #232326; margin: 0.85rem 0; }
@@ -233,4 +242,16 @@ export const bestFiftyCss = `
   .bf-link small { display: block; font-size: 0.66rem; font-weight: 600; color: #9a9a9e; }
   .bf-link svg { color: #e5484d; flex-shrink: 0; }
   .bf-link svg[stroke] { color: #5aa2ff; }
+
+  /* PILL TEXT, CENTERED. Where capitals and digits sit inside a line of text depends on the
+     font (0 to ~0.12em too high in the fonts measured, worse when a character falls back to
+     another font: ＆ ™ kana ✓). text-box-trim cuts that built-in space off, so the text is
+     centered in the pill whatever font draws it. The padding is restated in em to keep each
+     pill the size it was. Browsers without text-box-trim keep the rules above unchanged. */
+  @supports (text-box-trim: trim-both) {
+    .bf-tag { display: inline-block; padding: 0.34em 0.55em; text-box-trim: trim-both; text-box-edge: cap alphabetic; }
+    .bf-chip { display: inline-block; padding: 0.42em 0.7em; text-box-trim: trim-both; text-box-edge: cap alphabetic; }
+    .bf-level-badge { display: inline-block; padding: 0.435em 10px 0.435em 12px; text-box-trim: trim-both; text-box-edge: cap alphabetic; }
+    .bf-rating-badge { padding: 0.42em 10px 0.42em 12px; text-box-trim: trim-both; text-box-edge: cap alphabetic; }
+  }
 `;

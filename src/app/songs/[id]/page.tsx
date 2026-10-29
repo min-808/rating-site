@@ -5,6 +5,7 @@ import { getCatalogSong } from '../../../lib/song-catalog';
 import { getSongRecords } from '../../../lib/song-records';
 import { buildSongView } from '../../../lib/song-view';
 import { isGf } from '../../../lib/special-players';
+import { displayTitle } from '../../../lib/song-id';
 
 /**
  * /songs/[id]: one song, laid out like osu!'s beatmap page (components/SongPageView.tsx).
@@ -25,8 +26,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const song = await getCatalogSong(id);
   if (!song) return { title: '404 - HI Maimai' };
   return {
-    title: `${song.title} - HI Maimai`,
-    description: `${song.title}${song.artist ? ` by ${song.artist}` : ''}: charts and the top scores`,
+    title: `${displayTitle(song.title)} - HI Maimai`,
+    description: `${displayTitle(song.title)}${song.artist ? ` by ${song.artist}` : ''}: charts and the top scores`,
   };
 }
 
@@ -40,7 +41,7 @@ export default async function SongPage({ params }: Props) {
 
   return (
     <SongPageView
-      song={{ title: song.title, artist: song.artist, genre: song.genre, bpm: song.bpm, version: song.version, na: song.na, jacket: song.jacket }}
+      song={{ id: song.id, title: song.title, artist: song.artist, genre: song.genre, bpm: song.bpm, version: song.version, na: song.na, jacket: song.jacket }}
       view={view}
     />
   );

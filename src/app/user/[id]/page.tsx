@@ -30,6 +30,8 @@ import PastNames from '../../../components/PastNames';
 import ChartsPlayed, { ChartsPlayedLabel } from '../../../components/ChartsPlayed';
 import { CHART_DIFFICULTIES, type DifficultyCounts } from '../../../lib/difficulties';
 import FavoriteScores from '../../../components/FavoriteScores';
+import FavoriteSongs, { type FavoriteSongItem } from '../../../components/FavoriteSongs';
+import { getCatalog } from '../../../lib/song-catalog';
 import { playStats } from '../../../lib/play-stats';
 
 interface UserPageProps {
@@ -543,9 +545,20 @@ export default async function UserPage({ params }: UserPageProps) {
   const session = await getSession();
   const account = await client
     .db('maimai')
-    .collection<{ _id: string; bio?: string; favorites?: string[]; show_jp_scores?: boolean }>('accounts')
-    .findOne({ _id: String(player.user_id) }, { projection: { _id: 1, bio: 1, favorites: 1, show_jp_scores: 1 } });
+    .collection<{ _id: string; bio?: string; favorites?: string[]; favorite_songs?: string[]; show_jp_scores?: boolean }>('accounts')
+    .findOne({ _id: String(player.user_id) }, { projection: { _id: 1, bio: 1, favorites: 1, favorite_songs: 1, show_jp_scores: 1 } });
   const isOwner = session?.userId === String(player.user_id);
+
+  // the songs they hearted on the song pages, newest first. the song list is already kept on
+  // the server (lib/song-catalog.ts), so this costs no extra database read
+  let favoriteSongs: FavoriteSongItem[] = [];
+  if (account?.favorite_songs?.length) {
+    const byKey = new Map((await getCatalog()).map((song) => [song.key, song]));
+    favoriteSongs = [...account.favorite_songs].reverse().flatMap((key) => {
+      const song = byKey.get(key);
+      return song ? [{ id: song.id, title: song.title, artist: song.artist, jacket: song.jacket }] : [];
+    });
+  }
 
   const pastNames = [...new Set((player.old_names ?? []).map(toNormalWidth))].filter(
       (n) => n !== displayName,
@@ -769,6 +782,9 @@ export default async function UserPage({ params }: UserPageProps) {
         {account && !optedOut && (
             <FavoriteScores songs={songs ?? []} initialFavorites={account.favorites ?? []} canEdit={isOwner} />
         )}
+
+        {/* hearted songs: claimed profiles only. not score data, so they stay when scores are hidden */}
+        {account && <FavoriteSongs songs={favoriteSongs} isOwner={isOwner} />}
 
         {optedOut ? (
         <p className="bf-hidden">best 50 scores hidden</p>

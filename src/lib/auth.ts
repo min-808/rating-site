@@ -30,6 +30,7 @@ export type AccountDoc = {
   updated_at: Date;
   username_changed_at?: Date; // the last change in settings (not the one picked when claiming)
   past_usernames?: Array<{ username: string; until: Date }>; // older first
+  favorite_songs?: string[]; // songs they hearted on the song pages: each song's key (lib/song-id.ts), newest last
 };
 
 export type SessionDoc = { _id: string; user_id: string; created_at: Date; expires_at: Date };

@@ -8,8 +8,11 @@ import { toNormalWidth } from './leaderboard';
 
 export const DIFFICULTY_ORDER = ['basic', 'advanced', 'expert', 'master', 'remaster'] as const;
 
-// kind: 1 is a DX chart, 0 a standard one. difficulty: index into DIFFICULTY_ORDER
-export type BrowserChart = [kind: 0 | 1, difficulty: number, internal: number];
+// one chart, packed small to keep the page light: [kind, difficultyIndex, internal]
+//   kind: 1 is a DX chart, 0 a standard one
+//   difficultyIndex: index into DIFFICULTY_ORDER (0 basic ... 4 remaster)
+//   internal: the chart constant, 13.7
+export type BrowserChart = [kind: 0 | 1, difficultyIndex: number, internal: number];
 
 export type BrowserSong = {
   id: string;
@@ -53,66 +56,78 @@ export const DEFAULT_FILTERS: BrowseFilters = {
 
 const fold = (text: string) => toNormalWidth(text ?? '').normalize('NFKC').toLowerCase();
 
-/** The charts of a song that pass the kind / difficulty / level filters. */
-export function matchingCharts(song: BrowserSong, f: BrowseFilters): BrowserChart[] {
-  const diffIndex = f.difficulty ? DIFFICULTY_ORDER.indexOf(f.difficulty as (typeof DIFFICULTY_ORDER)[number]) : -1;
-  return song.charts.filter(([kind, difficulty, internal]) => {
-    if (f.kind === 'dx' && kind !== 1) return false;
-    if (f.kind === 'standard' && kind !== 0) return false;
-    if (diffIndex >= 0 && difficulty !== diffIndex) return false;
-    if (f.level && gameLevel(internal) !== f.level) return false;
+/** Which of a song's charts pass the chart type / difficulty / level filters. */
+export function matchingCharts(song: BrowserSong, filters: BrowseFilters): BrowserChart[] {
+  const wantedDifficultyIndex = filters.difficulty
+    ? DIFFICULTY_ORDER.indexOf(filters.difficulty as (typeof DIFFICULTY_ORDER)[number])
+    : -1; // -1: any difficulty
+  return song.charts.filter(([kind, difficultyIndex, internal]) => {
+    if (filters.kind === 'dx' && kind !== 1) return false;
+    if (filters.kind === 'standard' && kind !== 0) return false;
+    if (wantedDifficultyIndex >= 0 && difficultyIndex !== wantedDifficultyIndex) return false;
+    if (filters.level && gameLevel(internal) !== filters.level) return false;
     return true;
   });
 }
 
-export function browse(songs: BrowserSong[], f: BrowseFilters): BrowserSong[] {
-  const query = f.query.trim();
-  const match = songMatcher(query);
-  const q = fold(query);
-  const chartFilterOn = Boolean(f.kind || f.difficulty || f.level);
+/** Is the search narrowing by chart (type, difficulty or level)? Then songs with no matching chart are left out. */
+export const hasChartFilter = (filters: BrowseFilters) => Boolean(filters.kind || filters.difficulty || filters.level);
 
-  // [song, how well it matched the search (2 title, 1 sounds like, 0.5 loosely, 1.5 artist), top constant]
-  const rows: Array<[BrowserSong, number, number]> = [];
+/** The songs that pass every filter and the search, in the order the list shows them. */
+export function filterAndSortSongs(songs: BrowserSong[], filters: BrowseFilters): BrowserSong[] {
+  const searchText = filters.query.trim();
+  const titleMatchScore = songMatcher(searchText); // (title, romaji) -> how well they match, 0 = not at all
+  const foldedSearchText = fold(searchText);
+  const chartFilterOn = hasChartFilter(filters);
+
+  type Match = {
+    song: BrowserSong;
+    searchScore: number; // how well it matched the search: 2 title, 1.5 artist, 1 sounds like, 0.5 loosely
+    hardestConstant: number; // for "sort: hardest first"
+  };
+  const matches: Match[] = [];
+
   for (const song of songs) {
-    if (f.region === 'na' && !song.na) continue;
-    if (f.genre && song.genre !== f.genre) continue;
-    if (f.version && song.version !== f.version) continue;
+    if (filters.region === 'na' && !song.na) continue;
+    if (filters.genre && song.genre !== filters.genre) continue;
+    if (filters.version && song.version !== filters.version) continue;
 
-    const charts = matchingCharts(song, f);
-    if (chartFilterOn && charts.length === 0) continue;
+    const chartsFound = matchingCharts(song, filters);
+    if (chartFilterOn && chartsFound.length === 0) continue;
 
-    let score = 2;
-    if (query) {
-      score = match(song.title, song.romaji);
-      if (score <= 0 && song.artist && fold(song.artist).includes(q)) score = 1.5;
-      if (score <= 0) continue;
+    let searchScore = 2; // no search: everything counts as a full match
+    if (searchText) {
+      searchScore = titleMatchScore(song.title, song.romaji);
+      if (searchScore <= 0 && song.artist && fold(song.artist).includes(foldedSearchText)) searchScore = 1.5;
+      if (searchScore <= 0) continue;
     }
-    rows.push([song, score, Math.max(...(chartFilterOn ? charts : song.charts).map((c) => c[2]))]);
+    const chartsToRank = chartFilterOn ? chartsFound : song.charts;
+    matches.push({ song, searchScore, hardestConstant: Math.max(...chartsToRank.map(([, , internal]) => internal)) });
   }
 
   const byName = (a: BrowserSong, b: BrowserSong) =>
     (a.romaji || a.title).toLowerCase().localeCompare((b.romaji || b.title).toLowerCase());
 
-  rows.sort(([a, sa, la], [b, sb, lb]) => {
-    if (sb !== sa) return sb - sa; // best matches first when searching
-    if (f.sort === 'newest') return (b.versionCode ?? 0) - (a.versionCode ?? 0) || byName(a, b);
-    if (f.sort === 'level') return lb - la || byName(a, b);
-    return byName(a, b);
+  matches.sort((a, b) => {
+    if (b.searchScore !== a.searchScore) return b.searchScore - a.searchScore; // best matches first when searching
+    if (filters.sort === 'newest') return (b.song.versionCode ?? 0) - (a.song.versionCode ?? 0) || byName(a.song, b.song);
+    if (filters.sort === 'level') return b.hardestConstant - a.hardestConstant || byName(a.song, b.song);
+    return byName(a.song, b.song);
   });
-  return rows.map(([song]) => song);
+  return matches.map((match) => match.song);
 }
 
 /** The choices for the genre and version drop-downs. */
-export function facets(songs: BrowserSong[]) {
+export function filterChoices(songs: BrowserSong[]) {
   const genres = new Set<string>();
-  const versions = new Map<string, number>();
-  for (const s of songs) {
-    if (s.genre) genres.add(s.genre);
-    if (s.version) versions.set(s.version, Math.max(versions.get(s.version) ?? 0, s.versionCode ?? 0));
+  const newestCodeByVersion = new Map<string, number>(); // version name -> its version code, for sorting
+  for (const song of songs) {
+    if (song.genre) genres.add(song.genre);
+    if (song.version) newestCodeByVersion.set(song.version, Math.max(newestCodeByVersion.get(song.version) ?? 0, song.versionCode ?? 0));
   }
   return {
     genres: [...genres].sort((a, b) => a.localeCompare(b)),
-    versions: [...versions].sort((a, b) => b[1] - a[1]).map(([name]) => name), // newest first
+    versions: [...newestCodeByVersion].sort((a, b) => b[1] - a[1]).map(([name]) => name), // newest first
   };
 }
 
@@ -125,3 +140,34 @@ export const DIFFICULTY_COLORS: Record<string, string> = {
 
 /** A constant as the site writes it: 13.7, and whole numbers below 7 (lib/level-summary.ts). */
 export const constantLabel = (internal: number) => (internal >= 7 ? internal.toFixed(1) : String(Math.floor(internal)));
+
+/**
+ * The pills on a song card: one row for the standard charts and one for DX, each easiest to
+ * hardest. When a difficulty is picked (the "any difficulty" drop-down), the charts that
+ * match the search are lit (" is-hit") and the rest dimmed (" is-dim"), so you can see which
+ * chart matched. Only the difficulty filter does this: picking DX / ST or a level still
+ * narrows the list, but leaves every pill as it is.
+ */
+export function songCardChartRows(song: BrowserSong, filters: BrowseFilters) {
+  const filtering = Boolean(filters.difficulty);
+  const chartsFound = new Set(filtering ? matchingCharts(song, filters) : []);
+  return ([0, 1] as const)
+    .map((kind) => ({
+      isDx: kind === 1,
+      pills: song.charts
+        .filter(([chartKind]) => chartKind === kind)
+        .sort((a, b) => a[1] - b[1]) // by difficulty index: basic first
+        .map((chart) => {
+          const [, difficultyIndex, internal] = chart;
+          const difficulty = DIFFICULTY_ORDER[difficultyIndex];
+          return {
+            key: `${kind}-${difficultyIndex}`,
+            label: constantLabel(internal), // the text in the pill: "13.7"
+            color: DIFFICULTY_COLORS[difficulty],
+            tooltip: `${kind ? 'DX' : 'Standard'} ${DIFFICULTY_LABELS[difficulty]} ${constantLabel(internal)}`,
+            highlightClass: !filtering ? '' : chartsFound.has(chart) ? ' is-hit' : ' is-dim',
+          };
+        }),
+    }))
+    .filter((row) => row.pills.length > 0);
+}

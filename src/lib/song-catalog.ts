@@ -68,7 +68,8 @@ async function build(): Promise<CatalogSong[]> {
         versionCode: Number.isFinite(code) ? code : null,
         jacket: meta?.blob ?? null,
         na: false,
-        titles: [...new Set([doc.title, meta?._id].filter((t): t is string => Boolean(t)))],
+        // typeof, not Boolean: a blank title ("") is still a title players' scores can have
+        titles: [...new Set([doc.title, meta?._id].filter((t): t is string => typeof t === 'string'))],
         charts: [],
         chartMap: new Map(),
       };
@@ -98,14 +99,14 @@ async function build(): Promise<CatalogSong[]> {
     .filter((s) => s.charts.length > 0); // utage and the like have no constants
 }
 
-export const getCatalog = unstable_cache(build, ['song-catalog-v1'], {
+export const getCatalog = unstable_cache(build, ['song-catalog-v2'] /* v2: the blank-titled song got an address (lib/song-id.ts) */, {
   revalidate: 6 * 60 * 60,
   tags: [SONG_DATA_TAG],
 });
 
 export async function getCatalogSong(id: string): Promise<CatalogSong | null> {
   const key = songKeyFromId(id);
-  if (!key) return null;
+  if (key === null) return null; // not a valid id. ("" is fine: it's the blank-titled song)
   return (await getCatalog()).find((s) => s.key === key) ?? null;
 }
 
