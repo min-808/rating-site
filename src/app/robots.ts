@@ -8,6 +8,13 @@ import type { MetadataRoute } from 'next';
  */
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: '*', allow: '/', disallow: ['/api/', '/admin', '/settings', '/login', '/loginhelp'] }],
+    rules: [{
+      userAgent: '*',
+      allow: '/',
+      disallow: ['/api/', '/admin', '/settings', '/login', '/loginhelp'],
+      // seconds between requests. Bing and most smaller crawlers follow it (Google ignores it),
+      // which keeps a full crawl of the song pages spread out instead of all at once
+      crawlDelay: 10,
+    }],
   };
 }

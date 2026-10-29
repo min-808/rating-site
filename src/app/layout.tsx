@@ -5,6 +5,13 @@ import { ThemeProvider } from '../components/ThemeProvider';
 import ThemeToggle from '../components/ThemeToggle';
 import AccountButton from '../components/AccountButton';
 import { GoogleAnalytics } from '@next/third-parties/google';
+import type { Metadata } from 'next';
+
+// no page translation, site-wide: browser translators (Chrome's especially) swap the text
+// for their own copies, which freezes text that changes without a reload (a song page's
+// chart switch) and leaves the fonts broken after going back to the original. this stops
+// Chrome offering it; translate="no" on <html> below tells every browser to leave it alone
+export const metadata: Metadata = { other: { google: 'notranslate' } };
 
 /*
  * The bar at the top: leaderboard, songs and faq centered, the account button and theme
@@ -39,7 +46,7 @@ const siteTopCss = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" translate="no" suppressHydrationWarning>
       <body>
         <ThemeProvider>
         <style>{siteTopCss}</style>
