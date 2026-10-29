@@ -14,7 +14,7 @@ import { getCatalog, toBrowserList } from '../../lib/song-catalog';
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Songs - HI Maimai',
+  title: 'Song List - HI Maimai',
   description: 'every maimai song, with its charts and who has the top score',
 };
 
@@ -23,7 +23,7 @@ export default async function SongsPage() {
 
   return (
     <main className="sg-main">
-      <h1>songs</h1>
+      <h1>song list</h1>
       <SongBrowser songs={songs} jacketBase={jacketBase} />
     </main>
   );
