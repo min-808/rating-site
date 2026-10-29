@@ -24,7 +24,6 @@ export default async function SongsPage() {
   return (
     <main className="sg-main">
       <h1>songs</h1>
-      <p className="sg-sub">every song, and who has the best score on each chart. pick one to see its leaderboard.</p>
       <SongBrowser songs={songs} jacketBase={jacketBase} />
     </main>
   );

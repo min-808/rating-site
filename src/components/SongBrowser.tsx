@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   filterAndSortSongs, filterChoices, songCardChartRows, DEFAULT_FILTERS, DIFFICULTY_ORDER, DIFFICULTY_LABELS,
-  LEVEL_OPTIONS, type BrowserSong, type BrowseFilters,
+  DIFFICULTY_COLORS, LEVEL_OPTIONS, type BrowserSong, type BrowseFilters, type MyCharts,
 } from '../lib/song-browse';
 import FallbackImage from './FallbackImage';
 import FavoriteHeart from './FavoriteHeart';
+import { loadFavoriteSongs, useFavoriteSongs } from './favorite-songs-store';
 import { favoriteHeartCss } from './favorite-heart-css';
 import { songPagesCss } from './song-pages-css';
 import { displayTitle } from '../lib/song-id';
@@ -15,12 +16,63 @@ import { displayTitle } from '../lib/song-id';
 /**
  * /songs: every song, searchable. Everything filters in the browser as you type (the list
  * is sent once), using lib/song-browse.ts. Search finds a title (also its romaji, so
- * "umiyuri" finds a japanese title) or an artist. Shows 60 at a time; the search is kept in
- * the address (?q=) so a search can be shared (read once the page is open). Each card opens the song's page.
+ * "umiyuri" finds a japanese title) or an artist. Shows 60 at a time; the search and the
+ * drop-downs are kept in the address (?q=...&sort=...), so a search can be shared and going
+ * back to the list brings them back (read once the page is open). Each card opens the song's page.
  */
 
 /** How many song cards show at first, and how many more each "show more" adds. */
-const SONGS_PER_PAGE = 60;
+const SONGS_PER_PAGE = 50;
+
+// each filter's name in the address. only filters that aren't at their default are written
+const ADDRESS_NAMES: Record<keyof BrowseFilters, string> = {
+  query: 'q', level: 'level', difficulty: 'diff', kind: 'type', genre: 'genre', version: 'version', region: 'region',
+  pool: 'pool', hearted: 'hearted', played: 'played', raise: 'raise', sort: 'sort',
+};
+// what each drop-down can be (anything else in the address is ignored). the search box and
+// genre / version take any text: one that matches nothing just shows no songs
+const ALLOWED: Partial<Record<keyof BrowseFilters, readonly string[]>> = {
+  level: LEVEL_OPTIONS, difficulty: DIFFICULTY_ORDER, kind: ['dx', 'standard'], region: ['na', 'intl'],
+  pool: ['new', 'old'], hearted: ['1'], played: ['played', 'unplayed'], raise: ['1'], sort: ['title', 'artist', 'popular', 'newest', 'oldest', 'level', 'easiest'],
+};
+const filterKeys = Object.keys(ADDRESS_NAMES) as (keyof BrowseFilters)[];
+
+// the sort bar. orders: what the first tap sorts by, then what tapping it again flips to
+const SORTS: { label: string; orders: BrowseFilters['sort'][]; arrows: string[] }[] = [
+  { label: 'title', orders: ['title'], arrows: [] },
+  { label: 'artist', orders: ['artist'], arrows: [] },
+  { label: 'popularity', orders: ['popular'], arrows: [] },
+  { label: 'version', orders: ['newest', 'oldest'], arrows: ['newest ↓', 'oldest ↑'] },
+  { label: 'level', orders: ['level', 'easiest'], arrows: ['hardest ↓', 'easiest ↑'] },
+];
+
+function FilterRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="sg-row" role="group" aria-label={label}>
+      <span className="sg-row-label">{label}</span>
+      <div className="sg-chips">{children}</div>
+    </div>
+  );
+}
+
+/** One option in a filter row. color: a difficulty's color, a dot before it, and its fill when picked. */
+function Chip({ on, color, onClick, title, children }: { on: boolean; color?: string; onClick: () => void; title?: string; children: ReactNode }) {
+  return (
+    <button type="button" title={title} className={`sg-chip${on ? ' is-on' : ''}${color ? ' has-color' : ''}`} aria-pressed={on} onClick={onClick}
+      style={color ? ({ '--chip': color } as CSSProperties) : undefined}>
+      {children}
+    </button>
+  );
+}
+
+function filtersFromAddress(params: URLSearchParams): BrowseFilters {
+  const filters = { ...DEFAULT_FILTERS } as Record<keyof BrowseFilters, string>;
+  for (const key of filterKeys) {
+    const value = params.get(ADDRESS_NAMES[key]);
+    if (value && (!ALLOWED[key] || ALLOWED[key].includes(value))) filters[key] = value;
+  }
+  return filters as BrowseFilters;
+}
 
 export default function SongBrowser({ songs, jacketBase = '' }: { songs: BrowserSong[]; jacketBase?: string }) {
   // the search box and every drop-down, and how many cards are showing
@@ -34,72 +86,167 @@ export default function SongBrowser({ songs, jacketBase = '' }: { songs: Browser
   };
 
   const { genres, versions } = useMemo(() => filterChoices(songs), [songs]); // drop-down choices
-  const matchingSongs = useMemo(() => filterAndSortSongs(songs, filters), [songs, filters]);
+  // hearted songs, for the "hearted" filter (shown once we know they're signed in)
+  const favorites = useFavoriteSongs();
+  useEffect(() => { loadFavoriteSongs(); }, []);
+  // the signed-in player's charts, for "played / unplayed" and "could raise my rating"
+  // (/api/profile/my-charts). those rows only show for a signed-in player with scores
+  const [mine, setMine] = useState<(MyCharts & { floors: { new: number; old: number } }) | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/profile/my-charts')
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d.hasScores) setMine({ played: d.played, raise: d.raise, floors: d.floors }); })
+      .catch(() => {}); // no rows then: the list works the same without them
+    return () => { cancelled = true; };
+  }, []);
+  const matchingSongs = useMemo(() => filterAndSortSongs(songs, filters, favorites.ids, mine), [songs, filters, favorites.ids, mine]);
   // anything different from the defaults? then show "reset filters"
   const filtersChanged = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS);
+  // how many filters are picked (not the search or the sort), for the phone's "filters (2)" button
+  const pickedCount = filterKeys.filter((key) => key !== 'query' && key !== 'sort' && filters[key] !== DEFAULT_FILTERS[key]).length;
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // a shared link (/songs?q=...) fills the search box. read here, in the browser, so the
-  // page itself doesn't depend on the request and can be kept and served to everyone
+  // "new songs" lists the newest first, like sorting by version. only while the sort is
+  // still the default (title), so a sort someone picked stays, and turning it off goes back
+  const toggleNewSongs = () => {
+    const turningOn = filters.pool !== 'new';
+    setFilters((previous) => ({
+      ...previous,
+      pool: turningOn ? 'new' : '',
+      sort: turningOn && previous.sort === 'title' ? 'newest' : !turningOn && previous.sort === 'newest' ? 'title' : previous.sort,
+    }));
+    setVisibleSongCount(SONGS_PER_PAGE);
+  };
+
+  // the version row shows the maimai DX versions; the ones before DX (FiNALE and older) are
+  // behind "older versions", unless one of them is picked
+  const [showOlderVersions, setShowOlderVersions] = useState(false);
+  const firstOlderIndex = versions.indexOf('DX') + 1; // versions are newest first. 0: no "DX", so show them all
+  const olderPicked = firstOlderIndex > 0 && versions.indexOf(filters.version) >= firstOlderIndex;
+  const versionsShown = showOlderVersions || olderPicked || firstOlderIndex === 0 ? versions : versions.slice(0, firstOlderIndex);
+
+  // a shared link, or coming back to the list, fills the search and drop-downs from the
+  // address. read here, in the browser, so the page itself doesn't depend on the request
+  // and can be kept and served to everyone
   const [addressRead, setAddressRead] = useState(false);
   useEffect(() => {
-    const searchInAddress = new URLSearchParams(window.location.search).get('q');
-    if (searchInAddress) setFilters((previous) => ({ ...previous, query: searchInAddress }));
+    setFilters(filtersFromAddress(new URLSearchParams(window.location.search)));
     setAddressRead(true);
   }, []);
 
-  // keep the search in the address, without adding a history entry for every keystroke
+  // keep them in the address, without adding a history entry for every keystroke or pick
   useEffect(() => {
     if (!addressRead) return; // not before the address has been read, or it would erase it
     const url = new URL(window.location.href);
-    const searchText = filters.query.trim();
-    if (searchText) url.searchParams.set('q', searchText); else url.searchParams.delete('q');
-    window.history.replaceState(null, '', url);
-  }, [filters.query, addressRead]);
+    for (const key of filterKeys) {
+      const value = key === 'query' ? filters.query.trim() : filters[key];
+      if (value && value !== DEFAULT_FILTERS[key]) url.searchParams.set(ADDRESS_NAMES[key], value);
+      else url.searchParams.delete(ADDRESS_NAMES[key]);
+    }
+    window.history.replaceState(window.history.state, '', url);
+  }, [filters, addressRead]);
 
   return (
     <>
       <style>{songPagesCss}</style>
       <style>{favoriteHeartCss}</style>
 
-      <div className="sg-controls">
-        <input
-          className="sg-input sg-search"
-          type="search"
-          value={filters.query}
-          onChange={(event) => setFilter('query', event.target.value)}
-          placeholder="search songs (title, romaji or artist)"
-          aria-label="search songs"
-        />
-        <select className="sg-select" value={filters.level} onChange={(event) => setFilter('level', event.target.value)} aria-label="level">
-          <option value="">any level</option>
-          {[...LEVEL_OPTIONS].reverse().map((l) => <option key={l} value={l}>level {l}</option>)}
-        </select>
-        <select className="sg-select" value={filters.difficulty} onChange={(event) => setFilter('difficulty', event.target.value)} aria-label="difficulty">
-          <option value="">any difficulty</option>
-          {DIFFICULTY_ORDER.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
-        </select>
-        <select className="sg-select" value={filters.kind} onChange={(event) => setFilter('kind', event.target.value as BrowseFilters['kind'])} aria-label="chart type">
-          <option value="">DX and standard</option>
-          <option value="dx">DX only</option>
-          <option value="standard">standard only</option>
-        </select>
-        <select className="sg-select" value={filters.genre} onChange={(event) => setFilter('genre', event.target.value)} aria-label="genre">
-          <option value="">any genre</option>
-          {genres.map((g) => <option key={g} value={g}>{g}</option>)}
-        </select>
-        <select className="sg-select" value={filters.version} onChange={(event) => setFilter('version', event.target.value)} aria-label="version">
-          <option value="">any version</option>
-          {versions.map((v) => <option key={v} value={v}>{v}</option>)}
-        </select>
-        <select className="sg-select" value={filters.region} onChange={(event) => setFilter('region', event.target.value as BrowseFilters['region'])} aria-label="region">
-          <option value="na">North America</option>
-          <option value="intl">every song (international)</option>
-        </select>
-        <select className="sg-select" value={filters.sort} onChange={(event) => setFilter('sort', event.target.value as BrowseFilters['sort'])} aria-label="sort by">
-          <option value="title">sort: title</option>
-          <option value="newest">sort: newest first</option>
-          <option value="level">sort: hardest first</option>
-        </select>
+      <div className="sg-panel">
+        <label className="sg-searchbox">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
+          </svg>
+          <input
+            className="sg-input"
+            type="search"
+            value={filters.query}
+            onChange={(event) => setFilter('query', event.target.value)}
+            placeholder="search songs"
+            aria-label="search songs"
+          />
+        </label>
+
+        {/* phones only: the rows are tall, so they fold away behind this */}
+        <button type="button" className="sg-filters-toggle" aria-expanded={filtersOpen} onClick={() => setFiltersOpen((open) => !open)}>
+          {filtersOpen ? 'hide filters' : `filters${pickedCount ? ` (${pickedCount})` : ''}`}
+        </button>
+
+        {/* one row per filter, osu!-style: tap an option to pick it */}
+        <div className={`sg-rows${filtersOpen ? ' is-open' : ''}`}>
+          <FilterRow label="general">
+            <Chip on={filters.pool === 'new'} onClick={toggleNewSongs}>new songs</Chip>
+            <Chip on={filters.pool === 'old'} onClick={() => setFilter('pool', filters.pool === 'old' ? '' : 'old')}>old songs</Chip>
+            {favorites.signedIn && (
+              <Chip on={filters.hearted === '1'} onClick={() => setFilter('hearted', filters.hearted ? '' : '1')}>favorites</Chip>
+            )}
+          </FilterRow>
+          {mine && (
+            <FilterRow label="my scores">
+              <Chip on={!filters.played} onClick={() => setFilter('played', '')}>any</Chip>
+              <Chip on={filters.played === 'played'} onClick={() => setFilter('played', 'played')}>played</Chip>
+              <Chip on={filters.played === 'unplayed'} onClick={() => setFilter('played', 'unplayed')}>unplayed</Chip>
+              <span className="sg-chip-gap" aria-hidden="true" />
+              <Chip
+                on={filters.raise === '1'}
+                onClick={() => setFilter('raise', filters.raise ? '' : '1')}
+                title={`charts that would get into your best 50 with an SSS+: above your B15 floor (${mine.floors.new}) or B35 floor (${mine.floors.old})`}
+              >
+                could raise my rating
+              </Chip>
+            </FilterRow>
+          )}
+          <FilterRow label="difficulty">
+            <Chip on={!filters.difficulty} onClick={() => setFilter('difficulty', '')}>any</Chip>
+            {DIFFICULTY_ORDER.map((d) => (
+              <Chip key={d} on={filters.difficulty === d} color={DIFFICULTY_COLORS[d]} onClick={() => setFilter('difficulty', d)}>
+                {DIFFICULTY_LABELS[d].toLowerCase()}
+              </Chip>
+            ))}
+          </FilterRow>
+          <FilterRow label="level">
+            <Chip on={!filters.level} onClick={() => setFilter('level', '')}>any</Chip>
+            {LEVEL_OPTIONS.map((l) => <Chip key={l} on={filters.level === l} onClick={() => setFilter('level', l)}>{l}</Chip>)}
+          </FilterRow>
+          <FilterRow label="chart type">
+            <Chip on={!filters.kind} onClick={() => setFilter('kind', '')}>any</Chip>
+            <Chip on={filters.kind === 'dx'} onClick={() => setFilter('kind', 'dx')}>DX</Chip>
+            <Chip on={filters.kind === 'standard'} onClick={() => setFilter('kind', 'standard')}>standard</Chip>
+          </FilterRow>
+          <FilterRow label="genre">
+            <Chip on={!filters.genre} onClick={() => setFilter('genre', '')}>any</Chip>
+            {genres.map((g) => <Chip key={g} on={filters.genre === g} onClick={() => setFilter('genre', g)}>{g}</Chip>)}
+          </FilterRow>
+          <FilterRow label="version">
+            <Chip on={!filters.version} onClick={() => setFilter('version', '')}>any</Chip>
+            {versionsShown.map((v) => <Chip key={v} on={filters.version === v} onClick={() => setFilter('version', v)}>{v}</Chip>)}
+            {firstOlderIndex > 0 && !olderPicked && (
+              <button type="button" className="sg-chip-more" aria-expanded={showOlderVersions} onClick={() => setShowOlderVersions((shown) => !shown)}>
+                {showOlderVersions ? 'fewer versions' : `older versions (${versions.length - firstOlderIndex})`}
+              </button>
+            )}
+          </FilterRow>
+          <FilterRow label="region">
+            <Chip on={filters.region === 'na'} onClick={() => setFilter('region', 'na')}>na</Chip>
+            <Chip on={filters.region === 'intl'} onClick={() => setFilter('region', 'intl')}>international</Chip>
+          </FilterRow>
+        </div>
+
+        {/* sort: tap one to sort by it, tap it again to flip the order (where there are two) */}
+        <div className="sg-sortbar" role="group" aria-label="sort by">
+          <span className="sg-row-label">sort by</span>
+          {SORTS.map((sort) => {
+            const index = sort.orders.indexOf(filters.sort);
+            const on = index >= 0;
+            const next = on && sort.orders.length > 1 ? sort.orders[1 - index] : sort.orders[0];
+            return (
+              <button key={sort.label} type="button" className={`sg-sort${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => setFilter('sort', next)}>
+                {sort.label}
+                {on && sort.orders.length > 1 && <span className="sg-sort-dir">{sort.arrows[index]}</span>}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="sg-bar">
@@ -113,7 +260,7 @@ export default function SongBrowser({ songs, jacketBase = '' }: { songs: Browser
         <ul className="sg-grid">
           {matchingSongs.slice(0, visibleSongCount).map((song) => (
             <li key={song.id} className="sg-item">
-              <Link href={`/songs/${song.id}`} className="sg-link">
+              <Link href={`/songs/${encodeURIComponent(song.id)}`} className="sg-link">
                 {/* the jacket again, very faded, behind the whole card. same address as the small one, so it is downloaded once */}
                 {song.jacket && <FallbackImage src={jacketBase + song.jacket} alt="" className="sg-bg" />}
                 <div className="sg-jacket">
@@ -123,7 +270,7 @@ export default function SongBrowser({ songs, jacketBase = '' }: { songs: Browser
                   <p className="sg-name">{displayTitle(song.title)}</p>
                   {song.artist && <p className="sg-artist">{song.artist}</p>}
                   <div className="sg-pills">
-                    {songCardChartRows(song, filters).map((row) => (
+                    {songCardChartRows(song, filters, mine).map((row) => (
                       <div className="sg-pillrow" key={row.isDx ? 'dx' : 'standard'}>
                         <span className="sg-kind">{row.isDx ? 'DX' : 'ST'}</span>
                         {row.pills.map((pill) => (

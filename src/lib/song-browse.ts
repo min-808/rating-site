@@ -1,5 +1,6 @@
 import { songMatcher } from './song-search';
 import { toNormalWidth } from './leaderboard';
+import { NEW_POOL_VERSIONS } from './versions';
 
 /**
  * Searching and filtering the song list (/songs). Plain module, so it runs in the browser
@@ -24,6 +25,7 @@ export type BrowserSong = {
   versionCode: number | null;
   jacket: string | null; // without the start every jacket address shares (see toBrowserList)
   na: boolean;
+  plays: number; // players with a score on it, for "sort: popularity"
   charts: BrowserChart[];
 };
 
@@ -47,17 +49,29 @@ export type BrowseFilters = {
   difficulty: string; // "master", '' = any
   kind: '' | 'dx' | 'standard';
   region: 'na' | 'intl';
-  sort: 'title' | 'newest' | 'level';
+  pool: '' | 'new' | 'old'; // new: the versions that count toward B15, old: B35
+  hearted: '' | '1'; // only the signed-in player's hearted songs
+  played: '' | 'played' | 'unplayed'; // charts the signed-in player has (or hasn't) a score on
+  raise: '' | '1'; // charts that would get into the signed-in player's B50 with an SSS+
+  sort: 'title' | 'artist' | 'newest' | 'oldest' | 'level' | 'easiest' | 'popular';
 };
 
 export const DEFAULT_FILTERS: BrowseFilters = {
-  query: '', genre: '', version: '', level: '', difficulty: '', kind: '', region: 'na', sort: 'title',
+  query: '', genre: '', version: '', level: '', difficulty: '', kind: '', region: 'na', pool: '', hearted: '', played: '', raise: '', sort: 'title',
 };
 
 const fold = (text: string) => toNormalWidth(text ?? '').normalize('NFKC').toLowerCase();
 
-/** Which of a song's charts pass the chart type / difficulty / level filters. */
-export function matchingCharts(song: BrowserSong, filters: BrowseFilters): BrowserChart[] {
+/**
+ * The signed-in player's charts (/api/profile/my-charts), for the played / unplayed and
+ * "could raise my rating" filters. Per song id, a bit per chart (chartBit): one number per
+ * song rather than a list of charts, to keep it small.
+ */
+export type MyCharts = { played: Record<string, number>; raise: Record<string, number> };
+export const chartBit = (kind: number, difficultyIndex: number) => 1 << (kind * 5 + difficultyIndex);
+
+/** Which of a song's charts pass the chart type / difficulty / level filters (and the player's own, given their charts). */
+export function matchingCharts(song: BrowserSong, filters: BrowseFilters, mine?: MyCharts | null): BrowserChart[] {
   const wantedDifficultyIndex = filters.difficulty
     ? DIFFICULTY_ORDER.indexOf(filters.difficulty as (typeof DIFFICULTY_ORDER)[number])
     : -1; // -1: any difficulty
@@ -66,24 +80,38 @@ export function matchingCharts(song: BrowserSong, filters: BrowseFilters): Brows
     if (filters.kind === 'standard' && kind !== 0) return false;
     if (wantedDifficultyIndex >= 0 && difficultyIndex !== wantedDifficultyIndex) return false;
     if (filters.level && gameLevel(internal) !== filters.level) return false;
+    if (mine) {
+      const bit = chartBit(kind, difficultyIndex);
+      if (filters.played) {
+        const played = ((mine.played[song.id] ?? 0) & bit) !== 0;
+        if (played !== (filters.played === 'played')) return false;
+      }
+      if (filters.raise && ((mine.raise[song.id] ?? 0) & bit) === 0) return false;
+    }
     return true;
   });
 }
 
-/** Is the search narrowing by chart (type, difficulty or level)? Then songs with no matching chart are left out. */
-export const hasChartFilter = (filters: BrowseFilters) => Boolean(filters.kind || filters.difficulty || filters.level);
+/** Are the player's own filters on? Only once their charts are here: before that (or signed out) they're ignored. */
+const ownFilterOn = (filters: BrowseFilters, mine?: MyCharts | null) => Boolean(mine && (filters.played || filters.raise));
 
-/** The songs that pass every filter and the search, in the order the list shows them. */
-export function filterAndSortSongs(songs: BrowserSong[], filters: BrowseFilters): BrowserSong[] {
+/** Is the search narrowing by chart (type, difficulty, level, or the player's own)? Then songs with no matching chart are left out. */
+export const hasChartFilter = (filters: BrowseFilters, mine?: MyCharts | null) =>
+  Boolean(filters.kind || filters.difficulty || filters.level || ownFilterOn(filters, mine));
+
+/** The songs that pass every filter and the search, in the order the list shows them. heartedIds: the signed-in player's hearted songs, for the hearted filter. */
+export function filterAndSortSongs(
+  songs: BrowserSong[], filters: BrowseFilters, heartedIds: ReadonlySet<string> = new Set(), mine?: MyCharts | null,
+): BrowserSong[] {
   const searchText = filters.query.trim();
   const titleMatchScore = songMatcher(searchText); // (title, romaji) -> how well they match, 0 = not at all
   const foldedSearchText = fold(searchText);
-  const chartFilterOn = hasChartFilter(filters);
+  const chartFilterOn = hasChartFilter(filters, mine);
 
   type Match = {
     song: BrowserSong;
     searchScore: number; // how well it matched the search: 2 title, 1.5 artist, 1 sounds like, 0.5 loosely
-    hardestConstant: number; // for "sort: hardest first"
+    hardestConstant: number; // for "sort: hardest first" and "easiest first"
   };
   const matches: Match[] = [];
 
@@ -91,8 +119,13 @@ export function filterAndSortSongs(songs: BrowserSong[], filters: BrowseFilters)
     if (filters.region === 'na' && !song.na) continue;
     if (filters.genre && song.genre !== filters.genre) continue;
     if (filters.version && song.version !== filters.version) continue;
+    if (filters.pool) {
+      const isNew = song.version !== null && NEW_POOL_VERSIONS.includes(song.version);
+      if (isNew !== (filters.pool === 'new')) continue;
+    }
+    if (filters.hearted && !heartedIds.has(song.id)) continue;
 
-    const chartsFound = matchingCharts(song, filters);
+    const chartsFound = matchingCharts(song, filters, mine);
     if (chartFilterOn && chartsFound.length === 0) continue;
 
     let searchScore = 2; // no search: everything counts as a full match
@@ -110,8 +143,13 @@ export function filterAndSortSongs(songs: BrowserSong[], filters: BrowseFilters)
 
   matches.sort((a, b) => {
     if (b.searchScore !== a.searchScore) return b.searchScore - a.searchScore; // best matches first when searching
+    if (filters.sort === 'artist') return (a.song.artist ?? '\uffff').toLowerCase().localeCompare((b.song.artist ?? '\uffff').toLowerCase()) || byName(a.song, b.song);
     if (filters.sort === 'newest') return (b.song.versionCode ?? 0) - (a.song.versionCode ?? 0) || byName(a.song, b.song);
+    if (filters.sort === 'oldest') return (a.song.versionCode ?? Infinity) - (b.song.versionCode ?? Infinity) || byName(a.song, b.song); // no version: last
     if (filters.sort === 'level') return b.hardestConstant - a.hardestConstant || byName(a.song, b.song);
+    // the reverse of hardest first: by each song's hardest (matching) chart, lowest first
+    if (filters.sort === 'easiest') return a.hardestConstant - b.hardestConstant || byName(a.song, b.song);
+    if (filters.sort === 'popular') return b.song.plays - a.song.plays || byName(a.song, b.song);
     return byName(a.song, b.song);
   });
   return matches.map((match) => match.song);
@@ -145,12 +183,12 @@ export const constantLabel = (internal: number) => (internal >= 7 ? internal.toF
  * The pills on a song card: one row for the standard charts and one for DX, each easiest to
  * hardest. When a difficulty is picked (the "any difficulty" drop-down), the charts that
  * match the search are lit (" is-hit") and the rest dimmed (" is-dim"), so you can see which
- * chart matched. Only the difficulty filter does this: picking DX / ST or a level still
- * narrows the list, but leaves every pill as it is.
+ * chart matched. The difficulty filter and the player's own (played / unplayed, could raise)
+ * do this: picking DX / ST or a level still narrows the list, but leaves every pill as it is.
  */
-export function songCardChartRows(song: BrowserSong, filters: BrowseFilters) {
-  const filtering = Boolean(filters.difficulty);
-  const chartsFound = new Set(filtering ? matchingCharts(song, filters) : []);
+export function songCardChartRows(song: BrowserSong, filters: BrowseFilters, mine?: MyCharts | null) {
+  const filtering = Boolean(filters.difficulty) || ownFilterOn(filters, mine);
+  const chartsFound = new Set(filtering ? matchingCharts(song, filters, mine) : []);
   return ([0, 1] as const)
     .map((kind) => ({
       isDx: kind === 1,
