@@ -1,11 +1,24 @@
 /**
- * Styles for the searchable song list (sg-, SongBrowser.tsx and /songs). One string, drawn
+ * Styles for the searchable song list (sg-, SongBrowser.tsx and /charts). One string, drawn
  * in a <style> tag. Colors come from the site's theme variables, so both themes work. A
  * song's own page has its own file: song-detail-css.ts.
  */
 export const songPagesCss = `
   .sg-main { max-width: 1000px; margin: 0 auto; padding: 0 1rem 2rem; font-family: sans-serif; color: var(--text-main); }
-  .sg-main h1 { margin: 0.5rem 0 1rem; font-size: 1.6rem; }
+  /* same heading and subtitle as the leaderboard's (app/page.tsx) */
+  .sg-main h1 { margin: 0.67em 0 0.25rem; font-size: 2em; }
+  .sg-title-end { white-space: nowrap; }
+  .sg-title-icon { display: inline-block; height: 1em; width: auto; margin-left: 0.35em; vertical-align: -0.12em;
+    -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-drag: none; }
+  .sg-title-icon.is-jumping { animation: sg-icon-jump 0.5s ease-out; }
+  @keyframes sg-icon-jump {
+    0%, 100% { transform: translateY(0); }
+    30%      { transform: translateY(-0.3em); }
+    50%      { transform: translateY(0); }
+    65%      { transform: translateY(-0.1em); }
+    80%      { transform: translateY(0); }
+  }
+  .sg-updated { margin: 0 0 1.5rem; font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
 
   /* ============ LIST: search + filters ============ */
   /* one panel, like osu!'s beatmap listing: the search box, a row per filter, the sort bar */
@@ -57,7 +70,7 @@ export const songPagesCss = `
     .sg-row-label { padding: 0 0 4px; }
     .sg-sortbar .sg-row-label { width: 100%; margin: 0; }
   }
-  .sg-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 0 0.75rem; font-size: 0.82rem; color: var(--text-muted); }
+  .sg-bar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: 0 0 0.75rem; font-size: 0.82rem; color: var(--text-muted); }
   .sg-reset { font: inherit; font-size: 0.82rem; background: none; border: none; color: #2563eb; cursor: pointer; padding: 0; }
 
   /* ============ LIST: song cards ============ */

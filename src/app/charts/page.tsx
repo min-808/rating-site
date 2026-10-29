@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import SongBrowser from '../../components/SongBrowser';
+import JumpIcon from '../../components/JumpIcon';
 import { getCatalog, toBrowserList } from '../../lib/song-catalog';
 
 /**
- * /songs: every song, searchable and filterable (components/SongBrowser.tsx). The song list
+ * /charts: every song, searchable and filterable (components/SongBrowser.tsx). The song list
  * is joined once and kept on the server (lib/song-catalog.ts), then sent to the browser
  * slimmed down, so searching and filtering never wait on the server.
  *
@@ -14,7 +15,7 @@ import { getCatalog, toBrowserList } from '../../lib/song-catalog';
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Song List - HI Maimai',
+  title: 'Chart Leaderboards - HI Maimai',
   description: 'every maimai song, with its charts and who has the top score',
 };
 
@@ -23,8 +24,23 @@ export default async function SongsPage() {
 
   return (
     <main className="sg-main">
-      <h1>song list</h1>
-      <SongBrowser songs={songs} jacketBase={jacketBase} />
+      <h1>
+        HI Maimai Chart{' '}
+        <span className="sg-title-end">
+          Leaderboards
+          <JumpIcon src="/favicon.ico" className="sg-title-icon" />
+        </span>
+      </h1>
+      <SongBrowser
+        songs={songs}
+        jacketBase={jacketBase}
+        // like the leaderboard's (app/page.tsx). the date is fixed there while the scraper is paused
+        updated={<>
+          Last updated on Oct 21, 2026, 12:17:14 AM HST
+          <br />
+          Automatically updates every day at midnight
+        </>}
+      />
     </main>
   );
 }

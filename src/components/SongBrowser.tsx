@@ -74,7 +74,7 @@ function filtersFromAddress(params: URLSearchParams): BrowseFilters {
   return filters as BrowseFilters;
 }
 
-export default function SongBrowser({ songs, jacketBase = '' }: { songs: BrowserSong[]; jacketBase?: string }) {
+export default function SongBrowser({ songs, jacketBase = '', updated }: { songs: BrowserSong[]; jacketBase?: string; updated?: ReactNode }) {
   // the search box and every drop-down, and how many cards are showing
   const [filters, setFilters] = useState<BrowseFilters>(DEFAULT_FILTERS);
   const [visibleSongCount, setVisibleSongCount] = useState(SONGS_PER_PAGE);
@@ -100,6 +100,11 @@ export default function SongBrowser({ songs, jacketBase = '' }: { songs: Browser
       .catch(() => {}); // no rows then: the list works the same without them
     return () => { cancelled = true; };
   }, []);
+  // the whole list's counts for the region picked, for the line under the title
+  const regionCounts = useMemo(() => {
+    const inRegion = filters.region === 'na' ? songs.filter((song) => song.na) : songs;
+    return { songs: inRegion.length, charts: inRegion.reduce((n, song) => n + song.charts.length, 0) };
+  }, [songs, filters.region]);
   const matchingSongs = useMemo(() => filterAndSortSongs(songs, filters, favorites.ids, mine), [songs, filters, favorites.ids, mine]);
   // anything different from the defaults? then show "reset filters"
   const filtersChanged = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS);
@@ -151,6 +156,13 @@ export default function SongBrowser({ songs, jacketBase = '' }: { songs: Browser
     <>
       <style>{songPagesCss}</style>
       <style>{favoriteHeartCss}</style>
+
+      {/* the counts follow the region picked below; updated is the page's last-updated lines */}
+      <p className="sg-updated">
+        There are currently <b>{regionCounts.songs.toLocaleString('en-US')}</b> songs{' '}
+        (<b>{regionCounts.charts.toLocaleString('en-US')}</b> charts)
+        {updated && <><br /><br />{updated}</>}
+      </p>
 
       <div className="sg-panel">
         <label className="sg-searchbox">
@@ -249,10 +261,11 @@ export default function SongBrowser({ songs, jacketBase = '' }: { songs: Browser
         </div>
       </div>
 
-      <div className="sg-bar">
-        <span>{matchingSongs.length.toLocaleString()} song{matchingSongs.length === 1 ? '' : 's'}</span>
-        {filtersChanged && <button type="button" className="sg-reset" onClick={() => { setFilters(DEFAULT_FILTERS); setVisibleSongCount(SONGS_PER_PAGE); }}>reset filters</button>}
-      </div>
+      {filtersChanged && (
+        <div className="sg-bar">
+          <button type="button" className="sg-reset" onClick={() => { setFilters(DEFAULT_FILTERS); setVisibleSongCount(SONGS_PER_PAGE); }}>reset filters</button>
+        </div>
+      )}
 
       {matchingSongs.length === 0 ? (
         <p className="sg-empty">no songs match</p>
