@@ -64,7 +64,7 @@ const fold = (text: string) => toNormalWidth(text ?? '').normalize('NFKC').toLow
 
 /**
  * The signed-in player's charts (/api/profile/my-charts), for the played / unplayed and
- * "could raise my rating" filters. Per song id, a bit per chart (chartBit): one number per
+ * "raises rating" filters. Per song id, a bit per chart (chartBit): one number per
  * song rather than a list of charts, to keep it small.
  */
 export type MyCharts = { played: Record<string, number>; raise: Record<string, number> };

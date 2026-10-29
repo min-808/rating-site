@@ -56,9 +56,9 @@ function FilterRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 /** One option in a filter row. color: a difficulty's color, a dot before it, and its fill when picked. */
-function Chip({ on, color, onClick, title, children }: { on: boolean; color?: string; onClick: () => void; title?: string; children: ReactNode }) {
+function Chip({ on, color, onClick, title, disabled, children }: { on: boolean; color?: string; onClick: () => void; title?: string; disabled?: boolean; children: ReactNode }) {
   return (
-    <button type="button" title={title} className={`sg-chip${on ? ' is-on' : ''}${color ? ' has-color' : ''}`} aria-pressed={on} onClick={onClick}
+    <button type="button" title={title} disabled={disabled} className={`sg-chip${on ? ' is-on' : ''}${color ? ' has-color' : ''}`} aria-pressed={on} onClick={onClick}
       style={color ? ({ '--chip': color } as CSSProperties) : undefined}>
       {children}
     </button>
@@ -86,10 +86,10 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
   };
 
   const { genres, versions } = useMemo(() => filterChoices(songs), [songs]); // drop-down choices
-  // hearted songs, for the "hearted" filter (shown once we know they're signed in)
+  // hearted songs, for the "favorites" filter
   const favorites = useFavoriteSongs();
   useEffect(() => { loadFavoriteSongs(); }, []);
-  // the signed-in player's charts, for "played / unplayed" and "could raise my rating"
+  // the signed-in player's charts, for "played / unplayed" and "raises rating"
   // (/api/profile/my-charts). those rows only show for a signed-in player with scores
   const [mine, setMine] = useState<(MyCharts & { floors: { new: number; old: number } }) | null>(null);
   useEffect(() => {
@@ -189,22 +189,28 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
           <FilterRow label="general">
             <Chip on={filters.pool === 'new'} onClick={toggleNewSongs}>new songs</Chip>
             <Chip on={filters.pool === 'old'} onClick={() => setFilter('pool', filters.pool === 'old' ? '' : 'old')}>old songs</Chip>
-            {favorites.signedIn && (
-              <Chip on={filters.hearted === '1'} onClick={() => setFilter('hearted', filters.hearted ? '' : '1')}>favorites</Chip>
-            )}
+            {/* there from the start, like the rest (the page is the same for everyone, so who's
+                signed in is only known once the browser asks); greyed out once we know they aren't */}
+            <Chip
+              on={filters.hearted === '1'}
+              onClick={() => setFilter('hearted', filters.hearted ? '' : '1')}
+              disabled={favorites.loaded && !favorites.signedIn}
+              title={favorites.loaded && !favorites.signedIn ? 'sign in to favorite songs' : undefined}
+            >
+              favorites
+            </Chip>
           </FilterRow>
           {mine && (
             <FilterRow label="my scores">
               <Chip on={!filters.played} onClick={() => setFilter('played', '')}>any</Chip>
               <Chip on={filters.played === 'played'} onClick={() => setFilter('played', 'played')}>played</Chip>
               <Chip on={filters.played === 'unplayed'} onClick={() => setFilter('played', 'unplayed')}>unplayed</Chip>
-              <span className="sg-chip-gap" aria-hidden="true" />
               <Chip
                 on={filters.raise === '1'}
                 onClick={() => setFilter('raise', filters.raise ? '' : '1')}
                 title={`charts that would get into your best 50 with an SSS+: above your B15 floor (${mine.floors.new}) or B35 floor (${mine.floors.old})`}
               >
-                could raise my rating
+                raises rating
               </Chip>
             </FilterRow>
           )}

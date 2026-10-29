@@ -38,11 +38,11 @@ export const songPagesCss = `
     border: 1px solid var(--border-light); background: transparent; color: var(--text-muted);
     display: inline-flex; align-items: center; gap: 6px; transition: background 0.12s, color 0.12s, border-color 0.12s; }
   .sg-chip:hover { color: var(--text-main); border-color: var(--border-strong); }
+  .sg-chip:disabled { opacity: 0.4; cursor: default; color: var(--text-muted); border-color: var(--border-light); }
   .sg-chip.is-on { color: var(--bg-color); background: var(--text-main); border-color: var(--text-main); font-weight: 800; }
   .sg-chip.has-color::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--chip); }
   .sg-chip.has-color.is-on { color: #fff; background: var(--chip); border-color: var(--chip); }
   .sg-chip.has-color.is-on::before { background: #fff; }
-  .sg-chip-gap { width: 10px; } /* sets "could raise my rating" a little apart from played / unplayed */
   /* "older versions": a plain text button after the options, not one of them */
   .sg-chip-more { font: inherit; font-size: 0.8rem; font-weight: 600; padding: 6px 4px; border: none; background: none; cursor: pointer;
     color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
