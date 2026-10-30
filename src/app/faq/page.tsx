@@ -120,7 +120,7 @@ export default function Faq() {
       answer: (
         <>
             <p>
-                the stats behind them come from <a href="https://maimai.shiftpsh.com" target="_blank" rel="noopener noreferrer">maishift</a>. every night. it pulls how players in each rating range score on each chart, then picks the charts that players around your rating get SSS+ on most often
+                the stats behind them come from <a href="https://maimai.shiftpsh.com" target="_blank" rel="noopener noreferrer">maishift</a>. every night, it pulls how players in each rating range score on each chart, then picks the charts that players around your rating get SSS+ on most often
             </p>
             <p>
                 you need to be at least 13k (silver) to get recommendations, since maishift doesn't group players below that
