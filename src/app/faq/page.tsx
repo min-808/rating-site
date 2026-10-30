@@ -27,6 +27,9 @@ export default function Faq() {
             <p>
                 since this site is unofficial, don't take the rankings as 100% accurate, but it's at least a decent approximation of where you stand in the local scene. it's also important to consider that rating is not the only metric of skill, so having more rating than one player doesn't necessarily mean you're better than them
             </p>
+            <p>
+                we are not affiliated with or endorsed by sega. maimai and all game-related content belong to sega and their respective owners
+            </p>
         </>
       ),
     },
@@ -108,6 +111,19 @@ export default function Faq() {
             </p>
             <p>
                 or, as mentioned in an earlier faq, the player had done a mid-day refresh of their scores
+            </p>
+        </>
+      ),
+    },
+    {
+      question: "where do chart recommendations come from?",
+      answer: (
+        <>
+            <p>
+                the stats behind them come from <a href="https://maimai.shiftpsh.com" target="_blank" rel="noopener noreferrer">maishift</a>. every night. it pulls how players in each rating range score on each chart, then picks the charts that players around your rating get SSS+ on most often
+            </p>
+            <p>
+                you need to be at least 13k (silver) to get recommendations, since maishift doesn't group players below that
             </p>
         </>
       ),
