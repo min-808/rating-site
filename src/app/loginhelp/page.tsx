@@ -101,7 +101,7 @@ const login_faq: Entry[] = [
       answer: (
         <>
             <p>
-                on your profile, you can write a <b>bio</b>, pick up to 5 of your <b>favorite scores</b> to show off, change your score visibility, pick your list of favorite songs/charts (WIP), and more!
+                on your profile, you can write a <b>bio</b>, pick up to 5 of your <b>favorite scores</b> to show off, change your score visibility, pick your list of favorite songs, and more!
             </p>
         </>
       ),

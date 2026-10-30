@@ -411,7 +411,7 @@ export default function SongPageView({ song, view, details }: { song: SongInfo; 
                   </a>
                 ))}
               </div>
-              <p className="song-details-note">disclaimer: scores are each player&apos;s best on this site. players who hide their scores aren&apos;t listed</p>
+              <p className="song-details-note">note: scores are each player&apos;s best on this site. players who hide their scores aren&apos;t listed</p>
             </section>
           </aside>
         </div>
