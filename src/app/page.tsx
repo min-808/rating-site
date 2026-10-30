@@ -37,6 +37,10 @@ const MILESTONE_DAYS = 3;
 // updates, plus room for any extra single-player runs in between
 const HISTORY_ENTRIES = 10;
 
+// an update this long after the one before it covers a stretch the scrapes couldn't run
+// (maimai NET down), so its milestones weren't really reached that day
+const GAP_DAYS = 2;
+
 // the calendar day an update happened on, in hawaii time ("2026-10-03")
 const dayOf = (date: Date) => date.toLocaleDateString('en-CA', { timeZone: TZ });
 
@@ -107,7 +111,7 @@ export default async function LeaderboardPage() {
     .flatMap((player) => {
       const history = player.history ?? [];
       // the best milestone this player crossed in the window, and when
-      let best: { milestone: number; date: Date } | null = null;
+      let best: { milestone: number; date: Date; afterGap: boolean } | null = null;
 
       for (let i = 1; i < history.length; i++) {
         const date = new Date(history[i].date);
@@ -120,7 +124,8 @@ export default async function LeaderboardPage() {
 
         // a big jump past two milestones shows the higher one
         const top = Math.max(...crossed);
-        if (!best || top > best.milestone) best = { milestone: top, date };
+        const afterGap = date.getTime() - new Date(history[i - 1].date).getTime() > GAP_DAYS * 86_400_000;
+        if (!best || top > best.milestone) best = { milestone: top, date, afterGap };
       }
 
       if (!best) return [];
@@ -129,7 +134,8 @@ export default async function LeaderboardPage() {
         href: `/user/${player.web_id}`,
         milestone: best.milestone,
         rating: player.rating,
-        when: daysAgoLabel(best.date, updateDate),
+        when: best.afterGap ? '' : daysAgoLabel(best.date, updateDate),
+        afterGap: best.afterGap,
         sortDate: best.date.getTime(),
       }];
     })
