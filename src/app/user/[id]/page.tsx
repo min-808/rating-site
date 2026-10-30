@@ -32,6 +32,9 @@ import { CHART_DIFFICULTIES, type DifficultyCounts } from '../../../lib/difficul
 import FavoriteScores from '../../../components/FavoriteScores';
 import FavoriteSongs, { type FavoriteSongItem } from '../../../components/FavoriteSongs';
 import { getCatalog, withSongPages } from '../../../lib/song-catalog';
+import RecommendedCharts from '../../../components/RecommendedCharts';
+import { buildMyCharts, type RecommendedChart } from '../../../lib/my-charts';
+import { bandStatsFor } from '../../../lib/recommend';
 import { playStats } from '../../../lib/play-stats';
 
 interface UserPageProps {
@@ -582,6 +585,7 @@ export default async function UserPage({ params }: UserPageProps) {
   const playerSongs = showJp ? mergeJpScores(player.songs, player.jp_songs) : (player.songs ?? []);
 
   let songs: PlayerDocument['songs'] = [];
+  let recommendedCharts: RecommendedChart[] = [];
 
   // the "charts by level" totals, for both region views, and the songs the NA view leaves out
   const levelTotals = { na: {} as Record<string, number>, intl: {} as Record<string, number> };
@@ -632,6 +636,11 @@ export default async function UserPage({ params }: UserPageProps) {
     // the song page each score's popup links to, for the few whose isn't just their title's
     // (a title two songs share). the song list is already kept on the server: no extra read
     songs = withSongPages(songs, await getCatalog());
+
+    // charts an SSS+ would put in their best 50, that players at their rating SSS+ most
+    // (lib/my-charts.ts, maishift's stats). none under 13000, or before the scraper has run
+    const band = await bandStatsFor(Number(player.rating) || 0);
+    if (band) recommendedCharts = buildMyCharts(playerSongs.filter((s) => (s.achievement ?? 0) > 0), await getCatalog(), band).list;
 
     // songs not available in North America (na: "0"). a title only counts as
     // excluded if every song with that title is marked, since a few titles are shared
@@ -805,6 +814,7 @@ export default async function UserPage({ params }: UserPageProps) {
               {/* her japanese scores add the versions only japan has to the B15 heading */}
               <BestFifty data={songs} extraNewVersions={showJp ? JAPAN_AHEAD_VERSIONS : undefined} />
             </section>
+            <RecommendedCharts charts={recommendedCharts} />
         </>
         )}
 
