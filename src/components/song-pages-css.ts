@@ -48,6 +48,11 @@ export const songPagesCss = `
     color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
   .sg-chip-more:hover { color: var(--text-main); }
   .sg-chip-more:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+  /* "more filters", centered under the rows, its chevron underneath */
+  .sg-more-filters { justify-self: center; display: flex; flex-direction: column; align-items: center; gap: 0; margin-top: 2px;
+    font: inherit; font-size: 0.78rem; font-weight: 400; padding: 2px 10px; border: none; background: none; cursor: pointer; color: var(--text-muted); }
+  .sg-more-filters:hover { color: var(--text-main); }
+  .sg-more-filters:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; border-radius: 6px; }
   .sg-chip:focus-visible, .sg-sort:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
 
   .sg-sortbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 8px 14px; border-top: 1px solid var(--border-light);

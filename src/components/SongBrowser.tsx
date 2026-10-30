@@ -30,6 +30,9 @@ const ADDRESS_NAMES: Record<keyof BrowseFilters, string> = {
   pool: 'pool', hearted: 'hearted', played: 'played', raise: 'raise', sort: 'sort',
 };
 // what each drop-down can be (anything else in the address is ignored). the search box and
+// the rows behind "more filters"
+const MORE_FILTERS = ['kind', 'genre', 'version', 'region'] as const;
+
 // genre / version take any text: one that matches nothing just shows no songs
 const ALLOWED: Partial<Record<keyof BrowseFilters, readonly string[]>> = {
   level: LEVEL_OPTIONS, difficulty: DIFFICULTY_ORDER, kind: ['dx', 'standard'], region: ['na', 'intl'],
@@ -116,6 +119,8 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
   // how many filters are picked (not the search or the sort), for the phone's "filters (2)" button
   const pickedCount = filterKeys.filter((key) => key !== 'query' && key !== 'sort' && filters[key] !== DEFAULT_FILTERS[key]).length;
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // the less used rows (MORE_FILTERS) fold away behind "more filters", so the songs start higher
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // "new songs" lists the newest first, like sorting by version. only while the sort is
   // still the default (title), so a sort someone picked stays, and turning it off goes back
@@ -129,6 +134,14 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
     setVisibleSongCount(SONGS_PER_PAGE);
   };
 
+  // the level row goes highest first, like the versions, and shows 10 and up; 1 to 9+ are
+  // behind "lower levels" at the end, unless one of them is picked
+  const [showLowLevels, setShowLowLevels] = useState(false);
+  const levelsHighFirst = [...LEVEL_OPTIONS].reverse();
+  const lowLevels = levelsHighFirst.filter((l) => parseFloat(l) < 10);
+  const lowPicked = lowLevels.includes(filters.level);
+  const levelsShown = showLowLevels || lowPicked ? levelsHighFirst : levelsHighFirst.filter((l) => parseFloat(l) >= 10);
+
   // the version row shows the maimai DX versions; the ones before DX (FiNALE and older) are
   // behind "older versions", unless one of them is picked
   const [showOlderVersions, setShowOlderVersions] = useState(false);
@@ -141,7 +154,10 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
   // and can be kept and served to everyone
   const [addressRead, setAddressRead] = useState(false);
   useEffect(() => {
-    setFilters(filtersFromAddress(new URLSearchParams(window.location.search)));
+    const fromAddress = filtersFromAddress(new URLSearchParams(window.location.search));
+    setFilters(fromAddress);
+    // a link with one of the folded-away filters picked opens them, so it's never picked unseen
+    if (MORE_FILTERS.some((key) => fromAddress[key] !== DEFAULT_FILTERS[key])) setMoreOpen(true);
     setAddressRead(true);
   }, []);
 
@@ -226,7 +242,8 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
           </FilterRow>
           <FilterRow label="difficulty">
             <Chip on={!filters.difficulty} onClick={() => setFilter('difficulty', '')}>any</Chip>
-            {DIFFICULTY_ORDER.map((d) => (
+            {/* hardest first, like the levels */}
+            {[...DIFFICULTY_ORDER].reverse().map((d) => (
               <Chip key={d} on={filters.difficulty === d} color={DIFFICULTY_COLORS[d]} onClick={() => setFilter('difficulty', d)}>
                 {DIFFICULTY_LABELS[d].toLowerCase()}
               </Chip>
@@ -234,8 +251,14 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
           </FilterRow>
           <FilterRow label="level">
             <Chip on={!filters.level} onClick={() => setFilter('level', '')}>any</Chip>
-            {LEVEL_OPTIONS.map((l) => <Chip key={l} on={filters.level === l} onClick={() => setFilter('level', l)}>{l}</Chip>)}
+            {levelsShown.map((l) => <Chip key={l} on={filters.level === l} onClick={() => setFilter('level', l)}>{l}</Chip>)}
+            {!lowPicked && (
+              <button type="button" className="sg-chip-more" aria-expanded={showLowLevels} onClick={() => setShowLowLevels((shown) => !shown)}>
+                {showLowLevels ? 'fewer levels' : 'lower levels'}
+              </button>
+            )}
           </FilterRow>
+          {moreOpen && <>
           <FilterRow label="chart type">
             <Chip on={!filters.kind} onClick={() => setFilter('kind', '')}>any</Chip>
             <Chip on={filters.kind === 'dx'} onClick={() => setFilter('kind', 'dx')}>DX</Chip>
@@ -250,7 +273,7 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
             {versionsShown.map((v) => <Chip key={v} on={filters.version === v} onClick={() => setFilter('version', v)}>{v}</Chip>)}
             {firstOlderIndex > 0 && !olderPicked && (
               <button type="button" className="sg-chip-more" aria-expanded={showOlderVersions} onClick={() => setShowOlderVersions((shown) => !shown)}>
-                {showOlderVersions ? 'fewer versions' : `older versions (${versions.length - firstOlderIndex})`}
+                {showOlderVersions ? 'fewer versions' : 'older versions'}
               </button>
             )}
           </FilterRow>
@@ -258,6 +281,17 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
             <Chip on={filters.region === 'na'} onClick={() => setFilter('region', 'na')}>na</Chip>
             <Chip on={filters.region === 'intl'} onClick={() => setFilter('region', 'intl')}>international</Chip>
           </FilterRow>
+          </>}
+          {/* centered under the rows with a chevron, like osu!'s "More Search Options". one way:
+              once open they stay open (until the page is reloaded) */}
+          {!moreOpen && (
+            <button type="button" className="sg-more-filters" onClick={() => setMoreOpen(true)}>
+              more search filters
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* sort: tap one to sort by it, tap it again to flip the order (where there are two) */}
