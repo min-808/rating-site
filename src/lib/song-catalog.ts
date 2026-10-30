@@ -66,6 +66,9 @@ async function playCounts(): Promise<Map<string, number>> {
 async function build(): Promise<CatalogSong[]> {
   const [levels, flags, metas, plays] = await Promise.all([getSongLevels(), getSongFlags(), getSongMeta(), playCounts()]);
   const metaByKey = new Map(metas.map((m) => [songKey(m._id), m]));
+  // by exact title too: two songs whose titles only differ in case (TRUST and Trust) each have
+  // their own songmeta, rather than sharing one split by genre like the two "Link"s
+  const metaByTitle = new Map(metas.map((m) => [m._id, m]));
   const romajiByKey = new Map<string, string>();
   for (const f of flags) if (f.title_romaji) romajiByKey.set(songKey(f.title), f.title_romaji);
 
@@ -94,7 +97,9 @@ async function build(): Promise<CatalogSong[]> {
       const genreEntry = shared
         ? Object.entries(meta?.by_genre ?? {}).find(([, m]) => songKey(m.artist ?? '') === songKey(first.artist ?? ''))
         : undefined;
-      const details = genreEntry?.[1] ?? (shared ? undefined : meta);
+      // (the "Link"s' one record is split by genre, so it isn't either song's own)
+      const ownMeta = shared && !genreEntry ? metaByTitle.get(first.title) : undefined;
+      const details = genreEntry?.[1] ?? (shared ? ownMeta : meta);
       const code = versionOf(docs);
       const chartMap = new Map<string, CatalogChart>();
       let na = false;
@@ -118,7 +123,7 @@ async function build(): Promise<CatalogSong[]> {
         artist: details?.artist ?? first.artist ?? null,
         bpm: details?.bpm ?? null,
         // a shared title shows its song's own genre, as the song list's genre filter spells it
-        genre: (shared ? null : meta?.genre) ?? (first.catcode != null ? String(first.catcode) : null),
+        genre: (shared ? ownMeta?.genre : meta?.genre) ?? (first.catcode != null ? String(first.catcode) : null),
         version: Number.isFinite(code) ? versionName(code) ?? null : null,
         versionCode: Number.isFinite(code) ? code : null,
         jacket: details?.blob ?? null,
@@ -126,7 +131,7 @@ async function build(): Promise<CatalogSong[]> {
         // a shared title's count is for the title: scores are counted by title (playCounts)
         plays: plays.get(titleKey) ?? 0,
         // typeof, not Boolean: a blank title ("") is still a title players' scores can have
-        titles: [...new Set([first.title, meta?._id].filter((t): t is string => typeof t === 'string'))],
+        titles: [...new Set([first.title, (shared ? ownMeta : meta)?._id].filter((t): t is string => typeof t === 'string'))],
         scoreGenre: shared ? genreEntry?.[0] ?? null : null,
         docArtist: shared ? first.artist ?? null : null,
         charts: [...chartMap.values()].sort(
