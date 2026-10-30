@@ -22,6 +22,7 @@ export async function GET(request) {
   );
 
   revalidatePath('/');
+  revalidatePath('/charts'); // shows the same "last updated"
   // the song data profiles and the level summary keep cached (lib/song-data.ts), so a
   // song import shows up by the next morning
   clearSongDataCache();

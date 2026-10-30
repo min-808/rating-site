@@ -6,6 +6,8 @@ import { VERSION_NAMES, versionName } from '../../../../lib/versions';
 import { rankImage, badgeImageFor } from '../../../../lib/badges';
 import LevelTiles, { type TileLevel } from '../../../../components/LevelTiles';
 import { getSongLevels, getSongMeta } from '../../../../lib/song-data';
+import { catalogByTitle, getCatalog, songForScore } from '../../../../lib/song-catalog';
+import { titleSlug } from '../../../../lib/song-id';
 import { getPlayerByWebId } from '../../../../lib/player-data';
 import RegionRadios from '../../../../components/RegionRadios';
 import FilterBy from '../../../../components/FilterBy';
@@ -340,6 +342,13 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
     const match = wanted ? Object.entries(byGenre).find(([g]) => looseTitle(g) === wanted)?.[1] : null;
     return match?.blob ?? m.blob ?? Object.values(byGenre).find((g) => g.blob)?.blob ?? null;
   };
+  // the song page the popup links to, for the few whose isn't just their title's (a title two
+  // songs share, lib/song-catalog.ts). the song list is already kept on the server
+  const songsByTitle = catalogByTitle(await getCatalog());
+  const songPageFor = (title: string, genre: string | null | undefined) => {
+    const song = songForScore(songsByTitle, { title, genre });
+    return song && song.id !== titleSlug(title) ? song.id : undefined;
+  };
   // a score as the popup wants it: jacket, version and details filled in, dates as text
   const forPopup = (s: (typeof scores)[number]) => {
     const m = metaFor(s.title);
@@ -381,7 +390,7 @@ export default async function LevelSummaryPage({ params, searchParams }: Props) 
         internal: c.internal,
         jacket: jacketFor(c.title, c.genre) ?? c.played?.jacket ?? null,
         song: c.played ? forPopup(c.played) : null,
-        info: c.played ? forPopup(c.played) : unplayedInfo(c),
+        info: { ...(c.played ? forPopup(c.played) : unplayedInfo(c)), song_page: songPageFor(c.title, c.genre) },
       })),
     })),
   }));

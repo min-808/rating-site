@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, HTMLAttributes, KeyboardEvent, ReactNode } from 'react';
-import { toNormalWidth, type Song } from '../lib/leaderboard';
+import type { Song } from '../lib/leaderboard';
 import { compareSongs, new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
-import { songMatcher } from '../lib/song-search';
 import { bestFiftyCss } from './best-fifty-css';
+import Link from 'next/link';
 import FallbackImage from './FallbackImage';
+import FavoriteHeart from './FavoriteHeart';
+import { favoriteHeartCss } from './favorite-heart-css';
+import { titleSlug, displayTitle } from '../lib/song-id';
 import { StatsBadge } from './StatsBadge';
 import { NEW_POOL_VERSIONS, NEWEST_OLD_POOL_VERSION } from '../lib/versions';
 
@@ -332,17 +335,15 @@ export function SongCard({ song, position, onOpen, muted = false, gain = 0, item
 }
 
 // passes a click handler down, and reports which card was opened
-function Section({ title, note, songs, extras, floor, gains, onOpen, keep }: {
+function Section({ title, note, songs, extras, floor, gains, onOpen }: {
     title: string; note: string; songs: Song[]; extras: Song[]; floor: number | null;
     gains: Map<string, number>;
     onOpen: (s: Selected) => void;
-    keep: (s: Song) => boolean; // the search filter
 }) {
     const [showExtras, setShowExtras] = useState(false);
 
-    // filtered, but each chart keeps its real place in the list (#7 stays #7)
-    const shown = songs.map((song, i) => ({ song, pos: i + 1 })).filter(({ song }) => keep(song));
-    const shownExtras = extras.map((song, i) => ({ song, pos: i + 1 })).filter(({ song }) => keep(song));
+    const shown = songs.map((song, i) => ({ song, pos: i + 1 }));
+    const shownExtras = extras.map((song, i) => ({ song, pos: i + 1 }));
 
     return (
         <section>
@@ -353,8 +354,6 @@ function Section({ title, note, songs, extras, floor, gains, onOpen, keep }: {
             </div>
             {songs.length === 0 ? (
                 <p className="bf-empty">no rated songs here yet</p>
-            ) : shown.length === 0 ? (
-                <p className="bf-empty">no charts in {title} match your search</p>
             ) : (
                 <ul className="bf-grid">
                     {shown.map(({ song, pos }) => (
@@ -445,6 +444,9 @@ export function SongDetail({ entry, gains, onClose }: {
     const hasPrev = isPlayed && song.prev_achievement != null;
     // one small line under the artist: genre and BPM, whichever the song has
     const genreBpm = song ? [song.genre, song.bpm ? `${song.bpm} BPM` : null].filter(Boolean).join(' · ') : '';
+    // the song's own page (/charts/<id>), for the title link and the heart
+    // song_page when the server gave one (a title two songs share, lib/song-catalog.ts withSongPages)
+    const songPageId = song ? song.song_page ?? titleSlug(song.title) : '';
 
     return (
         <dialog
@@ -456,6 +458,9 @@ export function SongDetail({ entry, gains, onClose }: {
         >
             {entry && song && diff && (
                 <div className="bf-dlg" key={`${song.difficulty}-${song.kind}-${song.title}`} style={{ '--diff': diff.color } as CSSProperties}>
+                    <style>{favoriteHeartCss}</style>
+                    {/* top right: favorite the song, then close */}
+                    <FavoriteHeart id={songPageId} className="bf-dlg-heart" />
                     <button type="button" className="bf-dlg-x" onClick={onClose} aria-label="Close">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                             <path d="M5 5l14 14M19 5L5 19" />
@@ -472,7 +477,13 @@ export function SongDetail({ entry, gains, onClose }: {
                                 <span className="bf-chip">{/dx/i.test(song.kind ?? '') ? 'DX' : 'STD'}</span>
                                 <span className="bf-chip bf-chip-diff">{diff.label} {song.internal_difficulty?.toFixed(1)}</span>
                             </div>
-                            <h3 className="bf-dlg-title">{song.title}</h3>
+                            <h3 className="bf-dlg-title">
+                                {/* the title opens the song's page: every chart and who has the top score */}
+                                <Link href={`/charts/${encodeURIComponent(songPageId)}`} className="bf-dlg-title-link" title="open the song's page">
+                                    {displayTitle(song.title)}
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+                                </Link>
+                            </h3>
                             {song.artist && <p className="bf-dlg-artist">{song.artist}</p>}
                             {genreBpm && <p className="bf-dlg-subline">{genreBpm}</p>}
                         </div>
@@ -612,7 +623,6 @@ function tiedAtFloor(all: Song[], counted: Song[], inPool: (s: Song) => boolean)
 // B15 heading when her profile includes them (lib/jp-scores.ts)
 export default function BestFifty({ data, extraNewVersions = [] }: { data?: Song[] | null; extraNewVersions?: string[] }) {
     const [selected, setSelected] = useState<Selected | null>(null);
-    const [query, setQuery] = useState('');
     const songs = data ?? [];
     const b15 = new15(songs);
     const b35 = old35(songs);
@@ -621,41 +631,18 @@ export default function BestFifty({ data, extraNewVersions = [] }: { data?: Song
     const b35Ties = tiedAtFloor(songs, b35, (s) => !s.new_pool);
     const gains = ratingGains(songs);
 
-    // the search box: title or romaji (songMatcher, the same search the favorites picker uses),
-    // or the artist. it only hides cards, so every chart keeps its place and the stats don't move
-    const trimmed = query.trim();
-    const keep = useMemo(() => {
-        if (!trimmed) return () => true;
-        const match = songMatcher(trimmed);
-        const q = toNormalWidth(trimmed).normalize('NFKC').toLowerCase();
-        return (s: Song) =>
-            match(s.title, s.title_romaji) > 0 ||
-            toNormalWidth(s.artist ?? '').normalize('NFKC').toLowerCase().includes(q);
-    }, [trimmed]);
-    const matchCount = trimmed ? [...b15, ...b35].filter(keep).length : 0;
 
     return (
         <div className="bf-wrap">
             <style>{bestFiftyCss}</style>
 
-            <div className="bf-search">
-                <input
-                    type="search"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="search these songs (title, romaji or artist)"
-                    aria-label="search best 50 songs"
-                />
-                {trimmed && <span className="bf-search-count">{matchCount} of {b15.length + b35.length} charts</span>}
-            </div>
-
             <Section title="B15" note={`new songs (${listOf([...extraNewVersions, ...NEW_POOL_VERSIONS])})`} songs={b15}
-                     extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} keep={keep} />
+                     extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} />
 
             <hr className="divider" />
 
             <Section title="B35" note={`old songs (${NEWEST_OLD_POOL_VERSION} and below)`} songs={b35}
-                     extras={b35Ties.extras} floor={b35Ties.floor} gains={gains} onOpen={setSelected} keep={keep} />
+                     extras={b35Ties.extras} floor={b35Ties.floor} gains={gains} onOpen={setSelected} />
 
             <SongDetail entry={selected} gains={gains} onClose={() => setSelected(null)} />
         </div>

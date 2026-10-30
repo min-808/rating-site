@@ -81,6 +81,15 @@ const css = `
   .cp-hint { font-size: 0.72rem; color: var(--text-muted); }
   /* what's going on while start or verify waits on maimai NET */
   .cp-card .cp-progress { margin: 0.9rem 0 0; font-size: 0.8rem; color: var(--text-sub); text-align: right; }
+
+  /* PILL TEXT, CENTERED. Where capitals and digits sit inside a line of text depends on the
+     font (0 to ~0.12em too high in the fonts measured, worse when a character falls back to
+     another font: ＆ ™ kana ✓). text-box-trim cuts that built-in space off, so the text is
+     centered in the pill whatever font draws it. The padding is restated in em to keep each
+     pill the size it was. Browsers without text-box-trim keep the rules above unchanged. */
+  @supports (text-box-trim: trim-both) {
+    .cp-pill, .cp-uc-pill { display: inline-block; padding: 0.5em 0.57em; text-box-trim: trim-both; text-box-edge: cap alphabetic; }
+  }
 `;
 
 // renders a Cloudflare Turnstile widget into `boxRef` and reports its token

@@ -88,7 +88,9 @@ const RANK_LAMPS: Record<string, typeof PASS_LAMP> = {
     aa: { label: 'AA', color: '#e0527f', text: '#fff', what: 'AA or better' },
     aaa: { label: 'AAA', color: 'linear-gradient(135deg, #d92d4a, #e8407a)', text: '#fff', what: 'AAA or better' },
     s: { label: 'S', color: '#d9b45a', text: '#3b2a00', what: 'S or better' },
+    sp: { label: 'S+', color: '#d9b45a', text: '#3b2a00', what: 'S+ or better' },
     ss: { label: 'SS', color: '#f5c531', text: '#3b2500', what: 'SS or better' },
+    ssp: { label: 'SS+', color: '#f5c531', text: '#3b2500', what: 'SS+ or better' },
     sss: { label: 'SSS', color: '#fff0a0', text: '#4a3200', what: 'SSS or better' },
     sssp: {
         label: 'SSS+', text: '#fff', what: 'SSS+',
@@ -199,8 +201,8 @@ export default function LevelChart({ songs, totals, naExcluded }: {
     // played charts per level, split into the current view's segments.
     // in NA, songs not available there are left out, same as the totals
     const byLevel = new Map<string, Record<string, number>>();
-    // the worst rank and combo seen at each level, for the lamp
-    const worst = new Map<string, { rank: number; combo: number }>();
+    // the worst rank, combo and achievement seen at each level, for the lamp
+    const worst = new Map<string, { rank: number; combo: number; achievement: number }>();
     // charts played for the first time in the latest scrape, per level
     const fresh = new Map<string, number>();
     const now = Date.now();
@@ -213,8 +215,9 @@ export default function LevelChart({ songs, totals, naExcluded }: {
         const key = keyOf(song);
         counts[key] = (counts[key] ?? 0) + 1;
 
-        const w = worst.get(level) ?? { rank: Infinity, combo: Infinity };
+        const w = worst.get(level) ?? { rank: Infinity, combo: Infinity, achievement: Infinity };
         w.rank = Math.min(w.rank, RANK_ORDER.indexOf(rankKey(song)));
+        w.achievement = Math.min(w.achievement, song.achievement);
         w.combo = Math.min(w.combo, COMBO_ORDER.indexOf(comboKey(song)));
         worst.set(level, w);
 
@@ -232,7 +235,9 @@ export default function LevelChart({ songs, totals, naExcluded }: {
         const worstRank = RANK_ORDER[w.rank];
         if (!worstRank || worstRank === 'belowa') return null;
 
-        const lamp = view === 'combo' ? COMBO_LAMPS[COMBO_ORDER[w.combo]] : RANK_LAMPS[worstRank];
+        // the bars lump S with S+ and SS with SS+, but the lamp tells them apart
+        const plus = (worstRank === 's' && w.achievement >= 98) || (worstRank === 'ss' && w.achievement >= 99.5);
+        const lamp = view === 'combo' ? COMBO_LAMPS[COMBO_ORDER[w.combo]] : RANK_LAMPS[plus ? `${worstRank}p` : worstRank];
         if (!lamp) return null;
         return {
             label: lamp.label,

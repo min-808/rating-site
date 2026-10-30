@@ -5,3 +5,5 @@ out/
 .DS_Store
 .vercel
 .env*
+.claude/
+tsconfig.tsbuildinfo

@@ -148,6 +148,15 @@ const css = `
   @media (max-width: 600px) {
     .ad-hide-sm { display: none; }
   }
+
+  /* PILL TEXT, CENTERED. Where capitals and digits sit inside a line of text depends on the
+     font (0 to ~0.12em too high in the fonts measured, worse when a character falls back to
+     another font: ＆ ™ kana ✓). text-box-trim cuts that built-in space off, so the text is
+     centered in the pill whatever font draws it. The padding is restated in em to keep each
+     pill the size it was. Browsers without text-box-trim keep the rules above unchanged. */
+  @supports (text-box-trim: trim-both) {
+    .ad-tag { padding: 0.42em 0.7em; text-box-trim: trim-both; text-box-edge: cap alphabetic; }
+  }
 `;
 
 export default async function AdminPage({ searchParams }: {

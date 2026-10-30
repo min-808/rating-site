@@ -10,6 +10,7 @@ export type Milestone = {
     milestone: number; // the highest milestone they crossed in the window
     rating: number;
     when: string; // "today", "yesterday", "2 days ago"
+    afterGap: boolean; // reached while maimai NET was down: listed under its own header, no "when"
 };
 
 /**
@@ -29,6 +30,10 @@ const css = `
   .ms-title { margin: 0 0 8px; font-weight: bold; font-size: 1.2rem; }
   .ms-list { margin: 0; padding: 0; list-style: none; }
   .ms-list li { margin: 1px 0; }
+  /* a section label between two rules: "—— during the downtime ——" */
+  .ms-sub { display: flex; align-items: center; gap: 10px; margin: 4px 0 6px; font-size: 0.78rem; color: var(--text-sub); }
+  .ms-sub::before, .ms-sub::after { content: ''; flex: 1; border-top: 1px solid rgba(150, 183, 255, 0.35); }
+  .ms-list + .ms-sub { margin-top: 12px; }
   .ms-list a { color: inherit; font-weight: 700; text-decoration: none; }
   .ms-list a:hover { color: #2563eb; }
   .ms-num { font-weight: 800; font-variant-numeric: tabular-nums; color: #96b7ff; }
@@ -73,6 +78,22 @@ export default function MilestoneBanner({ milestones, updateKey }: {
         }
     };
 
+    const recent = milestones.filter((m) => !m.afterGap);
+    const downtime = milestones.filter((m) => m.afterGap);
+    const item = (m: Milestone) => {
+        const tier = tierAt(m.milestone);
+        return (
+            <li key={`${m.href}-${m.milestone}`}>
+                <Link href={m.href}>{m.name}</Link> reached{' '}
+                {tier && (
+                    <> <span className="ms-tier">{tierLabel(tier)} </span></>
+                )}
+                {m.when && <span className="ms-when">{m.when} </span>}
+                (<span className="ms-num">{m.milestone.toLocaleString()}</span> rating)
+            </li>
+        );
+    };
+
     return (
         <aside className="ms-banner" role="status">
             <style>{css}</style>
@@ -80,21 +101,13 @@ export default function MilestoneBanner({ milestones, updateKey }: {
                 <p className="ms-title">
                     {milestones.length === 1 ? 'Recent milestone!' : `${milestones.length} recent milestones!`}
                 </p>
-                <ul className="ms-list">
-                    {milestones.map((m) => {
-                        const tier = tierAt(m.milestone);
-                        return (
-                            <li key={`${m.href}-${m.milestone}`}>
-                                <Link href={m.href}>{m.name}</Link> reached{' '}
-                                {tier && (
-                                    <> <span className="ms-tier">{tierLabel(tier)} </span></>
-                                )}
-                                <span className="ms-when">{m.when} </span>
-                                (<span className="ms-num">{m.milestone.toLocaleString()}</span> rating)
-                            </li>
-                        );
-                    })}
-                </ul>
+                {recent.length > 0 && <ul className="ms-list">{recent.map(item)}</ul>}
+                {downtime.length > 0 && (
+                    <>
+                        <p className="ms-sub">during the downtime</p>
+                        <ul className="ms-list">{downtime.map(item)}</ul>
+                    </>
+                )}
             </div>
             <button type="button" className="ms-close" onClick={close} aria-label="Close announcement">×</button>
         </aside>

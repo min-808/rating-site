@@ -30,6 +30,11 @@ import PastNames from '../../../components/PastNames';
 import ChartsPlayed, { ChartsPlayedLabel } from '../../../components/ChartsPlayed';
 import { CHART_DIFFICULTIES, type DifficultyCounts } from '../../../lib/difficulties';
 import FavoriteScores from '../../../components/FavoriteScores';
+import FavoriteSongs, { type FavoriteSongItem } from '../../../components/FavoriteSongs';
+import { getCatalog, withSongPages } from '../../../lib/song-catalog';
+import RecommendedCharts from '../../../components/RecommendedCharts';
+import { buildMyCharts, type RecommendedChart } from '../../../lib/my-charts';
+import { bandStatsFor } from '../../../lib/recommend';
 import { playStats } from '../../../lib/play-stats';
 
 interface UserPageProps {
@@ -543,9 +548,20 @@ export default async function UserPage({ params }: UserPageProps) {
   const session = await getSession();
   const account = await client
     .db('maimai')
-    .collection<{ _id: string; bio?: string; favorites?: string[]; show_jp_scores?: boolean }>('accounts')
-    .findOne({ _id: String(player.user_id) }, { projection: { _id: 1, bio: 1, favorites: 1, show_jp_scores: 1 } });
+    .collection<{ _id: string; bio?: string; favorites?: string[]; favorite_songs?: string[]; show_jp_scores?: boolean }>('accounts')
+    .findOne({ _id: String(player.user_id) }, { projection: { _id: 1, bio: 1, favorites: 1, favorite_songs: 1, show_jp_scores: 1 } });
   const isOwner = session?.userId === String(player.user_id);
+
+  // the songs they hearted on the song pages, newest first. the song list is already kept on
+  // the server (lib/song-catalog.ts), so this costs no extra database read
+  let favoriteSongs: FavoriteSongItem[] = [];
+  if (account?.favorite_songs?.length) {
+    const byKey = new Map((await getCatalog()).map((song) => [song.key, song]));
+    favoriteSongs = [...account.favorite_songs].reverse().flatMap((key) => {
+      const song = byKey.get(key);
+      return song ? [{ id: song.id, title: song.title, artist: song.artist, jacket: song.jacket }] : [];
+    });
+  }
 
   const pastNames = [...new Set((player.old_names ?? []).map(toNormalWidth))].filter(
       (n) => n !== displayName,
@@ -569,6 +585,7 @@ export default async function UserPage({ params }: UserPageProps) {
   const playerSongs = showJp ? mergeJpScores(player.songs, player.jp_songs) : (player.songs ?? []);
 
   let songs: PlayerDocument['songs'] = [];
+  let recommendedCharts: RecommendedChart[] = [];
 
   // the "charts by level" totals, for both region views, and the songs the NA view leaves out
   const levelTotals = { na: {} as Record<string, number>, intl: {} as Record<string, number> };
@@ -615,6 +632,15 @@ export default async function UserPage({ params }: UserPageProps) {
   // and details (scrape-jp-scores.js), anything else just shows without them
   : { ...s, title_romaji, version: versionName(s.version_code), improved_at: s.improved_at ? new Date(s.improved_at).toISOString() : null };
     });
+
+    // the song page each score's popup links to, for the few whose isn't just their title's
+    // (a title two songs share). the song list is already kept on the server: no extra read
+    songs = withSongPages(songs, await getCatalog());
+
+    // charts an SSS+ would put in their best 50, that players at their rating SSS+ most
+    // (lib/my-charts.ts, maishift's stats). none under 13000, or before the scraper has run
+    const band = await bandStatsFor(Number(player.rating) || 0);
+    if (band) recommendedCharts = buildMyCharts(playerSongs.filter((s) => (s.achievement ?? 0) > 0), await getCatalog(), band).list;
 
     // songs not available in North America (na: "0"). a title only counts as
     // excluded if every song with that title is marked, since a few titles are shared
@@ -770,6 +796,9 @@ export default async function UserPage({ params }: UserPageProps) {
             <FavoriteScores songs={songs ?? []} initialFavorites={account.favorites ?? []} canEdit={isOwner} />
         )}
 
+        {/* hearted songs: claimed profiles only. not score data, so they stay when scores are hidden */}
+        {account && <FavoriteSongs songs={favoriteSongs} isOwner={isOwner} />}
+
         {optedOut ? (
         <p className="bf-hidden">best 50 scores hidden</p>
         ) : (
@@ -785,6 +814,7 @@ export default async function UserPage({ params }: UserPageProps) {
               {/* her japanese scores add the versions only japan has to the B15 heading */}
               <BestFifty data={songs} extraNewVersions={showJp ? JAPAN_AHEAD_VERSIONS : undefined} />
             </section>
+            <RecommendedCharts charts={recommendedCharts} />
         </>
         )}
 
