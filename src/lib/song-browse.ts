@@ -57,7 +57,7 @@ export type BrowseFilters = {
 };
 
 export const DEFAULT_FILTERS: BrowseFilters = {
-  query: '', genre: '', version: '', level: '', difficulty: '', kind: '', region: 'na', pool: '', hearted: '', played: '', raise: '', sort: 'title',
+  query: '', genre: '', version: '', level: '', difficulty: '', kind: '', region: 'na', pool: '', hearted: '', played: '', raise: '', sort: 'newest',
 };
 
 const fold = (text: string) => toNormalWidth(text ?? '').normalize('NFKC').toLowerCase();

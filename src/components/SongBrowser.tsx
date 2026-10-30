@@ -24,6 +24,11 @@ import { displayTitle } from '../lib/song-id';
 /** How many song cards show at first, and how many more each "show more" adds. */
 const SONGS_PER_PAGE = 50;
 
+// how far down the list was when a song was opened, so the back button comes back to it
+// (the cards shown, and the scroll). only for the same filters it was left with
+const RETURN_KEY = 'charts-list-return';
+type ReturnSpot = { search: string; count: number; y: number };
+
 // each filter's name in the address. only filters that aren't at their default are written
 const ADDRESS_NAMES: Record<keyof BrowseFilters, string> = {
   query: 'q', level: 'level', difficulty: 'diff', kind: 'type', genre: 'genre', version: 'version', region: 'region',
@@ -122,14 +127,14 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
   // the less used rows (MORE_FILTERS) fold away behind "more filters", so the songs start higher
   const [moreOpen, setMoreOpen] = useState(false);
 
-  // "new songs" lists the newest first, like sorting by version. only while the sort is
-  // still the default (title), so a sort someone picked stays, and turning it off goes back
+  // "new songs" lists the newest first (the default sort anyway), switching back from title
+  // if that's what was picked; any other sort someone picked stays
   const toggleNewSongs = () => {
     const turningOn = filters.pool !== 'new';
     setFilters((previous) => ({
       ...previous,
       pool: turningOn ? 'new' : '',
-      sort: turningOn && previous.sort === 'title' ? 'newest' : !turningOn && previous.sort === 'newest' ? 'title' : previous.sort,
+      sort: turningOn && previous.sort === 'title' ? 'newest' : previous.sort,
     }));
     setVisibleSongCount(SONGS_PER_PAGE);
   };
@@ -159,7 +164,37 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
     // a link with one of the folded-away filters picked opens them, so it's never picked unseen
     if (MORE_FILTERS.some((key) => fromAddress[key] !== DEFAULT_FILTERS[key])) setMoreOpen(true);
     setAddressRead(true);
+
+    // back from a song: as many cards as before, and the same spot in the list
+    try {
+      const spot = JSON.parse(sessionStorage.getItem(RETURN_KEY) ?? 'null') as ReturnSpot | null;
+      sessionStorage.removeItem(RETURN_KEY);
+      if (spot && spot.search === window.location.search) {
+        setVisibleSongCount(Math.max(SONGS_PER_PAGE, spot.count));
+        setReturnY(spot.y);
+      }
+    } catch {
+      // storage blocked: the list just starts from the top
+    }
   }, []);
+
+  // the scroll waits for the cards to be back, or there'd be nothing that far down
+  const [returnY, setReturnY] = useState<number | null>(null);
+  useEffect(() => {
+    if (returnY == null) return;
+    requestAnimationFrame(() => window.scrollTo(0, returnY));
+    setReturnY(null);
+  }, [returnY, visibleSongCount]);
+
+  // remembered when a song is opened (read back above, when the list comes back)
+  const rememberSpot = () => {
+    try {
+      const spot: ReturnSpot = { search: window.location.search, count: visibleSongCount, y: window.scrollY };
+      sessionStorage.setItem(RETURN_KEY, JSON.stringify(spot));
+    } catch {
+      // storage blocked: nothing to remember it in
+    }
+  };
 
   // keep them in the address, without adding a history entry for every keystroke or pick
   useEffect(() => {
@@ -323,7 +358,7 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
         <ul className="sg-grid">
           {matchingSongs.slice(0, visibleSongCount).map((song) => (
             <li key={song.id} className="sg-item">
-              <Link href={`/charts/${encodeURIComponent(song.id)}`} className="sg-link">
+              <Link href={`/charts/${encodeURIComponent(song.id)}`} className="sg-link" onClick={rememberSpot}>
                 {/* the jacket again, very faded, behind the whole card. same address as the small one, so it is downloaded once */}
                 {song.jacket && <FallbackImage src={jacketBase + song.jacket} alt="" className="sg-bg" />}
                 <div className="sg-jacket">
