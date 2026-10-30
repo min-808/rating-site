@@ -64,6 +64,7 @@ const COMBO_STATS = [
 const SYNC_STATS = [
   { label: 'FDX+', test: syncAtLeast('fdxplus') },
   { label: 'FDX', test: syncAtLeast('fdx') },
+  { label: 'FS+', test: syncAtLeast('fsplus') },
   { label: 'FS', test: syncAtLeast('fs') },
 ];
 
