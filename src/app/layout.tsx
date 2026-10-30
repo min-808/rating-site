@@ -11,7 +11,11 @@ import type { Metadata } from 'next';
 // for their own copies, which freezes text that changes without a reload (a song page's
 // chart switch) and leaves the fonts broken after going back to the original. this stops
 // Chrome offering it; translate="no" on <html> below tells every browser to leave it alone
-export const metadata: Metadata = { other: { google: 'notranslate' } };
+// formatDetection: stops iPhone Safari turning long numbers (scores, ratings) into phone links
+export const metadata: Metadata = {
+  other: { google: 'notranslate' },
+  formatDetection: { telephone: false, email: false, address: false },
+};
 
 /*
  * The bar at the top: leaderboard, songs and faq centered, the account button and theme
