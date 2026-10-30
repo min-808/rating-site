@@ -52,7 +52,7 @@ export type BrowseFilters = {
   pool: '' | 'new' | 'old'; // new: the versions that count toward B15, old: B35
   hearted: '' | '1'; // only the signed-in player's hearted songs
   played: '' | 'played' | 'unplayed'; // charts the signed-in player has (or hasn't) a score on
-  raise: '' | '1'; // charts that would get into the signed-in player's B50 with an SSS+
+  raise: '' | 'rec'; // "recommended": charts that would get into the signed-in player's B50 with an SSS+ and their rating band SSS+'s most
   sort: 'title' | 'artist' | 'newest' | 'oldest' | 'level' | 'easiest' | 'popular';
 };
 
@@ -64,10 +64,10 @@ const fold = (text: string) => toNormalWidth(text ?? '').normalize('NFKC').toLow
 
 /**
  * The signed-in player's charts (/api/profile/my-charts), for the played / unplayed and
- * "raises rating" filters. Per song id, a bit per chart (chartBit): one number per
+ * "recommended" filters. Per song id, a bit per chart (chartBit): one number per
  * song rather than a list of charts, to keep it small.
  */
-export type MyCharts = { played: Record<string, number>; raise: Record<string, number> };
+export type MyCharts = { played: Record<string, number>; recommended: Record<string, number> };
 export const chartBit = (kind: number, difficultyIndex: number) => 1 << (kind * 5 + difficultyIndex);
 
 /** Which of a song's charts pass the chart type / difficulty / level filters (and the player's own, given their charts). */
@@ -86,7 +86,7 @@ export function matchingCharts(song: BrowserSong, filters: BrowseFilters, mine?:
         const played = ((mine.played[song.id] ?? 0) & bit) !== 0;
         if (played !== (filters.played === 'played')) return false;
       }
-      if (filters.raise && ((mine.raise[song.id] ?? 0) & bit) === 0) return false;
+      if (filters.raise === 'rec' && ((mine.recommended[song.id] ?? 0) & bit) === 0) return false;
     }
     return true;
   });
@@ -183,7 +183,7 @@ export const constantLabel = (internal: number) => (internal >= 7 ? internal.toF
  * The pills on a song card: one row for the standard charts and one for DX, each easiest to
  * hardest. When a difficulty is picked (the "any difficulty" drop-down), the charts that
  * match the search are lit (" is-hit") and the rest dimmed (" is-dim"), so you can see which
- * chart matched. The difficulty filter and the player's own (played / unplayed, could raise)
+ * chart matched. The difficulty filter and the player's own (played / unplayed, recommended)
  * do this: picking DX / ST or a level still narrows the list, but leaves every pill as it is.
  */
 export function songCardChartRows(song: BrowserSong, filters: BrowseFilters, mine?: MyCharts | null) {

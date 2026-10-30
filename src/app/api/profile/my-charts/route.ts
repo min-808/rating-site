@@ -1,15 +1,16 @@
 /**
  * GET /api/profile/my-charts  ->  { signedIn: false }
  *                             or  { signedIn: true, hasScores: false }
- *                             or  { signedIn: true, hasScores: true, played, raise, floors }
+ *                             or  { signedIn: true, hasScores: true, played, recommended, floors }
  *
- * The signed-in player's charts, for the song list's played / unplayed and "could raise my
- * rating" filters (components/SongBrowser.tsx). played and raise are per song id, a bit
- * per chart (lib/song-browse.ts, chartBit):
- *   played: charts they have a score on
- *   raise:  charts not in their best 50 that would get in with an SSS+ (100.5%): rated
- *           above the floor of the half they'd count toward (B15 new songs, B35 old). With
- *           fewer than 15 / 35 charts there, any chart would
+ * The signed-in player's charts, for the charts page's played / unplayed and "recommended"
+ * filters (components/SongBrowser.tsx). Per song id, a bit per chart (lib/song-browse.ts,
+ * chartBit):
+ *   played:      charts they have a score on
+ *   recommended: charts an SSS+ would raise their rating on (new ones for their best 50,
+ *                or ones in it below SSS+), the few that players at their rating SSS+
+ *                most often (lib/my-charts.ts). From maishift's
+ *                stats (lib/recommend.ts): empty under 13000, and until the scraper has saved them
  *
  * Built from the player's cached record (lib/player-data.ts, the one their profile uses)
  * and the cached song list, so it costs one small read to find their record. The account
@@ -20,6 +21,7 @@ import { getDb, getSession } from '../../../../lib/auth';
 import { getPlayerByWebId } from '../../../../lib/player-data';
 import { getCatalog } from '../../../../lib/song-catalog';
 import { buildMyCharts } from '../../../../lib/my-charts';
+import { bandStatsFor } from '../../../../lib/recommend';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +43,8 @@ export async function GET() {
   const scores = (player?.songs ?? []).filter((s) => (s.achievement ?? 0) > 0);
   if (scores.length === 0) return NextResponse.json({ signedIn: true, hasScores: false }, { headers: PRIVATE });
 
-  const { played, raise, floors } = buildMyCharts(scores, await getCatalog());
+  const band = await bandStatsFor(Number(player?.rating) || 0);
+  const { played, recommended, floors } = buildMyCharts(scores, await getCatalog(), band);
 
-  return NextResponse.json({ signedIn: true, hasScores: true, played, raise, floors }, { headers: PRIVATE });
+  return NextResponse.json({ signedIn: true, hasScores: true, played, recommended, floors }, { headers: PRIVATE });
 }

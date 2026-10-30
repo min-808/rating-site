@@ -33,7 +33,7 @@ const ADDRESS_NAMES: Record<keyof BrowseFilters, string> = {
 // genre / version take any text: one that matches nothing just shows no songs
 const ALLOWED: Partial<Record<keyof BrowseFilters, readonly string[]>> = {
   level: LEVEL_OPTIONS, difficulty: DIFFICULTY_ORDER, kind: ['dx', 'standard'], region: ['na', 'intl'],
-  pool: ['new', 'old'], hearted: ['1'], played: ['played', 'unplayed'], raise: ['1'], sort: ['title', 'artist', 'popular', 'newest', 'oldest', 'level', 'easiest'],
+  pool: ['new', 'old'], hearted: ['1'], played: ['played', 'unplayed'], raise: ['rec'], sort: ['title', 'artist', 'popular', 'newest', 'oldest', 'level', 'easiest'],
 };
 const filterKeys = Object.keys(ADDRESS_NAMES) as (keyof BrowseFilters)[];
 
@@ -89,17 +89,22 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
   // hearted songs, for the "favorites" filter
   const favorites = useFavoriteSongs();
   useEffect(() => { loadFavoriteSongs(); }, []);
-  // the signed-in player's charts, for "played / unplayed" and "raises rating"
-  // (/api/profile/my-charts). those rows only show for a signed-in player with scores
+  // the signed-in player's charts, for "played / unplayed" and "recommended"
+  // (/api/profile/my-charts). mineLoaded: the answer is in (null mine then: signed out, or no scores)
   const [mine, setMine] = useState<(MyCharts & { floors: { new: number; old: number } }) | null>(null);
+  const [mineLoaded, setMineLoaded] = useState(false);
   useEffect(() => {
     let cancelled = false;
     fetch('/api/profile/my-charts')
       .then((r) => r.json())
-      .then((d) => { if (!cancelled && d.hasScores) setMine({ played: d.played, raise: d.raise, floors: d.floors }); })
-      .catch(() => {}); // no rows then: the list works the same without them
+      .then((d) => { if (!cancelled && d.hasScores) setMine({ played: d.played, recommended: d.recommended ?? {}, floors: d.floors }); })
+      .catch(() => {}) // greyed out then: the list works the same without them
+      .finally(() => { if (!cancelled) setMineLoaded(true); });
     return () => { cancelled = true; };
   }, []);
+  // greyed out once we know there's nothing to filter by, with why
+  const noScores = mineLoaded && !mine;
+  const noRecommended = mineLoaded && (!mine || Object.keys(mine.recommended).length === 0);
   // the whole list's counts for the region picked, for the line under the title
   const regionCounts = useMemo(() => {
     const inRegion = filters.region === 'na' ? songs.filter((song) => song.na) : songs;
@@ -200,20 +205,25 @@ export default function SongBrowser({ songs, jacketBase = '', updated }: { songs
               favorites
             </Chip>
           </FilterRow>
-          {mine && (
-            <FilterRow label="my scores">
-              <Chip on={!filters.played} onClick={() => setFilter('played', '')}>any</Chip>
-              <Chip on={filters.played === 'played'} onClick={() => setFilter('played', 'played')}>played</Chip>
-              <Chip on={filters.played === 'unplayed'} onClick={() => setFilter('played', 'unplayed')}>unplayed</Chip>
-              <Chip
-                on={filters.raise === '1'}
-                onClick={() => setFilter('raise', filters.raise ? '' : '1')}
-                title={`charts that would get into your best 50 with an SSS+: above your B15 floor (${mine.floors.new}) or B35 floor (${mine.floors.old})`}
-              >
-                raises rating
-              </Chip>
-            </FilterRow>
-          )}
+          {/* there from the start, like the rest (the page is the same for everyone, so whose
+              scores they are is only known once the browser asks); greyed out when there are none */}
+          <FilterRow label="my scores">
+            <Chip on={!filters.played} onClick={() => setFilter('played', '')} disabled={noScores}>any</Chip>
+            <Chip on={filters.played === 'played'} onClick={() => setFilter('played', 'played')} disabled={noScores}
+              title={noScores ? 'sign in to filter by your scores' : undefined}>played</Chip>
+            <Chip on={filters.played === 'unplayed'} onClick={() => setFilter('played', 'unplayed')} disabled={noScores}
+              title={noScores ? 'sign in to filter by your scores' : undefined}>unplayed</Chip>
+            <Chip
+              on={filters.raise === 'rec'}
+              onClick={() => setFilter('raise', filters.raise === 'rec' ? '' : 'rec')}
+              disabled={noRecommended}
+              title={noScores ? 'sign in to see charts recommended for you'
+                : noRecommended ? 'recommendations start at 13000 rating'
+                : 'charts that would raise your rating, that players at your rating SSS+ most often (stats from maishift)'}
+            >
+              recommended
+            </Chip>
+          </FilterRow>
           <FilterRow label="difficulty">
             <Chip on={!filters.difficulty} onClick={() => setFilter('difficulty', '')}>any</Chip>
             {DIFFICULTY_ORDER.map((d) => (
