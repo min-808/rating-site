@@ -41,10 +41,6 @@ const HISTORY_ENTRIES = 10;
 // (maimai NET down), so its milestones weren't really reached that day
 const GAP_DAYS = 2;
 
-// the "welcome back" banner after the maimai NET downtime shows until this day (hawaii
-// time). the page rebuilds every night, so it drops off on its own
-const WELCOME_BACK_UNTIL = '2026-10-31';
-
 // the calendar day an update happened on, in hawaii time ("2026-10-03")
 const dayOf = (date: Date) => date.toLocaleDateString('en-CA', { timeZone: TZ });
 
@@ -349,27 +345,9 @@ export default async function LeaderboardPage() {
             opacity: 0.6;
           }
         }
-        .welcome-back {
-          width: fit-content;
-          max-width: 100%;
-          box-sizing: border-box;
-          margin: 0 auto 1rem;
-          padding: 0.6rem 1.4rem;
-          border-radius: 999px;
-          border: 1px solid rgba(245, 197, 49, 0.55);
-          background: rgba(245, 197, 49, 0.14);
-          text-align: center;
-          line-height: 1.4;
-        }
-        .welcome-back b { font-size: 1.05rem; }
       `}</style>
 
         <br />
-      {dayOf(new Date()) < WELCOME_BACK_UNTIL && (
-        <p className="welcome-back" role="status">
-          <b>welcome back :)</b>
-        </p>
-      )}
       <MilestoneBanner
         milestones={milestones}
         updateKey={milestones.map((m) => `${m.href}:${m.milestone}`).join('|')}
