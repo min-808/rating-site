@@ -41,7 +41,7 @@ const MORE_FILTERS = ['kind', 'genre', 'version', 'region'] as const;
 // genre / version take any text: one that matches nothing just shows no songs
 const ALLOWED: Partial<Record<keyof BrowseFilters, readonly string[]>> = {
   level: LEVEL_OPTIONS, difficulty: DIFFICULTY_ORDER, kind: ['dx', 'standard'], region: ['na', 'intl'],
-  pool: ['new', 'old'], hearted: ['1'], played: ['played', 'unplayed'], raise: ['rec'], sort: ['title', 'artist', 'popular', 'newest', 'oldest', 'level', 'easiest'],
+  pool: ['new', 'old'], hearted: ['1'], played: ['played', 'unplayed'], raise: ['rec'], sort: ['title', 'artist', 'popular', 'unpopular', 'newest', 'oldest', 'level', 'easiest'],
 };
 const filterKeys = Object.keys(ADDRESS_NAMES) as (keyof BrowseFilters)[];
 
@@ -49,7 +49,7 @@ const filterKeys = Object.keys(ADDRESS_NAMES) as (keyof BrowseFilters)[];
 const SORTS: { label: string; orders: BrowseFilters['sort'][]; arrows: string[] }[] = [
   { label: 'title', orders: ['title'], arrows: [] },
   { label: 'artist', orders: ['artist'], arrows: [] },
-  { label: 'popularity', orders: ['popular'], arrows: [] },
+  { label: 'popularity', orders: ['popular', 'unpopular'], arrows: ['most ↓', 'least ↑'] },
   { label: 'version', orders: ['newest', 'oldest'], arrows: ['newest ↓', 'oldest ↑'] },
   { label: 'level', orders: ['level', 'easiest'], arrows: ['hardest ↓', 'easiest ↑'] },
 ];

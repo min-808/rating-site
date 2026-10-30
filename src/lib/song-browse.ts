@@ -53,7 +53,7 @@ export type BrowseFilters = {
   hearted: '' | '1'; // only the signed-in player's hearted songs
   played: '' | 'played' | 'unplayed'; // charts the signed-in player has (or hasn't) a score on
   raise: '' | 'rec'; // "recommended": charts that would get into the signed-in player's B50 with an SSS+ and their rating band SSS+'s most
-  sort: 'title' | 'artist' | 'newest' | 'oldest' | 'level' | 'easiest' | 'popular';
+  sort: 'title' | 'artist' | 'newest' | 'oldest' | 'level' | 'easiest' | 'popular' | 'unpopular';
 };
 
 export const DEFAULT_FILTERS: BrowseFilters = {
@@ -150,6 +150,7 @@ export function filterAndSortSongs(
     // the reverse of hardest first: by each song's hardest (matching) chart, lowest first
     if (filters.sort === 'easiest') return a.hardestConstant - b.hardestConstant || byName(a.song, b.song);
     if (filters.sort === 'popular') return b.song.plays - a.song.plays || byName(a.song, b.song);
+    if (filters.sort === 'unpopular') return a.song.plays - b.song.plays || byName(a.song, b.song);
     return byName(a.song, b.song);
   });
   return matches.map((match) => match.song);
