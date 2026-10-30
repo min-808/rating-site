@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, HTMLAttributes, KeyboardEvent, ReactNode } from 'react';
-import { toNormalWidth, type Song } from '../lib/leaderboard';
+import type { Song } from '../lib/leaderboard';
 import { compareSongs, new15, old35, rankFor, rateSong, RANK_CUTOFFS } from '../lib/song-calc';
-import { songMatcher } from '../lib/song-search';
 import { bestFiftyCss } from './best-fifty-css';
 import Link from 'next/link';
 import FallbackImage from './FallbackImage';
@@ -336,17 +335,15 @@ export function SongCard({ song, position, onOpen, muted = false, gain = 0, item
 }
 
 // passes a click handler down, and reports which card was opened
-function Section({ title, note, songs, extras, floor, gains, onOpen, keep }: {
+function Section({ title, note, songs, extras, floor, gains, onOpen }: {
     title: string; note: string; songs: Song[]; extras: Song[]; floor: number | null;
     gains: Map<string, number>;
     onOpen: (s: Selected) => void;
-    keep: (s: Song) => boolean; // the search filter
 }) {
     const [showExtras, setShowExtras] = useState(false);
 
-    // filtered, but each chart keeps its real place in the list (#7 stays #7)
-    const shown = songs.map((song, i) => ({ song, pos: i + 1 })).filter(({ song }) => keep(song));
-    const shownExtras = extras.map((song, i) => ({ song, pos: i + 1 })).filter(({ song }) => keep(song));
+    const shown = songs.map((song, i) => ({ song, pos: i + 1 }));
+    const shownExtras = extras.map((song, i) => ({ song, pos: i + 1 }));
 
     return (
         <section>
@@ -357,8 +354,6 @@ function Section({ title, note, songs, extras, floor, gains, onOpen, keep }: {
             </div>
             {songs.length === 0 ? (
                 <p className="bf-empty">no rated songs here yet</p>
-            ) : shown.length === 0 ? (
-                <p className="bf-empty">no charts in {title} match your search</p>
             ) : (
                 <ul className="bf-grid">
                     {shown.map(({ song, pos }) => (
@@ -628,7 +623,6 @@ function tiedAtFloor(all: Song[], counted: Song[], inPool: (s: Song) => boolean)
 // B15 heading when her profile includes them (lib/jp-scores.ts)
 export default function BestFifty({ data, extraNewVersions = [] }: { data?: Song[] | null; extraNewVersions?: string[] }) {
     const [selected, setSelected] = useState<Selected | null>(null);
-    const [query, setQuery] = useState('');
     const songs = data ?? [];
     const b15 = new15(songs);
     const b35 = old35(songs);
@@ -637,41 +631,18 @@ export default function BestFifty({ data, extraNewVersions = [] }: { data?: Song
     const b35Ties = tiedAtFloor(songs, b35, (s) => !s.new_pool);
     const gains = ratingGains(songs);
 
-    // the search box: title or romaji (songMatcher, the same search the favorites picker uses),
-    // or the artist. it only hides cards, so every chart keeps its place and the stats don't move
-    const trimmed = query.trim();
-    const keep = useMemo(() => {
-        if (!trimmed) return () => true;
-        const match = songMatcher(trimmed);
-        const q = toNormalWidth(trimmed).normalize('NFKC').toLowerCase();
-        return (s: Song) =>
-            match(s.title, s.title_romaji) > 0 ||
-            toNormalWidth(s.artist ?? '').normalize('NFKC').toLowerCase().includes(q);
-    }, [trimmed]);
-    const matchCount = trimmed ? [...b15, ...b35].filter(keep).length : 0;
 
     return (
         <div className="bf-wrap">
             <style>{bestFiftyCss}</style>
 
-            <div className="bf-search">
-                <input
-                    type="search"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="search these songs"
-                    aria-label="search best 50 songs"
-                />
-                {trimmed && <span className="bf-search-count">{matchCount} of {b15.length + b35.length} charts</span>}
-            </div>
-
             <Section title="B15" note={`new songs (${listOf([...extraNewVersions, ...NEW_POOL_VERSIONS])})`} songs={b15}
-                     extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} keep={keep} />
+                     extras={b15Ties.extras} floor={b15Ties.floor} gains={gains} onOpen={setSelected} />
 
             <hr className="divider" />
 
             <Section title="B35" note={`old songs (${NEWEST_OLD_POOL_VERSION} and below)`} songs={b35}
-                     extras={b35Ties.extras} floor={b35Ties.floor} gains={gains} onOpen={setSelected} keep={keep} />
+                     extras={b35Ties.extras} floor={b35Ties.floor} gains={gains} onOpen={setSelected} />
 
             <SongDetail entry={selected} gains={gains} onClose={() => setSelected(null)} />
         </div>

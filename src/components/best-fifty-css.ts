@@ -207,13 +207,6 @@ export const bestFiftyCss = `
   .bf-dlg-unplayed { margin: 0.25rem 0 0.5rem; font-size: 1.1rem; font-weight: 700; color: var(--text-sub); }
   .bf-card-muted:hover, .bf-card-muted:focus-visible { opacity: 0.85; }
 
-  /* ============ SEARCH (above B15) ============ */
-  .bf-search { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 1rem 0 0.25rem; }
-  .bf-search input { flex: 1; min-width: 200px; font: inherit; font-size: 0.9rem; padding: 8px 12px;
-    border-radius: 8px; border: 1px solid var(--border-light); background: transparent; color: inherit; }
-  .bf-search input:focus { outline: 2px solid #2563eb; outline-offset: 0; border-color: transparent; }
-  .bf-search-count { font-size: 0.78rem; color: var(--text-sub); white-space: nowrap; }
-
   /* ============ POPUP: more details ============ */
   .bf-dialog { width: min(560px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; }
   .bf-dlg-subline { margin: 0.25rem 0 0; font-size: 0.8rem; color: #9a9a9e; overflow-wrap: anywhere; }

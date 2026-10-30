@@ -21,6 +21,8 @@ const css = `
   .rc-head h2 { margin: 0; font-size: 0.95rem; }
   .rc-about { margin: 0 0 0.6rem; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
   .rc-about a { color: inherit; }
+  .rc-about code { font-family: monospace; font-size: 0.95em; padding: 0.05rem 0.3rem; border-radius: 4px;
+    background: rgba(127,127,127,0.15); border: 1px solid var(--border-light); color: var(--text-sub); }
   .rc-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
   .rc-grid + details { margin-top: 8px; }
   .rc-item { position: relative; display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 7px; border: 1px solid var(--border-light);
@@ -52,7 +54,7 @@ function Card({ item }: { item: RecommendedChart }) {
         <span className="rc-text">
           <p className="rc-title">{displayTitle(song.title)}</p>
           <p className="rc-chart" style={{ color: DIFFICULTY_COLORS[chart.difficulty] }}>
-            {chart.kind === 'dx' ? 'DX' : 'std'} {DIFFICULTY_TEXT[chart.difficulty]} {chart.internal.toFixed(1)}
+            {chart.kind === 'dx' ? 'DX' : 'standard'} {DIFFICULTY_TEXT[chart.difficulty]} {chart.internal.toFixed(1)}
           </p>
           <p className="rc-share">
             {item.current !== null && <span className="rc-current">in best 50 · {item.current.toFixed(4)}% · </span>}
@@ -76,9 +78,14 @@ export default function RecommendedCharts({ charts }: { charts: RecommendedChart
     <section className="rc-card" aria-label="recommended charts">
       <style>{css}</style>
       <div className="rc-head">
-        <h2>recommended charts</h2>
+        <h2>recommended charts for rating</h2>
       </div>
       <p className="rc-about">
+        the % is how many players in your rating band got an SSS+, out of everyone in the band who's played the chart
+        <br />
+        the recommended chart order is determined by <code>% × rating gain</code>, so charts that are both commonly SSS+'d and worth a lot of rating come first
+        <br />
+        <br />
         this feature is currently experimental. stats from <a href="https://maimai.shiftpsh.com" target="_blank" rel="noopener noreferrer">maishift</a>
       </p>
       <ul className="rc-grid">{charts.slice(0, SHOWN).map((c) => <Card key={`${c.song.id}-${chartId(c.chart)}`} item={c} />)}</ul>
