@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import SongBrowser from '../../components/SongBrowser';
 import JumpIcon from '../../components/JumpIcon';
 import { getCatalog, toBrowserList } from '../../lib/song-catalog';
-import { connectMongo } from '../../lib/connect-db';
 
 /**
  * /charts: every song, searchable and filterable (components/SongBrowser.tsx). The song list
@@ -20,21 +19,15 @@ export const metadata: Metadata = {
   description: 'every maimai song, with its charts and who has the top score',
 };
 
-// when the nightly update last ran (api/update-leaderboard), written like the leaderboard's
-async function lastUpdatedText() {
-  const metadata = await (await connectMongo()).db('maimai').collection<{ _id: string; lastUpdated?: Date }>('metadata')
-    .findOne({ _id: 'leaderboard_update' });
-  return (metadata?.lastUpdated ? new Date(metadata.lastUpdated) : new Date()).toLocaleString('en-US', {
-    timeZone: 'Pacific/Honolulu', month: 'short', day: 'numeric', year: 'numeric',
-    hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true, timeZoneName: 'short',
-  });
-}
-
 export default async function SongsPage() {
   const { songs, jacketBase } = toBrowserList(await getCatalog());
 
   return (
     <main className="sg-main">
+      {/* same as the leaderboard's (app/page.tsx). remove once maimai NET is back */}
+      <p className="sg-notice" role="status">
+        the chart leaderboards are currently paused while the maimai website is down. sorry for the inconvenience!
+      </p>
       <h1>
         HI Maimai Chart{' '}
         <span className="sg-title-end">
@@ -45,9 +38,9 @@ export default async function SongsPage() {
       <SongBrowser
         songs={songs}
         jacketBase={jacketBase}
-        // the same update time as the leaderboard's (app/page.tsx)
+        // like the leaderboard's (app/page.tsx). the date is fixed there while the scraper is paused
         updated={<>
-          Last updated on {await lastUpdatedText()}
+          Last updated on Oct 31, 2026, 12:17:14 AM HST
           <br />
           Automatically updates every day at midnight
         </>}

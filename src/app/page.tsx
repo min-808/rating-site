@@ -90,18 +90,6 @@ export default async function LeaderboardPage() {
   // fallback to current time
   const updateDate = metadata?.lastUpdated ? new Date(metadata.lastUpdated) : new Date();
 
-  const lastUpdated = updateDate.toLocaleString('en-US', {
-    timeZone: TZ,
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-    timeZoneName: 'short',
-  });
-
   // milestones crossed in the last MILESTONE_DAYS days of updates. each pair of
   // neighbouring history entries is one update; if the rating went from below a
   // milestone to at or above it, that update crossed it
@@ -345,9 +333,23 @@ export default async function LeaderboardPage() {
             opacity: 0.6;
           }
         }
+        .site-notice {
+          margin: 0 0 1rem;
+          padding: 0.7rem 1rem;
+          border-radius: 10px;
+          border: 1px solid rgba(245, 197, 49, 0.55);
+          background: rgba(245, 197, 49, 0.14);
+          font-weight: 600;
+          line-height: 1.4;
+        }
       `}</style>
 
         <br />
+      {/* remove once maimai NET is back */}
+      <p className="site-notice" role="status">
+        the leaderboard is currently paused while the maimai website is down. sorry for the inconvenience!
+      </p>
+
       <MilestoneBanner
         milestones={milestones}
         updateKey={milestones.map((m) => `${m.href}:${m.milestone}`).join('|')}
@@ -364,7 +366,8 @@ export default async function LeaderboardPage() {
         There are currently <b>{players.length}</b> players on the leaderboard
         <br />
         <br />
-        Last updated on {lastUpdated}
+        {/* fixed while the scraper is paused: the nightly update still runs. back to the live time once maimai NET is back */}
+        Last updated on Oct 31, 2026, 12:17:14 AM HST
         <br />
         Automatically updates every day at midnight
       </p>

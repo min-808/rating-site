@@ -18,6 +18,8 @@ export const songPagesCss = `
     65%      { transform: translateY(-0.1em); }
     80%      { transform: translateY(0); }
   }
+  .sg-notice { margin: 1.25rem 0 0; padding: 0.7rem 1rem; border-radius: 10px; border: 1px solid rgba(245, 197, 49, 0.55);
+    background: rgba(245, 197, 49, 0.14); font-weight: 600; line-height: 1.4; }
   .sg-updated { margin: 0 0 1.5rem; font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
 
   /* ============ LIST: search + filters ============ */
