@@ -33,8 +33,3 @@ export function ratingColor(rating: number | null | undefined): RatingColor {
   const tier = RATING_TIERS.find((t) => (rating ?? 0) >= t.min);
   return (tier && BY_TIER[tier.key]) ?? NONE;
 }
-
-// a CSS background for buttons and pills in that color
-export function ratingBackground({ colors }: RatingColor) {
-  return colors.length > 1 ? `linear-gradient(90deg, ${colors.join(', ')})` : colors[0];
-}

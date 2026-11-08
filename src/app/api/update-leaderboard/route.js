@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { clearSongDataCache } from '../../../lib/song-data';
 import { clearAllPlayersCache } from '../../../lib/player-data';
 import { connectMongo } from '../../../lib/connect-db';
+import { refreshChartFeels } from '../../../lib/chart-feel-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,5 +30,14 @@ export async function GET(request) {
   // and every player's cached record (lib/player-data.ts), so the night's scores show
   clearAllPlayersCache();
 
-  return NextResponse.json({ success: true });
+  // the night's new scores: work "plays like" out again for the levels they changed
+  // (lib/chart-feel-store.ts). a failure here mustn't fail the night's update
+  let chartFeel = null;
+  try {
+    chartFeel = await refreshChartFeels();
+  } catch (error) {
+    console.error('chart feel refresh failed', error);
+  }
+
+  return NextResponse.json({ success: true, chartFeel });
 }

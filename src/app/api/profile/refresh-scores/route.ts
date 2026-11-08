@@ -23,6 +23,7 @@ import { getDb, getSession, peekRateLimit, rateLimit, verifyFetch } from '../../
 import { clearPlayerCache } from '../../../../lib/player-data';
 import { adminIds } from '../../../../lib/admin';
 import { logActivity } from '../../../../lib/activity';
+import { refreshChartFeels } from '../../../../lib/chart-feel-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,6 +85,9 @@ export async function GET() {
     const player = await (await getDb()).collection('players')
       .findOne({ user_id: { $in: [session.userId, Number(session.userId)] } } as object, { projection: { web_id: 1 } });
     clearPlayerCache(player?.web_id);
+    // and "plays like" for the levels their new scores changed (lib/chart-feel-store.ts). "done"
+    // comes back on every visit to the editor, so at most once every 10 minutes; not waited on
+    void refreshChartFeels({ minIntervalMs: 10 * 60_000 }).catch((error) => console.error('chart feel refresh failed', error));
   }
   // can't reach the VPS: show the button as normal, and let a press say what's wrong
   return reply(describe(vps?.state ?? 'none', !unlimited && !limit.ok, unlimited));

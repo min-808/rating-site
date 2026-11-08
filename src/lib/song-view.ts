@@ -1,5 +1,6 @@
 import type { CatalogChart } from './song-catalog';
 import type { ChartRecord } from './song-records';
+import type { ChartFeel } from './plays-like';
 
 /**
  * What a song's page shows, packed small: each player once, and each chart's leaderboard as
@@ -33,6 +34,7 @@ export type ViewChart = {
   internal: number;
   level: string | null;
   rows: ViewRow[]; // best first
+  feel?: ChartFeel; // how hard it plays vs its constant (lib/plays-like.ts), added by the page
 };
 
 export type SongView = { players: ViewPlayer[]; charts: ViewChart[]; defaultChart: string };

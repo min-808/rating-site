@@ -5,7 +5,9 @@ import type { Metadata } from 'next';
 import PlayerHistoryChart from '../../../components/PlayerHistoryChart';
 import BestFifty from '../../../components/BestFifty';
 import { Best50Stats } from '../../../components/StatsBadge';
-import { new15, old35 } from '../../../lib/song-calc';
+import { new15, old35, rateSong } from '../../../lib/song-calc';
+import ComfortLevel from '../../../components/ComfortLevel';
+import { comfortSummary } from '../../../lib/comfort-level';
 import FallbackImage from '../../../components/FallbackImage';
 import { connectMongo } from '../../../lib/connect-db';
 import {
@@ -36,6 +38,7 @@ import RecommendedCharts from '../../../components/RecommendedCharts';
 import { buildMyCharts, type RecommendedChart } from '../../../lib/my-charts';
 import { bandStatsFor } from '../../../lib/recommend';
 import { playStats } from '../../../lib/play-stats';
+import NextTierBar from '../../../components/NextTierBar';
 
 interface UserPageProps {
   params: Promise<{ id: string }>;
@@ -584,6 +587,14 @@ export default async function UserPage({ params }: UserPageProps) {
   const showJp = isGf(player.user_id) && account?.show_jp_scores !== false && (player.jp_songs?.length ?? 0) > 0;
   const playerSongs = showJp ? mergeJpScores(player.songs, player.jp_songs) : (player.songs ?? []);
 
+  // the owner's comfort level (components/ComfortLevel.tsx): from their rating and the weakest
+  // chart in each half of their best 50 (0 while a half has fewer than 15 / 35 charts)
+  let comfort: ReturnType<typeof comfortSummary> | null = null;
+  if (isOwner && player.rating > 0) {
+    const floorOf = (best: NonNullable<PlayerDocument['songs']>, size: number) => (best.length < size ? 0 : Math.min(...best.map(rateSong)));
+    comfort = comfortSummary(player.rating, { new: floorOf(new15(playerSongs), 15), old: floorOf(old35(playerSongs), 35) });
+  }
+
   let songs: PlayerDocument['songs'] = [];
   let recommendedCharts: RecommendedChart[] = [];
 
@@ -750,6 +761,9 @@ export default async function UserPage({ params }: UserPageProps) {
               </div>
             </div>
 
+            {/* how far to the next rating bracket */}
+            <NextTierBar rating={player.rating} />
+
             <div className="ov-chart">
               <PlayerHistoryChart data={history} rating={player.rating} />
             </div>
@@ -789,6 +803,9 @@ export default async function UserPage({ params }: UserPageProps) {
         </section>
 
         <ProfileBio initialBio={account?.bio ?? null} canEdit={isOwner} />
+
+        {/* their comfort level and what to push for: only on their own profile, only for them */}
+        {comfort && <ComfortLevel summary={comfort} />}
 
         {/* favorite scores, right under the about me: claimed profiles only, and hidden
             with the rest of the scores */}

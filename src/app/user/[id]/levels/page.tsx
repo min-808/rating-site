@@ -202,7 +202,6 @@ const css = `
   .ls-open { position: absolute; inset: 0; z-index: 2; border: 0; padding: 0; background: transparent; cursor: pointer; border-radius: 5px; }
   .ls-open:hover { background: rgba(255,255,255,0.08); }
   .ls-open:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
-  .ls-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
   @media (max-width: 600px) {
     .ls-wrap { padding: 0 1rem 1.5rem; }

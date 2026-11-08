@@ -5,6 +5,7 @@ import { getCatalogSong, songAddressRedirect } from '../../../lib/song-catalog';
 import { getSongRecords } from '../../../lib/song-records';
 import { getSongDetails } from '../../../lib/song-details';
 import { buildSongView } from '../../../lib/song-view';
+import { getChartFeels } from '../../../lib/chart-feel-store';
 import { isGf } from '../../../lib/special-players';
 import { titleInWords } from '../../../lib/song-id';
 
@@ -49,8 +50,13 @@ export default async function SongPage({ params }: Props) {
     notFound();
   }
 
-  const [records, details] = await Promise.all([getSongRecords(song), getSongDetails(song)]);
+  const [records, details, feels] = await Promise.all([getSongRecords(song), getSongDetails(song), getChartFeels(song.id, song.charts)]);
   const view = buildSongView(song.charts, records, isGf);
+
+  // how hard each chart plays vs its constant ("plays like 14.4"): saved results, read here,
+  // updated only when scores change (lib/chart-feel-store.ts). rating groups and averages,
+  // never who scored what
+  view.charts = view.charts.map((chart) => (feels[chart.id] ? { ...chart, feel: feels[chart.id] } : chart));
 
   return (
     <SongPageView

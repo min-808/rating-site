@@ -9,9 +9,6 @@
 export const bestFiftyCss = `
   /* page, header, sections, grid */
   .bf-wrap { padding: 0 2rem 2rem 2rem; max-width: 1000px; margin: 0 auto; font-family: sans-serif; }
-  .bf-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 1rem; }
-  .bf-head h1 { margin: 0.5rem 0; }
-  .bf-sub-total { color: var(--text-sub); font-size: 0.85rem; }
   .bf-section { display: flex; align-items: baseline; gap: 0.75rem; margin: 1.5rem 0 0.75rem; }
   /* B15 / B35: between the card's small label and the cards themselves in size */
   .bf-section h2 { margin: 0; font-size: 1.15rem; }
@@ -32,10 +29,6 @@ export const bestFiftyCss = `
   .bf-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .bf-dim { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
 
-  .bf-rating-badge { position: absolute; top: 0; right: 0; padding: 5px 10px 5px 12px;
-    background: linear-gradient(135deg, #b768d6, #de7cce); color: #fff; font-weight: 800;
-    font-size: 1.15rem; line-height: 1; border-radius: 0 12px 0 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.35);
-    font-variant-numeric: tabular-nums; }
 
   /* top-right corner: the level badge, with the "new" banner hanging underneath it */
   .bf-corner { position: absolute; top: 0; right: 0; display: flex; flex-direction: column;
@@ -65,7 +58,6 @@ export const bestFiftyCss = `
   .bf-ach { font-size: 0.85rem; font-weight: 700; color: #e9e9e9; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .bf-title { flex: 1; min-width: 0; font-size: 0.78rem; font-weight: 700;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
-  .bf-kind-row { display: flex; justify-content: flex-end; margin-top: 2px; }
 
   .bf-tag { font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; flex-shrink: 0; }
 
@@ -131,7 +123,6 @@ export const bestFiftyCss = `
   .bf-dlg-artist + .bf-dlg-artist { margin-top: 0.8rem; }
   .bf-divider { height: 1px; background: #232326; margin: 0.85rem 0; }
   .bf-score { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 0.4rem; }
-  .bf-rank-pill { font-size: 0.85rem; font-weight: 800; padding: 4px 12px; border-radius: 999px; }
   .bf-big { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
   .bf-big small { font-size: 1.02rem; color: #b7b7bb; font-weight: 700; }
   .bf-dxscore { margin: 0 0 0.25rem; font-size: 0.85rem; color: #cfcfcf; font-variant-numeric: tabular-nums; }
@@ -142,10 +133,6 @@ export const bestFiftyCss = `
   .bf-next-need, .bf-next-rating { font-variant-numeric: tabular-nums; }
   .bf-next-gain { font-weight: 800; color: #82ff9f; font-variant-numeric: tabular-nums; }
   .bf-next-max { color: #9a9a9e; font-style: italic; }
-  .bf-icon-row { display: flex; gap: 10px; margin-top: 0.6rem; }
-  .bf-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;
-    border-radius: 9px; background: #19191c; border: 1px solid #2a2a2e; color: #e5484d; }
-  .bf-icon-btn:hover { background: #212124; }
 
   .bf-card-badges { position: absolute; top: 0px; left: 3px; display: flex; gap: 3px; }
   .bf-card-badges img { height: 38px; width: auto; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
@@ -245,6 +232,5 @@ export const bestFiftyCss = `
     .bf-tag { display: inline-block; padding: 0.34em 0.55em; text-box-trim: trim-both; text-box-edge: cap alphabetic; }
     .bf-chip { display: inline-block; padding: 0.42em 0.7em; text-box-trim: trim-both; text-box-edge: cap alphabetic; }
     .bf-level-badge { display: inline-block; padding: 0.435em 10px 0.435em 12px; text-box-trim: trim-both; text-box-edge: cap alphabetic; }
-    .bf-rating-badge { padding: 0.42em 10px 0.42em 12px; text-box-trim: trim-both; text-box-edge: cap alphabetic; }
   }
 `;

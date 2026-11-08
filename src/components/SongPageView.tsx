@@ -14,6 +14,7 @@ import { rankImage, comboBadge, syncBadge } from '../lib/badges';
 import type { Song } from '../lib/leaderboard';
 import type { SongView, ViewChart, ViewRow, ViewPlayer } from '../lib/song-view';
 import type { SongDetails } from '../lib/song-details';
+import { ALL_PLAYERS_ABOVE, centerRating, type ChartFeel } from '../lib/plays-like';
 import { fetchMe } from './me';
 
 /**
@@ -101,6 +102,113 @@ const dateLabel = (iso: string) => {
   const [year, month, day] = iso.split('-').map(Number);
   return `${MONTHS[month - 1]} ${day}, ${year}`;
 };
+
+/** A gap in percentage points as text: -0.62 -> "-0.62%", 0.1 -> "+0.10%". */
+const gapText = (gap: number) => `${gap > 0 ? '+' : ''}${gap.toFixed(2)}%`;
+
+/**
+ * The "how it plays" box: what the chart plays like compared with its constant, and the
+ * average gap of each rating group (lib/plays-like.ts). Groups only, never names. Before
+ * enough players count, it says how many more it needs.
+ */
+/**
+ * The rating this chart suits: the one where it sits right at a player's comfort level, the
+ * same center rating "plays like" uses (lib/plays-like.ts centerRating: an SSS+ on it x 50,
+ * at most 16,600). The one from "plays like" is highlighted; the one from the constant is
+ * plain, for comparison. Without a "plays like" yet, just the constant's.
+ */
+function RecommendedRating({ playsLike, constant }: { playsLike: number | null; constant: number }) {
+  const fmt = (n: number) => n.toLocaleString('en-US');
+  return (
+    <div className="song-feel-recommend">
+      <span className="song-feel-recommend-label">recommended rating</span>
+      {playsLike != null && (
+        <div className="song-feel-recommend-main">
+          <b>{fmt(centerRating(playsLike))}</b>
+          <small>from plays like {constantLabel(playsLike)}</small>
+        </div>
+      )}
+      <div className={playsLike != null ? 'song-feel-recommend-plain' : 'song-feel-recommend-main'}>
+        {playsLike != null ? <span>{fmt(centerRating(constant))}</span> : <b>{fmt(centerRating(constant))}</b>}
+        <small>from its constant {constantLabel(constant)}</small>
+      </div>
+    </div>
+  );
+}
+
+function ChartFeelBox({ feel, constant }: { feel?: ChartFeel; constant: number }) {
+  if (!feel || feel.playsLike == null) {
+    const rangeText = feel ? `${feel.ratingFrom.toLocaleString('en-US')}–${feel.ratingTo.toLocaleString('en-US')}` : '';
+    return (
+      <section className="song-details-box">
+        <h3>how it plays</h3>
+        {feel && (
+          <p className="song-feel-empty">
+            {feel.counted === 0
+              ? `no scores yet from players${feel.allRatings ? '' : ` rated ${rangeText}`}`
+              : `not enough scores yet: ${feel.counted} of ${feel.needed} players${feel.allRatings ? '' : ` rated ${rangeText}`}`}
+          </p>
+        )}
+        <RecommendedRating playsLike={null} constant={constant} />
+      </section>
+    );
+  }
+
+  const rangeText = `${feel.ratingFrom.toLocaleString('en-US')}–${feel.ratingTo.toLocaleString('en-US')}`;
+  const offset = Math.round((feel.playsLike - constant) * 10) / 10;
+  const verdict = offset >= 0.1 ? 'harder than' : offset <= -0.1 ? 'easier than' : 'about right for';
+  const verdictClass = offset >= 0.1 ? ' is-harder' : offset <= -0.1 ? ' is-easier' : '';
+  // the bars share one scale: the biggest gap reaches the edge (at least 1%, so small gaps stay small)
+  const scale = Math.max(1, ...feel.groups.map((g) => Math.abs(g.averageGap)));
+
+  return (
+    <section className="song-details-box">
+      <h3>how it plays</h3>
+      <div className="song-feel-headline">
+        <span>plays like</span>
+        <b className={`song-feel-constant${verdictClass}`}>{constantLabel(feel.playsLike)}</b>
+        <small>{verdict} its {constantLabel(constant)}</small>
+      </div>
+
+      <RecommendedRating playsLike={feel.playsLike} constant={constant} />
+
+      {/* fewer than MIN_PLAYERS: still shown, but say it's only a few players (lib/plays-like.ts) */}
+      {feel.lowSample && (
+        <p className="song-feel-warning">
+          based on only {feel.counted} player{feel.counted === 1 ? '' : 's'} (fewer than {feel.needed}), so this may be inaccurate
+        </p>
+      )}
+
+      {/* each rating group's average gap: left (orange) scored below their usual, right (blue) above */}
+      <div className="song-feel-groups">
+        {feel.groups.map((group) => {
+          const width = (Math.abs(group.averageGap) / scale) * 50;
+          return (
+            <div className="song-feel-group" key={group.from}>
+              <div className="song-feel-group-label">
+                <span>{group.from.toLocaleString('en-US')}–{group.to.toLocaleString('en-US')} <small>· {group.players}</small></span>
+                <span>{gapText(group.averageGap)}</span>
+              </div>
+              <div className="song-feel-track">
+                <div
+                  className={`song-feel-fill${group.averageGap < 0 ? ' is-below' : ' is-above'}`}
+                  style={group.averageGap < 0 ? { right: '50%', width: `${width}%` } : { left: '50%', width: `${width}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="song-details-note">
+        each player&apos;s score here vs their own usual score on {constantLabel(feel.baselineFrom)}–{constantLabel(feel.baselineTo)} charts,
+        averaged by rating. {feel.allRatings
+          ? `counts all ${feel.counted} players who played it (every rating counts above ${constantLabel(ALL_PLAYERS_ABOVE)}).`
+          : `counts the ${feel.counted} players rated ${rangeText}.`}
+      </p>
+    </section>
+  );
+}
 
 export default function SongPageView({ song, view, details }: { song: SongInfo; view: SongView; details?: SongDetails }) {
   // which chart is open ("dx-master"), and how many of its ranking rows are showing
@@ -353,6 +461,9 @@ export default function SongPageView({ song, view, details }: { song: SongInfo; 
               {chartStats.playerCount > 0 && renderStatBar('SSS+ count', `${chartStats.sssPlusCount} / ${chartStats.playerCount}`, (chartStats.sssPlusCount / chartStats.playerCount) * 100, '#6fd16f')}
               {chartStats.playerCount > 0 && renderStatBar('AP count', `${chartStats.allPerfectCount} / ${chartStats.playerCount}`, (chartStats.allPerfectCount / chartStats.playerCount) * 100, '#ffd24a')}
             </section>
+
+            {/* how hard it plays vs its constant, from players in range (lib/plays-like.ts) */}
+            <ChartFeelBox feel={selectedChart.feel} constant={selectedChart.internal} />
 
             {/* the chart itself: who made it, its notes, its BPM, when it came out */}
             {(chartDetails?.designer || chartDetails?.notes || details?.bpmRange || song.bpm || details?.added) && (

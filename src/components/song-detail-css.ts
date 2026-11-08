@@ -14,6 +14,7 @@
  *   song-details-*       the boxes in the right column
  *   song-stat-bar-*      the progress bars in the "chart" box
  *   song-lookup-*        the YouTube / chart viewer links
+ *   song-feel-*          the "how it plays" box (plays-like constant, rating group bars)
  *
  * CSS variables set from the component:
  *   --difficulty-color  the color of a difficulty (basic green, master purple...)
@@ -144,6 +145,34 @@ export const songDetailCss = `
   /* right column */
   .song-details-box { background: var(--song-panel-bg); border-radius: 12px; padding: 14px 16px; }
   .song-details-box h3 { margin: 0 0 10px; font-size: 0.72rem; letter-spacing: 0.06em; color: var(--song-text-dim); }
+  /* the "how it plays" box (ChartFeelBox): the plays-like constant, then one bar per rating group */
+  .song-feel-headline { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-bottom: 12px; }
+  .song-feel-headline span { font-size: 0.8rem; color: var(--song-text-dim); }
+  .song-feel-constant { font-size: 1.6rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .song-feel-constant.is-harder { color: #ff8a5c; }
+  .song-feel-constant.is-easier { color: #6fb0ff; }
+  .song-feel-headline small { font-size: 0.78rem; color: var(--song-text-dim); }
+  .song-feel-groups { display: grid; gap: 8px; }
+  .song-feel-group-label { display: flex; justify-content: space-between; gap: 8px; font-size: 0.76rem; margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+  .song-feel-group-label span:first-child { color: var(--song-text-dim); }
+  .song-feel-group-label small { font-size: 0.7rem; opacity: 0.8; }
+  .song-feel-group-label span:last-child { font-weight: 700; }
+  /* a centered track: below their usual grows left from the middle, above grows right */
+  .song-feel-track { position: relative; height: 6px; border-radius: 3px; background: rgba(0,0,0,0.35); }
+  .song-feel-track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: rgba(255,255,255,0.35); }
+  .song-feel-fill { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+  .song-feel-fill.is-below { background: #ff8a5c; }
+  .song-feel-fill.is-above { background: #6fb0ff; }
+  .song-feel-empty { margin: 0; font-size: 0.8rem; color: var(--song-text-dim); }
+  /* recommended rating: the one from "plays like" big and in the accent color, the one from the constant plain and dim */
+  .song-feel-recommend { margin: 0 0 12px; padding: 10px 12px; border-radius: 9px; background: var(--song-row-bg); }
+  .song-feel-recommend-label { display: block; font-size: 0.68rem; letter-spacing: 0.05em; color: var(--song-text-dim); margin-bottom: 4px; }
+  .song-feel-recommend-main { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+  .song-feel-recommend-main b { font-size: 1.2rem; font-weight: 800; color: var(--song-accent); font-variant-numeric: tabular-nums; }
+  .song-feel-recommend-main small, .song-feel-recommend-plain small { font-size: 0.74rem; color: var(--song-text-dim); }
+  .song-feel-recommend-plain { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-top: 2px; }
+  .song-feel-recommend-plain span { font-size: 0.85rem; color: var(--song-text-dim); font-variant-numeric: tabular-nums; }
+  .song-feel-warning { margin: -4px 0 12px; font-size: 0.74rem; color: #ffc46b; }
   .song-stat-bar { margin-bottom: 10px; }
   .song-stat-bar:last-child { margin-bottom: 0; }
   .song-stat-bar-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px; }
