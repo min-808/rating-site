@@ -1,4 +1,4 @@
-import { RATING_CAP, rateSong } from './song-calc';
+import { RATING_CAP, RANK_CUTOFFS, rateSong } from './song-calc';
 import type { Song } from './leaderboard';
 
 /**
@@ -67,4 +67,43 @@ export function comfortSummary(rating: number, floors: { new: number; old: numbe
     raiseNew: constantToBeat(floors.new),
     raiseOld: constantToBeat(floors.old),
   };
+}
+
+export type AccuracyTarget =
+  | { reachable: true; achievement: number; rank: string; perChart: number } // aim for this (rounded up to 0.01%)
+  | { reachable: false; best: number; perChart: number }; // even an SSS+ (best) is worth less than perChart
+
+/**
+ * The accuracy to aim for on a chart at a rating: the lowest score that makes it worth as
+ * much as that rating's average best-50 chart (rating / 50, rounded up). Uses the game's own
+ * rating formula (lib/song-calc.ts rateSong) and the chart's real constant, since that's what
+ * the game rates. No AP bonus. A 13.3 at 15,000 rating: worth 300 a chart, so an SSS+ is
+ * needed and still falls short (299): not reachable.
+ */
+export function accuracyTarget(constant: number, rating: number): AccuracyTarget {
+  const perChart = Math.ceil(rating / 50);
+  const worth = (achievement: number) => rateSong({ achievement, internal_difficulty: constant, ap: false } as Song);
+  // the ranks lowest first, skipping the single-score "edge" rows (100.4999% and the like)
+  const ranks = RANK_CUTOFFS.filter((r) => !r.edge).slice().reverse();
+  for (let i = 0; i < ranks.length; i++) {
+    const rank = ranks[i];
+    const nextMin = i + 1 < ranks.length ? ranks[i + 1].min : RATING_CAP + 1e-9;
+    // within a rank the rating only grows with accuracy: the least accuracy giving perChart, in 0.0001% steps
+    const units = Math.ceil((perChart * 100_000_000) / (Math.round(constant * 10) * Math.round(rank.factor * 1000)));
+    let achievement = Math.max(rank.min, units / 10000);
+    achievement = Math.ceil(achievement * 100 - 1e-9) / 100; // shown to 0.01%, rounded up so it's still enough
+    if (achievement < nextMin && achievement <= RATING_CAP && worth(achievement) >= perChart) {
+      return { reachable: true, achievement, rank: rank.rank, perChart };
+    }
+  }
+  return { reachable: false, best: worth(RATING_CAP), perChart };
+}
+
+/**
+ * The other way round from accuracyTarget: the rating a score on this chart suits, the one
+ * whose average best-50 chart (rating / 50) it's worth. SSS (100%) on a 13.3: 287 x 50 = 14,350.
+ */
+export function ratingForAccuracy(constant: number, achievement: number): { rating: number; perChart: number } {
+  const perChart = rateSong({ achievement, internal_difficulty: constant, ap: false } as Song);
+  return { rating: perChart * 50, perChart };
 }

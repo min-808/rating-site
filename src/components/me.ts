@@ -12,6 +12,7 @@ export type Me =
       signedIn: true;
       username: string;
       webId: number | null;
+      rating?: number | null;
       icon?: string | null;
       iconFallback?: string | null;
       isAdmin?: boolean;

@@ -172,6 +172,54 @@ export const songDetailCss = `
   .song-feel-recommend-main small, .song-feel-recommend-plain small { font-size: 0.74rem; color: var(--song-text-dim); }
   .song-feel-recommend-plain { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-top: 2px; }
   .song-feel-recommend-plain span { font-size: 0.85rem; color: var(--song-text-dim); font-variant-numeric: tabular-nums; }
+  /* the accuracy to aim for, under the recommended rating: a rating picker, then the score */
+  .song-feel-target { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--song-divider); }
+  .song-feel-target-pick { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 0.74rem; color: var(--song-text-dim); margin-bottom: 5px; }
+  .song-feel-target-pick select { font: inherit; font-size: 0.76rem; color: var(--song-text); background: var(--song-panel-bg); border: 1px solid var(--song-divider);
+    border-radius: 6px; padding: 3px 6px; cursor: pointer; max-width: 100%; }
+  .song-feel-target-result { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+  .song-feel-target-result b { font-size: 1.05rem; font-weight: 800; color: var(--song-text); font-variant-numeric: tabular-nums; }
+  .song-feel-target-result small { font-size: 0.72rem; color: var(--song-text-dim); }
+  .song-feel-target-result.is-short b { font-size: 0.9rem; color: #ffc46b; }
+  /* the by rating / by accuracy toggle */
+  .song-feel-target-toggle { display: inline-flex; padding: 2px; border-radius: 999px; background: rgba(0,0,0,0.3); margin-bottom: 7px; }
+  .song-feel-target-toggle button { all: unset; cursor: pointer; font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; color: var(--song-text-dim); }
+  .song-feel-target-toggle button.is-on { background: var(--song-accent); color: #fff; }
+  .song-feel-target-toggle button:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+  /* "how is this worked out?" and its popup */
+  .song-feel-how { all: unset; cursor: pointer; display: inline-block; margin-top: 10px; font-size: 0.74rem; color: var(--song-accent); text-decoration: underline; text-underline-offset: 2px; }
+  .song-feel-how:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .song-feel-dialog { width: min(520px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 1px solid var(--song-divider);
+    border-radius: 14px; background: var(--song-panel-bg); color: var(--song-text); font-family: sans-serif; }
+  .song-feel-dialog::backdrop { background: rgba(0,0,0,0.6); }
+  .song-feel-dialog-body { position: relative; padding: 18px 20px; font-size: 0.85rem; line-height: 1.55; }
+  .song-feel-dialog-body h4 { margin: 0 0 6px; font-size: 0.95rem; }
+  .song-feel-dialog-body h4 + ol, .song-feel-dialog-body h4 + p { margin-top: 0; }
+  .song-feel-dialog-body ol { margin: 0 0 10px; padding-left: 1.2rem; display: grid; gap: 6px; }
+  .song-feel-dialog-body p { margin: 0 0 14px; color: var(--song-text-dim); }
+  .song-feel-dialog-body li { color: var(--song-text-dim); }
+  .song-feel-dialog-body b { color: var(--song-text); }
+  .song-feel-dialog-x { all: unset; cursor: pointer; position: absolute; top: 10px; right: 12px; width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: var(--song-text-dim); }
+  .song-feel-dialog-x:hover { background: rgba(255,255,255,0.08); color: var(--song-text); }
+  /* maishift's numbers (MaishiftBreakdown): a one-line summary, then one row per rating band
+     with a bar of this chart's SSS+ rate and a marker where a typical chart's is */
+  .song-dist { margin-top: 2px; }
+  .song-dist-summary { margin: 0 0 8px; font-size: 0.76rem; color: var(--song-text); }
+  .song-dist-row { display: grid; grid-template-columns: 0.9fr 0.7fr 2fr 1fr; gap: 8px; align-items: center; font-size: 0.74rem; padding: 3px 0; color: var(--song-text-dim); font-variant-numeric: tabular-nums; }
+  .song-dist-row.is-head { font-size: 0.64rem; border-bottom: 1px solid var(--song-divider); padding-bottom: 4px; margin-bottom: 2px; }
+  .song-dist-row.is-head > span:nth-child(3) { grid-column: 3 / 5; display: flex; align-items: center; gap: 4px; }
+  .song-dist-key { display: inline-block; width: 9px; height: 7px; border-radius: 2px; background: #dd2c76; margin-left: 4px; }
+  .song-dist-key.is-typical { width: 2px; height: 10px; background: #fff; border-radius: 1px; margin-left: 6px; }
+  .song-dist-row b { color: var(--song-text); }
+  .song-dist-row .is-easier { color: #6fb0ff; }
+  .song-dist-row .is-harder { color: #ff8a5c; }
+  .song-dist-track { position: relative; height: 8px; border-radius: 3px; background: rgba(0,0,0,0.35); }
+  .song-dist-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: #dd2c76; }
+  .song-dist-marker { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: #fff; }
+  .song-dist a { color: var(--song-accent); }
+  .song-feel-dialog-body a { color: var(--song-accent); }
+  .song-feel-recommend-why { margin: 5px 0 0; font-size: 0.72rem; line-height: 1.4; color: var(--song-text-dim); }
   .song-feel-warning { margin: -4px 0 12px; font-size: 0.74rem; color: #ffc46b; }
   .song-stat-bar { margin-bottom: 10px; }
   .song-stat-bar:last-child { margin-bottom: 0; }

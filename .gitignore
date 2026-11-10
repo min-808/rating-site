@@ -7,3 +7,4 @@ out/
 .env*
 .claude/
 tsconfig.tsbuildinfo
+maishift-levels.json*

@@ -1,54 +1,42 @@
 import { ratingGroup, ratingGroupStart, RATING_GROUP_SIZE } from './comfort-level';
 import { RATING_CAP, rateSong } from './song-calc';
 import type { Song } from './leaderboard';
+import type { MaishiftDetail } from './maishift-feel';
 
 /**
- * How hard a chart plays compared with its constant ("plays like 14.4"), from the scores on
- * this site. Plain module (no database), so it can be tested on its own; the scores come
- * from lib/song-records.ts and each player's usual scores from lib/player-baselines.ts.
+ * How hard a chart plays compared with its constant ("plays like 13.1"), from the scores on
+ * this site. Plain module (no database), so it can be tested on its own. The results are
+ * saved, not worked out on every page view: lib/chart-feel-store.ts. The song page's
+ * "how is this worked out?" popup explains the same steps in words (components/SongPageView.tsx).
  *
- * For each player with a score on the chart:
- *   1. their usual score: their average accuracy on their OTHER charts within 0.2 of this
- *      chart's constant (a 14.1 uses their 13.9 to 14.3 charts). Scores under 94% count as
- *      94% here and on the chart (SCORE_FLOOR)
- *   2. their gap: their score here minus their usual score. usually 100.3% on 14.1s and
- *      99.6% here: -0.7%
- * Each player is compared with themselves, so it doesn't matter whether strong or weak
- * players happened to play the chart.
+ * Stage 1, each chart on its own (chartGaps):
+ *   1. who counts: players whose rating is within GROUPS_EACH_SIDE rating groups of the
+ *      chart's center rating (every rating above ALL_PLAYERS_ABOVE), with at least
+ *      MIN_BASELINE_CHARTS of their own other scores within 0.2 of the constant
+ *   2. each player's gap: their score here minus their usual score (their average on those
+ *      other charts). Scores under 94% count as 94% (SCORE_FLOOR). Each player is compared
+ *      with themselves, so it doesn't matter who happened to play the chart
+ *   3. the chart's average gap, and each rating group's, for the bars (no names)
  *
- * Only players the chart is in range for count: a 16k player gets about 100.7% on almost any
- * level 12, so every level 12 would look the same to them. A chart's center rating is what
- * an SSS+ on it is worth x 50 (a 13.5: 303 x 50 = 15,150), capped at MAX_CENTER_RATING and
- * a constant of MAX_CONSTANT. Its "own" rating group is the one holding that center; only
- * players within GROUPS_EACH_SIDE groups of it count (a 13.5 counts 14,250 to 15,999).
- * Charts above ALL_PLAYERS_ABOVE are the exception: few players play them, so everyone with
- * a usual score near that level counts, whatever their rating.
+ * Stage 2, the charts against each other (finishFeels):
+ *   4. popularity: charts more people play get practised more and score higher. The gap
+ *      gained per doubling of players (beta) is measured across all charts, and taken back
+ *      out: adjusted gap = gap - beta x (log2 players - the comparison charts' average)
+ *   5. comparison: the chart's adjusted gap against charts from the same era (ERAS) within
+ *      0.1 of its constant, as a z score: (adjusted gap - their mean) / their spread.
+ *      Positive: players score above their usual here, so it's easier
+ *   6. plays like = constant - z x K, moved at most CAP, never above MAX_CONSTANT
  *
- * The result:
- *   - each rating group's average gap, for the bars (no names: a group is only an average)
- *   - "plays like": the constant those players would usually score this on. The average gap
- *     turned into constant using how fast their own scores drop as charts get harder
- *     (their usual score half a level above vs half a level below), then only half of that
- *     change is kept (CHANGE_KEPT): halfway between the calculated constant and the real one
- * With fewer than MIN_PLAYERS players it's still worked out (as long as one player counts),
- * and marked lowSample so the page says it may be inaccurate. SHOW_WITH_FEW_PLAYERS = false
- * switches that off: then nothing is shown until MIN_PLAYERS players count.
- *
- * The results are saved, not worked out on every page view: lib/chart-feel-store.ts.
+ * With fewer than MIN_PLAYERS counted it's still worked out (from one player up), marked
+ * lowSample so the page says it may be inaccurate; SHOW_WITH_FEW_PLAYERS = false hides it.
  */
 
-/**
- * Scores below this count as this (AAA), both in a player's usual score and on the chart.
- * Below it is mostly fails and first tries, and a few of those would drag a player's usual
- * score far down and make every chart they've practised look easy.
- */
+/** Scores below this count as this (AAA), in a player's usual score and on the chart: fails and first tries. */
 export const SCORE_FLOOR = 94;
-
 /** The highest center rating a chart can have. (The real max rating is 16,663 to 16,690 depending on the version.) */
 export const MAX_CENTER_RATING = 16600;
 /** Charts above this constant count every player, not only those near the chart's level. */
 export const ALL_PLAYERS_ABOVE = 14.0;
-
 /** How many players it takes for "plays like" to be trusted. */
 export const MIN_PLAYERS = 8;
 /** true: with fewer than MIN_PLAYERS, still show it, marked as maybe inaccurate. false: show nothing until there are MIN_PLAYERS. */
@@ -59,18 +47,30 @@ export const GROUPS_EACH_SIDE = 3;
 const BASELINE_TENTHS = 2;
 /** How many other charts near the constant a player needs for a usual score. */
 const MIN_BASELINE_CHARTS = 3;
-/** If players' own scores don't say how fast accuracy drops per 1.0 of constant, this is used (in %). */
-const FALLBACK_DROP_PER_LEVEL = -0.8;
-/** "Plays like" never strays further than this from the real constant. */
-const MAX_OFFSET = 1.5;
-/**
- * How much of the calculated change is kept: 0.5 = halfway between the calculated constant
- * and the real one. With few players the full change over- and under-rates charts too
- * hard, so it's halved; raise it toward 1 as more scores come in.
- */
-export const CHANGE_KEPT = 0.5;
-/** ...and never goes above the hardest constant in the game (15.0 for now). Also the cap on the constant a center rating is worked out from. */
+/** How strongly the comparison moves the constant: plays like = constant - z x K. */
+export const K = 0.2;
+/** The most "plays like" can move from the real constant, either way. */
+export const CAP = 0.5;
+/** The hardest constant in the game (15.0 for now): "plays like" never goes above it. Also caps the center rating. */
 export const MAX_CONSTANT = 15.0;
+/** A chart needs this many counted players to be part of other charts' comparison (its own result needs one). */
+const MIN_PLAYERS_TO_COMPARE = 3;
+/** A comparison needs this many charts; with fewer, it widens (see comparisonFor). */
+const MIN_COMPARISON_CHARTS = 5;
+/** A comparison's spread is never taken as smaller than this (%), so a few near-identical charts can't blow z up. */
+const MIN_SPREAD = 0.1;
+
+/**
+ * The eras charts are compared within: charts from recent versions score much higher than
+ * old ones at the same constant (seen in maishift's data), so a new chart is only compared
+ * with other new ones. By version code (lib/versions.ts).
+ */
+export const ERAS = [
+  { from: 23000, label: 'FESTiVAL and later' },
+  { from: 20000, label: 'DX to UNiVERSE PLUS' },
+  { from: 0, label: 'maimai to FiNALE' },
+] as const;
+const eraOf = (versionCode: number | null) => ERAS.findIndex((e) => (versionCode ?? 0) >= e.from);
 
 /** A chart's center rating: an SSS+ on it (no AP) x 50, the game's own rounding, capped. 13.5 -> 15,150. */
 export function centerRating(constant: number): number {
@@ -79,7 +79,7 @@ export function centerRating(constant: number): number {
 }
 
 /**
- * One player's scores, summed by constant: tenths of constant ("141" for 14.1) -> [sum of
+ * One player's scores summed by constant: tenths of constant ("141" for 14.1) -> [sum of
  * accuracy, number of charts]. Their rating places them in a group.
  */
 export type PlayerBaseline = { rating: number; byConstant: Record<string, [number, number]> };
@@ -91,6 +91,23 @@ export type ChartFeelGroup = {
   averageGap: number; // percentage points, -0.62
 };
 
+/** How "plays like" came out, step by step, for the popup. Rounded for display. */
+export type ChartFeelWorking = {
+  averageGap: number; // step 3
+  scored: number; // players with any score on the chart (popularity)
+  perDoubling: number; // beta, % per doubling of players
+  adjustedGap: number; // step 4
+  comparisonCharts: number; // step 5: how many charts it was compared with
+  comparisonFrom: number; // their constants: from...
+  comparisonTo: number; // ...to
+  comparisonEra: string; // "FESTiVAL and later", or "all versions" when it had to widen
+  comparisonMean: number;
+  comparisonSpread: number;
+  z: number;
+  k: number;
+  cap: number;
+};
+
 export type ChartFeel = {
   needed: number; // MIN_PLAYERS
   counted: number; // players who count (in range, with a usual score)
@@ -99,9 +116,12 @@ export type ChartFeel = {
   ratingTo: number; // ...to
   baselineFrom: number; // the constants a usual score is made from: 13.9...
   baselineTo: number; // ...14.3
-  playsLike: number | null; // 14.4, or null when nobody counts (or fewer than MIN_PLAYERS with SHOW_WITH_FEW_PLAYERS off)
+  playsLike: number | null; // 13.1, or null when nobody counts (or fewer than MIN_PLAYERS with SHOW_WITH_FEW_PLAYERS off)
   lowSample: boolean; // fewer than MIN_PLAYERS counted: shown, but may be inaccurate
-  groups: ChartFeelGroup[]; // lowest rating first, only groups with players. empty when playsLike is null
+  groups: ChartFeelGroup[]; // lowest rating first, only groups with players
+  working?: ChartFeelWorking; // how playsLike came out, when there is one (this site's data)
+  source?: 'site' | 'maishift'; // where it came from. missing: this site's players (older saved results)
+  maishift?: MaishiftDetail; // maishift's numbers, when it came from there (lib/maishift-feel.ts)
 };
 
 /** A player's average accuracy over a range of tenths of constant, leaving one score out. */
@@ -125,48 +145,48 @@ function averageOver(
   return charts > 0 ? { average: sum / charts, charts } : null;
 }
 
-const median = (values: number[]) => {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-};
+const round = (n: number, places: number) => Math.round(n * 10 ** places) / 10 ** places;
 
-/** How one chart plays, from everyone's score on it and their usual scores. */
-export function chartFeel(
+/** Stage 1's result for one chart: everything but playsLike / working, plus what stage 2 needs. */
+export type ChartGaps = ChartFeel & { constant: number; versionCode: number | null; scored: number; averageGap: number | null };
+
+/** Stage 1: one chart's players and their gaps (steps 1-3). */
+export function chartGaps(
   constant: number,
+  versionCode: number | null,
   scores: Array<{ webId: number; achievement: number }>,
   baselines: Record<string, PlayerBaseline>,
-): ChartFeel {
+): ChartGaps {
   const tenth = Math.round(constant * 10);
-  const center = centerRating(constant);
-  const ownGroup = ratingGroup(center);
+  const ownGroup = ratingGroup(centerRating(constant));
   const allRatings = constant > ALL_PLAYERS_ABOVE;
   const lowestGroup = ownGroup - GROUPS_EACH_SIDE;
   const highestGroup = ownGroup + GROUPS_EACH_SIDE;
 
   const gaps: Array<{ group: number; gap: number }> = [];
-  const drops: number[] = []; // per player: how much their usual score drops from half a level below to half above
   for (const { webId, achievement } of scores) {
     const baseline = baselines[webId];
     if (!baseline || !(achievement > 0)) continue;
     const score = Math.max(SCORE_FLOOR, achievement); // like the scores in their sums (lib/player-baselines.ts)
     const group = ratingGroup(baseline.rating);
     if (!allRatings && (group < lowestGroup || group > highestGroup)) continue; // the chart isn't in their range
-
     const usual = averageOver(baseline, tenth - BASELINE_TENTHS, tenth + BASELINE_TENTHS, { tenth, achievement: score });
     if (!usual || usual.charts < MIN_BASELINE_CHARTS) continue; // not enough of their own charts near this level
     gaps.push({ group, gap: score - usual.average });
-
-    const below = averageOver(baseline, tenth - 5 - BASELINE_TENTHS, tenth - 5 + BASELINE_TENTHS);
-    const above = averageOver(baseline, tenth + 5 - BASELINE_TENTHS, tenth + 5 + BASELINE_TENTHS);
-    if (below && above && below.charts >= 2 && above.charts >= 2) drops.push(above.average - below.average);
   }
 
   // every rating counts above ALL_PLAYERS_ABOVE: the range shown is the ratings of those who counted
   const countedGroups = gaps.map((g) => g.group);
   const fromGroup = allRatings && gaps.length ? Math.min(...countedGroups) : lowestGroup;
   const toGroup = allRatings && gaps.length ? Math.max(...countedGroups) : highestGroup;
-  const result: ChartFeel = {
+  const byGroup = new Map<number, number[]>();
+  for (const { group, gap } of gaps) byGroup.set(group, [...(byGroup.get(group) ?? []), gap]);
+
+  return {
+    constant,
+    versionCode,
+    scored: scores.filter((s) => s.achievement > 0).length,
+    averageGap: gaps.length ? gaps.reduce((t, g) => t + g.gap, 0) / gaps.length : null,
     needed: MIN_PLAYERS,
     counted: gaps.length,
     allRatings,
@@ -176,29 +196,99 @@ export function chartFeel(
     baselineTo: (tenth + BASELINE_TENTHS) / 10,
     playsLike: null,
     lowSample: gaps.length < MIN_PLAYERS,
-    groups: [],
+    groups: [...byGroup]
+      .sort(([a], [b]) => a - b)
+      .map(([group, list]) => ({
+        from: ratingGroupStart(group),
+        to: ratingGroupStart(group) + RATING_GROUP_SIZE - 1,
+        players: list.length,
+        averageGap: round(list.reduce((t, g) => t + g, 0) / list.length, 3),
+      })),
   };
-  if (gaps.length === 0 || (gaps.length < MIN_PLAYERS && !SHOW_WITH_FEW_PLAYERS)) return result;
+}
 
-  const averageGap = gaps.reduce((total, g) => total + g.gap, 0) / gaps.length;
-  // how many % accuracy one level of constant costs these players. it should be negative
-  // (harder charts, lower scores); if their scores don't show that clearly, use the fallback
-  const dropPerLevel = drops.length >= 3 && median(drops) < -0.15 ? median(drops) : FALLBACK_DROP_PER_LEVEL;
-  const offset = Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, averageGap / dropPerLevel));
+const log2 = (n: number) => Math.log2(Math.max(1, n));
+const mean = (values: number[]) => values.reduce((t, v) => t + v, 0) / values.length;
+const spread = (values: number[]) => {
+  const m = mean(values);
+  return Math.sqrt(values.reduce((t, v) => t + (v - m) ** 2, 0) / values.length);
+};
 
-  const byGroup = new Map<number, number[]>();
-  for (const { group, gap } of gaps) byGroup.set(group, [...(byGroup.get(group) ?? []), gap]);
+/**
+ * Stage 2: every chart's playsLike (steps 4-6). Takes every chart's stage 1, returns the same
+ * charts' finished results in the same order.
+ */
+export function finishFeels(charts: ChartGaps[]): ChartFeel[] {
+  const comparable = charts.filter((c) => c.averageGap != null && c.counted >= MIN_PLAYERS_TO_COMPARE);
+  const tenthOf = (c: ChartGaps) => Math.round(c.constant * 10);
 
-  // the calculated constant, then only CHANGE_KEPT of the way from the real constant to it
-  const calculated = Math.min(MAX_CONSTANT, constant + offset);
-  result.playsLike = Math.min(MAX_CONSTANT, Math.round((constant + (calculated - constant) * CHANGE_KEPT) * 10) / 10);
-  result.groups = [...byGroup]
-    .sort(([a], [b]) => a - b)
-    .map(([group, list]) => ({
-      from: ratingGroupStart(group),
-      to: ratingGroupStart(group) + RATING_GROUP_SIZE - 1,
-      players: list.length,
-      averageGap: list.reduce((total, g) => total + g, 0) / list.length,
-    }));
-  return result;
+  // step 4: gap gained per doubling of players, measured within each era and constant, pooled
+  const cells = new Map<string, ChartGaps[]>();
+  for (const c of comparable) {
+    const key = `${eraOf(c.versionCode)}|${tenthOf(c)}`;
+    cells.set(key, [...(cells.get(key) ?? []), c]);
+  }
+  let sxy = 0;
+  let sxx = 0;
+  for (const cell of cells.values()) {
+    if (cell.length < 2) continue;
+    const mx = mean(cell.map((c) => log2(c.scored)));
+    const my = mean(cell.map((c) => c.averageGap!));
+    for (const c of cell) {
+      sxy += (log2(c.scored) - mx) * (c.averageGap! - my);
+      sxx += (log2(c.scored) - mx) ** 2;
+    }
+  }
+  // only ever counted one way: more players, more practice, higher scores. no effect seen: none applied
+  const perDoubling = sxx > 0 ? Math.max(0, sxy / sxx) : 0;
+
+  // step 5: who a chart is compared with: the same era within 0.1, widening to 0.2, then to every era
+  const comparisonFor = (c: ChartGaps) => {
+    const era = eraOf(c.versionCode);
+    const near = (reach: number, anyEra: boolean) =>
+      comparable.filter((o) => Math.abs(tenthOf(o) - tenthOf(c)) <= reach && (anyEra || eraOf(o.versionCode) === era));
+    for (const [reach, anyEra] of [[1, false], [2, false], [2, true]] as const) {
+      const list = near(reach, anyEra);
+      if (list.length >= MIN_COMPARISON_CHARTS) return { list, reach, anyEra };
+    }
+    return null;
+  };
+
+  return charts.map((c) => {
+    const { constant: _c, versionCode: _v, scored: _s, averageGap, ...feel } = c;
+    const result: ChartFeel = { ...feel, playsLike: null };
+    if (averageGap == null || (c.lowSample && !SHOW_WITH_FEW_PLAYERS)) return result;
+    const comparison = comparisonFor(c);
+    if (!comparison) return result; // nothing to compare it with yet: no plays like
+
+    const { list, reach, anyEra } = comparison;
+    const averageLog = mean(list.map((o) => log2(o.scored)));
+    const adjust = (o: ChartGaps) => o.averageGap! - perDoubling * (log2(o.scored) - averageLog);
+    const adjusted = list.map(adjust);
+    const comparisonMean = mean(adjusted);
+    const comparisonSpread = Math.max(MIN_SPREAD, spread(adjusted));
+    const adjustedGap = adjust(c);
+    const z = (adjustedGap - comparisonMean) / comparisonSpread;
+    const move = Math.max(-CAP, Math.min(CAP, -z * K));
+
+    return {
+      ...result,
+      playsLike: Math.min(MAX_CONSTANT, Math.round((c.constant + move) * 10) / 10),
+      working: {
+        averageGap: round(averageGap, 3),
+        scored: c.scored,
+        perDoubling: round(perDoubling, 3),
+        adjustedGap: round(adjustedGap, 3),
+        comparisonCharts: list.length,
+        comparisonFrom: (tenthOf(c) - reach) / 10,
+        comparisonTo: (tenthOf(c) + reach) / 10,
+        comparisonEra: anyEra ? 'all versions' : ERAS[eraOf(c.versionCode)].label,
+        comparisonMean: round(comparisonMean, 3),
+        comparisonSpread: round(comparisonSpread, 3),
+        z: round(z, 2),
+        k: K,
+        cap: CAP,
+      },
+    };
+  });
 }
