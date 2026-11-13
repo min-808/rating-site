@@ -25,7 +25,7 @@ import { maishiftData, maishiftFeel, maishiftKey, type MaishiftChartsDoc, type M
  */
 
 /** Bump when the way "plays like" is worked out changes: every chart is worked out again on the next run. */
-const FEEL_VERSION = 9; // 3: only half the change kept. 4: unused fields dropped. 5: compared with same-era charts, popularity corrected. 6: cap 0.5. 7: maishift's data where it has some. 8: K 0.4. 9: K 0.2
+const FEEL_VERSION = 12; // 12: sigma 0.25-0.5 shown marked uncertain. 11: curved typical line, only shown when sigma <= 0.25. 10: accuracy gap / measured accuracy per constant (no K). 3: only half the change kept. 4: unused fields dropped. 5: compared with same-era charts, popularity corrected. 6: cap 0.5. 7: maishift's data where it has some. 8: K 0.4. 9: K 0.2
 const COLLECTION = 'chart_feel';
 /** Documents written per second, at most: half the free Atlas tier's 100 operations a second, leaving the rest for the site. */
 const WRITES_PER_SECOND = 50;
@@ -135,14 +135,16 @@ export async function refreshChartFeels({ force = false, minIntervalMs = 0 } = {
   // every chart, worked out together (lib/plays-like.ts): each on its own, then against each other
   const results = finishFeels(charts.map(({ song, chart, id }) => chartGaps(chart.internal, song.versionCode, chartScores.get(id) ?? [], baselines)));
 
-  // where maishift has numbers for a chart, those replace this site's (far more players)
+  // the better result wins: sure, then uncertain (shown marked), then hidden (the page says why).
+  // on a tie maishift's wins: far more players
   let fromMaishift = 0;
   if (maishift) {
     charts.forEach(({ song, chart }, i) => {
       const maishiftId = song.titles.map((t) => maishift.byChart.get(maishiftKey(t, chart.kind, chart.difficulty))).find((x) => x != null);
       if (maishiftId == null) return;
       const feel = maishiftFeel(chart.internal, song.versionCode, maishiftId, maishift);
-      if (feel?.playsLike != null) { results[i] = feel; fromMaishift += 1; }
+      const rank = (f: ChartFeel) => (f.playsLike == null ? 0 : f.unsure ? 1 : 2);
+      if (feel && rank(feel) >= rank(results[i])) { results[i] = feel; if (feel.playsLike != null) fromMaishift += 1; }
     });
   }
 

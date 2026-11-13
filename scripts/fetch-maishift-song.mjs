@@ -8,7 +8,7 @@
  * import into the `maishift_levels` collection in Compass. It never touches the database itself.
  *
  * For each chart at 11.0 or above (below that, maishift's rating bands don't reach the chart's
- * level): every chart's rank counts within 0.1 of its constant, for each rating band within 750
+ * level): every chart's rank counts within 0.5 of its constant, for each rating band within 750
  * of the chart's center rating (an SSS+ on it x 50). That's what the site compares the chart
  * against (lib/maishift-feel.ts).
  *
@@ -31,6 +31,9 @@ const BASE = 'https://maimai.shiftpsh.com/api/v1';
 const REGION = 'na';
 const OUT = 'maishift-levels.json';
 const COST = { versions: 1, songs: 10, levelCharts: 15 };
+// how far either side of a chart's constant its comparison charts reach, in tenths (0.5): the
+// site fits a line through them to measure how much accuracy one level of constant is worth
+const REACH = 5;
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
@@ -58,10 +61,23 @@ let units = 0;
 let bytes = 0;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// maishift's server having a bad moment (502, 503, 504, a dropped connection): wait and try
+// again, 15s, 30s, 60s, 2 min, 4 min, before giving up. what's already saved stays saved
+const RETRY_WAITS = [15, 30, 60, 120, 240];
+
 async function get(path, cost) {
   if (remaining < cost + 5) await sleep(((cost + 5 - remaining) / 2) * 1000 + 500);
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const res = await fetch(BASE + path, { headers: { 'X-API-Key': key } });
+  let serverErrors = 0;
+  for (;;) {
+    let res;
+    try {
+      res = await fetch(BASE + path, { headers: { 'X-API-Key': key } });
+    } catch (error) { // no answer at all (connection dropped, wifi blip)
+      if (serverErrors >= RETRY_WAITS.length) throw error;
+      console.log(`  no answer from maishift (${error.cause?.code ?? error.message}), trying again in ${RETRY_WAITS[serverErrors]}s`);
+      await sleep(RETRY_WAITS[serverErrors++] * 1000);
+      continue;
+    }
     const left = Number(res.headers.get('X-RateLimit-Remaining'));
     if (Number.isFinite(left)) remaining = left;
     if (res.status === 429) { // rate limited anyway: wait as long as maishift says
@@ -71,11 +87,15 @@ async function get(path, cost) {
       continue;
     }
     const text = await res.text();
+    if (res.status >= 500 && serverErrors < RETRY_WAITS.length) {
+      console.log(`  maishift answered ${res.status} (a problem on their side), trying again in ${RETRY_WAITS[serverErrors]}s`);
+      await sleep(RETRY_WAITS[serverErrors++] * 1000);
+      continue;
+    }
     calls += 1; units += cost; bytes += text.length;
-    if (!res.ok) throw new Error(`${path}: ${res.status} ${text.slice(0, 200)}`);
+    if (!res.ok) throw new Error(`${path}: ${res.status} ${text.slice(0, 200)}  (what's downloaded so far is saved: run the same command again to carry on)`);
     return JSON.parse(text);
   }
-  throw new Error(`${path}: still rate limited after 5 tries`);
 }
 
 // a chart's center rating: an SSS+ on it (no AP) x 50, the game's own rounding, at most 16,600
@@ -133,10 +153,10 @@ if (!picked.length) { console.error(`no song called "${title}" on maishift (${RE
 const wanted = picked.flatMap((s) => s.charts).filter((c) => c.internalLevel >= 110);
 console.log(`${title ?? 'every song'}: ${wanted.length} chart(s) at 11.0 or above`);
 
-// what to fetch: each constant within 0.1, in each of the chart's bands
+// what to fetch: each constant within REACH (0.5), in each of the chart's bands
 const jobs = new Map(); // "133|14750-15000" -> { level, band }
 for (const chart of wanted) {
-  for (const level of [chart.internalLevel - 1, chart.internalLevel, chart.internalLevel + 1]) {
+  for (let level = chart.internalLevel - REACH; level <= chart.internalLevel + REACH; level++) {
     if (level < 10 || level > 150) continue;
     for (const band of bandsFor(chart.internalLevel)) jobs.set(`${level}|${band}`, { level, band });
   }

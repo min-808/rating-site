@@ -120,10 +120,33 @@ export default function Faq() {
       answer: (
         <>
             <p>
-                the stats behind them come from <a href="https://maimai.shiftpsh.com" target="_blank" rel="noopener noreferrer">maishift</a>. every night, it pulls how players in each rating range score on each chart, then picks the charts that players around your rating get SSS+ on most often
+                the stats behind them come from <a href="https://maimai.shiftpsh.com" target="_blank" rel="noopener noreferrer">maishift</a>. every night, it pulls how players in each rating range score on each chart. then, for you:
+            </p>
+            <ol style={{ margin: '0.5rem 0 1rem', paddingLeft: '1.25rem' }}>
+                <li><b>charts that would raise your rating:</b> an SSS+ on them would beat the lowest chart in the half of your best 50 they&apos;d join (your best 15 new-version charts or your best 35 others), or they&apos;re already in your best 50 below SSS+</li>
+                <li><b>how much each would add:</b> its rating at SSS+, minus the chart it would push out (or minus what it&apos;s worth to you now)</li>
+                <li><b>how often players at your rating SSS+ it:</b> of the players in your rating range with a score on it (at least 10), the share with an SSS+</li>
+                <li><b>the top 30</b> by that share &times; how much it would add</li>
+            </ol>
+            <p>
+                so a chart ranks high when players around your rating often SSS+ it and it would add a good chunk of rating. for example, a chart 40% of your rating range has SSS+&apos;d that would add 6 rating (score 2.4) ranks above one 10% have SSS+&apos;d that would add 12 (score 1.2)
             </p>
             <p>
-                you need to be at least 13k (silver) to get recommendations, since maishift doesn't group players below that
+                you need to be at least 13k (silver) to get recommendations, since maishift doesn&apos;t group players below that
+            </p>
+        </>
+      ),
+    },
+    {
+      question: "what does \"plays like\" mean on a song page?",
+      id: "plays-like",
+      answer: (
+        <>
+            <p>
+                it&apos;s the constant a chart feels like to the players it&apos;s aimed at: how much better or worse they score on it than on typical charts of the same constant, turned into constant. a 13.8 that plays like 13.6 is one players around its level score noticeably better on than most 13.8s
+            </p>
+            <p>
+                every step, with formulas and worked examples, is on <Link href="/plays-like">how plays like works</Link>
             </p>
         </>
       ),

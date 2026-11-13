@@ -152,6 +152,9 @@ export const songDetailCss = `
   .song-feel-constant.is-harder { color: #ff8a5c; }
   .song-feel-constant.is-easier { color: #6fb0ff; }
   .song-feel-headline small { font-size: 0.78rem; color: var(--song-text-dim); }
+  .song-feel-uncertain { display: inline-block; padding: 1px 7px; border-radius: 999px; border: 1px solid #f5a524; background: rgba(245, 165, 36, 0.16); color: #f5a524; font-size: 0.7rem !important; font-weight: 700; letter-spacing: 0.02em; vertical-align: middle; }
+  .song-feel-constant.is-uncertain { text-decoration: underline dashed #f5a524; text-underline-offset: 5px; text-decoration-thickness: 2px; }
+  .song-feel-uncertain-note { margin: -6px 0 12px; padding: 6px 9px; border-left: 3px solid #f5a524; background: rgba(245, 165, 36, 0.1); border-radius: 0 6px 6px 0; font-size: 0.78rem; color: var(--song-text-dim); }
   .song-feel-groups { display: grid; gap: 8px; }
   .song-feel-group-label { display: flex; justify-content: space-between; gap: 8px; font-size: 0.76rem; margin-bottom: 3px; font-variant-numeric: tabular-nums; }
   .song-feel-group-label span:first-child { color: var(--song-text-dim); }
@@ -199,6 +202,11 @@ export const songDetailCss = `
   .song-feel-dialog-body p { margin: 0 0 14px; color: var(--song-text-dim); }
   .song-feel-dialog-body li { color: var(--song-text-dim); }
   .song-feel-dialog-body b { color: var(--song-text); }
+  .song-feel-step-link { font-size: 0.75rem; color: var(--song-text-dim); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+  .song-feel-step-link:hover { color: var(--song-text); }
+  .song-feel-dialog-more { margin: -4px 0 14px !important; }
+  .song-feel-dialog-more a { color: var(--song-accent); font-weight: 700; }
+  .song-feel-dialog-body i { font-family: 'Times New Roman', Georgia, serif; font-size: 1.05em; color: var(--song-text); }
   .song-feel-dialog-x { all: unset; cursor: pointer; position: absolute; top: 10px; right: 12px; width: 28px; height: 28px; border-radius: 8px;
     display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: var(--song-text-dim); }
   .song-feel-dialog-x:hover { background: rgba(255,255,255,0.08); color: var(--song-text); }
