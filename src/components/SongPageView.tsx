@@ -16,7 +16,7 @@ import type { SongView, ViewChart, ViewRow, ViewPlayer } from '../lib/song-view'
 import type { SongDetails } from '../lib/song-details';
 import { CAP, MAX_CENTER_RATING, SIGMA_MAX, SIGMA_SHOW_MAX, centerRating, type ChartFeel } from '../lib/plays-like';
 import { accuracyTarget, ratingForAccuracy, ratingGroup, ratingGroupStart, RATING_GROUP_SIZE } from '../lib/comfort-level';
-import type { MaishiftDetail } from '../lib/maishift-feel';
+import { SPREAD_TARGET, SURE_RANGE, type MaishiftDetail } from '../lib/maishift-feel';
 import { fetchMe } from './me';
 
 /**
@@ -217,14 +217,21 @@ function SimpleHow({ feel, constant }: { feel?: ChartFeel; constant: number }) {
   if (feel?.source === 'maishift' && feel.maishift) {
     const d = feel.maishift;
     const ex = d.bands.reduce((best, b) => (b.weight > best.weight ? b : best));
+    const range = <>{constantLabel(d.low)}–{constantLabel(d.high)}</>;
     return (
+      <>
+      <p>worked out by the rating bucket method, from maishift&apos;s data:</p>
       <ol>
-        <li><b>who:</b> {fmt(feel.counted)} maishift players rated {fmt(feel.ratingFrom)}–{fmt(feel.ratingTo)}, the ratings this chart is aimed at, split into {d.bands.length} rating bands. <Step id="step-1">step 1</Step></li>
-        <li><b>how they do:</b> in each band, the score of the middle player, worked out from how many players got each rank. <Step id="step-2">step 2</Step></li>
-        <li><b>what&apos;s typical:</b> a best-fit curve through every {d.era} chart from {constantLabel(feel.baselineFrom)} to {constantLabel(feel.baselineTo)}, the curve that comes closest to all their middle scores at once. it says what a typical {constantLabel(constant)} scores, and how much scores drop per +1.0 constant. <Step id="step-3">step 3</Step>, <Step id="step-4">step 4</Step></li>
-        <li><b>example, players rated {fmt(ex.from)}–{fmt(ex.to)}:</b> this chart&apos;s middle score is {ex.adjusted.toFixed(2)}% and a typical {constantLabel(constant)} gets {ex.typicalScore.toFixed(2)}%: {two(ex.gap)}% {ex.gap >= 0 ? 'better' : 'worse'}. typical charts there lose {ex.perConstant.toFixed(2)}% per +1.0 constant, so {two(ex.gap)} &divide; {ex.perConstant.toFixed(2)} = {two(ex.dc)} constant {easier(ex.dc)}. <Step id="step-5">step 5</Step>, <Step id="step-6">step 6</Step></li>
-        <li><b>every band together:</b> averaged over all {d.bands.length} bands (steadier bands count more): {two(d.dc)} constant {easier(d.dc)}, give or take {d.sigma.toFixed(2)}. {result(d.dc)}. <Step id="step-7">steps 7–9</Step></li>
+        <li><b>who:</b> {fmt(feel.counted)} maishift players rated {fmt(feel.ratingFrom)}–{fmt(feel.ratingTo)}, around what an SSS+ on this chart is worth, in {d.bands.length} rating buckets. <Step id="step-1">step 1</Step></li>
+        <li><b>how they do:</b> in each bucket, the score of the middle player, worked out from how many players got each rank, with popularity evened out (charts more people play get more practice). <Step id="step-2">step 2</Step>, <Step id="step-4">step 4</Step></li>
+        <li><b>what&apos;s typical:</b> a best-fit line through every chart from {d.era} with a constant from {constantLabel(feel.baselineFrom)} to {constantLabel(feel.baselineTo)}: what a typical {constantLabel(constant)} scores, and how much scores drop per +1.0 constant. <Step id="step-3">step 3</Step>, <Step id="step-5">step 5</Step></li>
+        <li><b>example, players rated {fmt(ex.from)}–{fmt(ex.to)}</b> (the bucket with the most say, {Math.round(ex.weight * 100)}%): this chart&apos;s middle score is {ex.adjusted.toFixed(2)}% and a typical {constantLabel(constant)} gets {ex.typicalScore.toFixed(2)}%: {two(ex.gap)}% {ex.gap >= 0 ? 'better' : 'worse'}. typical charts there lose {ex.perConstant.toFixed(2)}% per +1.0 constant, so {two(ex.gap)} &divide; {ex.perConstant.toFixed(2)} = {two(ex.dc)} constant {easier(ex.dc)}. <Step id="step-6">step 6</Step>, <Step id="step-7">step 7</Step></li>
+        <li><b>every bucket together:</b> each bucket counts as much as its evidence allows (enough players, scores that change with constant): {two(d.rawDc)} constant {easier(d.rawDc)}. <Step id="step-8">step 8</Step></li>
+        {d.scale < 1 && <li><b>fit to the level:</b> charts at {constantLabel(constant)} spread {d.spread?.toFixed(2)} apart, more than the {SPREAD_TARGET} the site expects (each step in constant is felt, and charts within one feel at most about 0.3 to 0.5 apart), so it&apos;s scaled by {d.scale.toFixed(2)}: {two(d.dc)} constant {easier(d.dc)}. <Step id="step-9">step 9</Step></li>}
+        <li><b>how sure:</b> 95% range {range}{d.status === 'sure' ? <>, within {SURE_RANGE} either side: sure</> : d.status === 'uncertain' ? <>: wider than {SURE_RANGE} either side but clearly {easier(d.dc)}, so marked <span className="song-feel-uncertain">uncertain</span></> : <>: it can&apos;t tell which way this chart leans, so it isn&apos;t shown</>}. {feel.playsLike != null && <>{constantLabel(constant)} {move(d.dc) >= 0 ? '−' : '+'} {two(move(d.dc))}{Math.abs(d.dc) > CAP ? ` (capped at ${CAP})` : ''} = <b>plays like {constantLabel(feel.playsLike)}</b>. </>}<Step id="step-10">step 10</Step></li>
       </ol>
+      <p><b>the bars:</b> one row per rating bucket. the bar is this chart&apos;s middle score with popularity evened out, the white mark is a typical {constantLabel(constant)} (both from 94% to 101%), the number after it is the gap, and the last number is that bucket&apos;s say in the result. <Step id="step-7">step 7</Step></p>
+      </>
     );
   }
   const w = feel?.working;
@@ -239,7 +246,7 @@ function SimpleHow({ feel, constant }: { feel?: ChartFeel; constant: number }) {
       <li><b>in constant:</b> these players&apos; usual scores drop {w.perConstant.toFixed(2)}% per +1.0 constant, so {two(w.gap)} &divide; {w.perConstant.toFixed(2)} = {two(w.dc)} constant {easier(w.dc)}, give or take {w.sigma.toFixed(2)}.</li>
       <li><b>result:</b> {result(w.dc)}.</li>
     </ol>
-    <p>the steps after the first match the maishift version: <Link href="/plays-like">how plays like works</Link>.</p>
+    <p>the rating bucket method, which most charts use, is explained in full on <Link href="/plays-like">how plays like works</Link>.</p>
     </>
   );
 }
@@ -288,18 +295,16 @@ function RecommendedRating({ playsLike, constant, myRating, uncertain = false }:
         {playsLike != null ? <span>{fmt(centerRating(constant))}</span> : <b>{fmt(centerRating(constant))}</b>}
         <small>constant {constantLabel(constant)}</small>
       </div>
-      {playsLike != null && (
-        <p className="song-feel-recommend-why">around {fmt(centerRating(playsLike))}, this chart should feel like the other charts at your level</p>
-      )}
       <AccuracyTarget constant={constant} myRating={myRating} />
     </div>
   );
 }
 
 /**
- * maishift's numbers, one row per rating band: players, this chart's middle score (popularity
- * evened out) against a typical chart's at this constant, and the gap between them: the same
- * numbers the calculation uses (lib/maishift-feel.ts), plus the credit maishift asks for.
+ * The rating bucket method's numbers, one row per bucket: players, this chart's middle score
+ * (popularity evened out) against a typical chart's at this constant, the gap between them, and
+ * the bucket's say: the same numbers the calculation uses (lib/maishift-feel.ts), plus the credit
+ * maishift asks for.
  */
 const DIST_FLOOR = 94; // the bars run from 94% (AAA) to 101%
 function MaishiftBreakdown({ detail, constant, players }: { detail: MaishiftDetail; constant: number; players: number }) {
@@ -311,7 +316,7 @@ function MaishiftBreakdown({ detail, constant, players }: { detail: MaishiftDeta
   return (
     <div className="song-dist">
       <p className="song-dist-summary">
-        middle score vs a typical {detail.era} {constantLabel(constant)}: higher in {higher} of {detail.bands.length} rating band{detail.bands.length === 1 ? '' : 's'}
+        middle score vs a typical {constantLabel(constant)}: higher in {higher} of {detail.bands.length} rating bucket{detail.bands.length === 1 ? '' : 's'}
       </p>
       <div className="song-dist-row is-head">
         <span>rating</span><span>players</span><span>middle score <i className="song-dist-key" /> this chart <i className="song-dist-key is-typical" /> typical</span><span />
@@ -320,20 +325,18 @@ function MaishiftBreakdown({ detail, constant, players }: { detail: MaishiftDeta
         <div className="song-dist-row" key={band.from}>
           <span>{fmt(band.from)}</span>
           <span>{fmt(band.players)}</span>
-          <span className="song-dist-track" title={`this chart ${band.adjusted.toFixed(2)}%, typical ${band.typicalScore.toFixed(2)}%`}>
+          <span className="song-dist-track" title={`this chart ${band.adjusted.toFixed(2)}%, typical ${band.typicalScore.toFixed(2)}%, say ${Math.round(band.weight * 100)}%`}>
             <span className="song-dist-fill" style={{ width: at(band.adjusted) }} />
             <span className="song-dist-marker" style={{ left: at(band.typicalScore) }} />
           </span>
           <span className={band.gap > 0 ? 'is-easier' : band.gap < 0 ? 'is-harder' : undefined}>
             <b>{band.adjusted.toFixed(2)}%</b> {band.gap > 0 ? '+' : band.gap < 0 ? '−' : ''}{Math.abs(band.gap).toFixed(2)}
+            {' '}<small title="this bucket's say in the result">{band.weight < 0.01 ? '<1' : Math.round(band.weight * 100)}%</small>
           </span>
         </div>
       ))}
       <p className="song-details-note">
-        bars run from 94% to 101%; the middle player&apos;s score, with popularity evened out (<Link href="/plays-like#step-5">step 5</Link>), against the typical curve at {constantLabel(constant)}.
-        {' '}where this comes from: rank counts of {fmt(players)} players on <a href="https://maimai.shiftpsh.com" target="_blank" rel="noopener noreferrer">maishift</a> rated
-        {' '}{fmt(first.from)}–{fmt(last.to)} who synced in the last 90 days, compared with every {detail.era} chart within 0.5 of {constantLabel(constant)} (<Link href="/plays-like#data">more on the data</Link>).
-        {' '}fetched {new Date(detail.fetchedAt).toLocaleDateString('en-CA')} · unofficial, not affiliated with SEGA
+        data: <a href="https://maimai.shiftpsh.com" target="_blank" rel="noopener noreferrer">maishift</a>, {fmt(players)} players rated {fmt(first.from)}–{fmt(last.to)}, fetched {new Date(detail.fetchedAt).toLocaleDateString('en-CA')} · unofficial, not affiliated with SEGA
       </p>
     </div>
   );
@@ -347,7 +350,9 @@ function ChartFeelBox({ feel, constant, myRating }: { feel?: ChartFeel; constant
         <h3>how it plays</h3>
         {feel && (
           <p className="song-feel-empty">
-            {feel.unsure
+            {feel.unsure && feel.source === 'maishift' && feel.maishift
+              ? `too close to call: it can't tell which way this chart leans against others at ${constantLabel(constant)} (likely ${constantLabel(feel.maishift.low)}–${constantLabel(feel.maishift.high)})`
+              : feel.unsure
               ? `too close to call: the scores can't tell this chart apart from others at ${constantLabel(constant)} (give or take ${feel.sigma?.toFixed(2)}, more than ${SIGMA_SHOW_MAX})`
               : feel.counted === 0
               ? `no scores yet from players${feel.allRatings ? '' : ` rated ${rangeText}`}`
@@ -374,12 +379,17 @@ function ChartFeelBox({ feel, constant, myRating }: { feel?: ChartFeel; constant
         <span>plays like</span>
         <b className={`song-feel-constant${verdictClass}${feel.unsure ? ' is-uncertain' : ''}`}>{constantLabel(feel.playsLike)}</b>
         <small>{verdict} its {constantLabel(constant)}</small>
-        {feel.unsure && <span className="song-feel-uncertain" title={`give or take ${feel.sigma?.toFixed(3)}: more than ${SIGMA_MAX}, so this may be off`}>uncertain</span>}
+        {feel.unsure && <span className="song-feel-uncertain" title={feel.playsLikeLow != null ? `likely ${constantLabel(feel.playsLikeLow)}–${constantLabel(feel.playsLikeHigh ?? feel.playsLike)}: wider than ${SURE_RANGE} either side` : `give or take ${feel.sigma?.toFixed(3)}: more than ${SIGMA_MAX}, so this may be off`}>uncertain</span>}
       </div>
+      {feel.playsLikeLow != null && feel.playsLikeHigh != null && (
+        <p className="song-details-note">likely {constantLabel(feel.playsLikeLow)}–{constantLabel(feel.playsLikeHigh)} (95% range)</p>
+      )}
       {/* sigma between SIGMA_MAX and SIGMA_SHOW_MAX: shown, but say how unsure (lib/plays-like.ts) */}
       {feel.unsure && (
         <p className="song-feel-uncertain-note">
-          uncertain: give or take {feel.sigma?.toFixed(3)} constant (sure results are within {SIGMA_MAX}). the charts it&apos;s compared with vary a lot, so treat this as a lean, not a number
+          {feel.source === 'maishift'
+            ? <>uncertain: it clearly plays {offset > 0 ? 'harder' : 'easier'}, but the 95% range reaches more than {SURE_RANGE} either side, so treat this as a lean, not a number</>
+            : <>uncertain: give or take {feel.sigma?.toFixed(3)} constant (sure results are within {SIGMA_MAX}). the charts it&apos;s compared with vary a lot, so treat this as a lean, not a number</>}
         </p>
       )}
 

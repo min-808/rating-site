@@ -79,7 +79,7 @@ const MIN_COMPARISON_CHARTS = 5;
  * with other new ones. By version code (lib/versions.ts).
  */
 export const ERAS = [
-  { from: 23000, label: 'FESTiVAL and later' },
+  { from: 23000, label: 'FESTiVAL and newer' },
   { from: 20000, label: 'DX to UNiVERSE PLUS' },
   { from: 0, label: 'maimai to FiNALE' },
 ] as const;
@@ -135,6 +135,8 @@ export type ChartFeel = {
   baselineTo: number; // ...14.3
   playsLike: number | null; // 13.1, or null when nobody counts, it isn't sure enough (unsure), or fewer than MIN_PLAYERS with SHOW_WITH_FEW_PLAYERS off
   sigma?: number; // how sure, in constant (give or take)
+  playsLikeLow?: number; // the 95% range as plays like values: from... (rating bucket method)
+  playsLikeHigh?: number; // ...to
   unsure?: boolean; // sigma above SIGMA_MAX: shown marked uncertain, or (above SIGMA_SHOW_MAX) not shown at all
   lowSample: boolean; // fewer than MIN_PLAYERS counted: shown, but may be inaccurate
   groups: ChartFeelGroup[]; // lowest rating first, only groups with players
@@ -264,8 +266,8 @@ export function finishFeels(charts: ChartGaps[]): ChartFeel[] {
       sxx += (log2(c.scored) - mx) ** 2;
     }
   }
-  // only ever counted one way: more players, more practice, higher scores. no effect seen: none applied
-  const perDoubling = sxx > 0 ? Math.max(0, sxy / sxx) : 0;
+  // measured, either way: more players than usual lowers a chart's gap, fewer raises it
+  const perDoubling = sxx > 0 ? sxy / sxx : 0;
 
   // step 5: who a chart is compared with: the same era within 0.1, widening to 0.2, then to every era
   const comparisonFor = (c: ChartGaps) => {

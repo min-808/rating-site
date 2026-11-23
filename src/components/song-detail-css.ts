@@ -213,18 +213,20 @@ export const songDetailCss = `
   /* maishift's numbers (MaishiftBreakdown): a one-line summary, then one row per rating band
      with a bar of this chart's SSS+ rate and a marker where a typical chart's is */
   .song-dist { margin-top: 2px; }
-  .song-dist-summary { margin: 0 0 8px; font-size: 0.76rem; color: var(--song-text); }
-  .song-dist-row { display: grid; grid-template-columns: 0.9fr 0.7fr 2fr 1fr; gap: 8px; align-items: center; font-size: 0.74rem; padding: 3px 0; color: var(--song-text-dim); font-variant-numeric: tabular-nums; }
-  .song-dist-row.is-head { font-size: 0.64rem; border-bottom: 1px solid var(--song-divider); padding-bottom: 4px; margin-bottom: 2px; }
+  .song-dist-summary { margin: 0 0 4px; font-size: 0.72rem; color: var(--song-text); }
+  .song-dist-row { display: grid; grid-template-columns: 3.4em 2.6em 1fr 7.5em; gap: 6px; align-items: center; font-size: 0.68rem; line-height: 1.2; padding: 1px 0; color: var(--song-text-dim); font-variant-numeric: tabular-nums; }
+  .song-dist-row > span:last-child { text-align: right; white-space: nowrap; }
+  .song-dist-row small { font-size: 0.9em; opacity: 0.75; }
+  .song-dist-row.is-head { font-size: 0.6rem; border-bottom: 1px solid var(--song-divider); padding-bottom: 2px; margin-bottom: 2px; }
   .song-dist-row.is-head > span:nth-child(3) { grid-column: 3 / 5; display: flex; align-items: center; gap: 4px; }
   .song-dist-key { display: inline-block; width: 9px; height: 7px; border-radius: 2px; background: #dd2c76; margin-left: 4px; }
   .song-dist-key.is-typical { width: 2px; height: 10px; background: #fff; border-radius: 1px; margin-left: 6px; }
   .song-dist-row b { color: var(--song-text); }
   .song-dist-row .is-easier { color: #6fb0ff; }
   .song-dist-row .is-harder { color: #ff8a5c; }
-  .song-dist-track { position: relative; height: 8px; border-radius: 3px; background: rgba(0,0,0,0.35); }
+  .song-dist-track { position: relative; height: 5px; border-radius: 3px; background: rgba(0,0,0,0.35); }
   .song-dist-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: #dd2c76; }
-  .song-dist-marker { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: #fff; }
+  .song-dist-marker { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; border-radius: 1px; background: #fff; }
   .song-dist a { color: var(--song-accent); }
   .song-feel-dialog-body a { color: var(--song-accent); }
   .song-feel-recommend-why { margin: 5px 0 0; font-size: 0.72rem; line-height: 1.4; color: var(--song-text-dim); }

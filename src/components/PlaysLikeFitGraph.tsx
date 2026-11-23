@@ -1,16 +1,17 @@
 import type { WorkedExampleData } from '../lib/plays-like-worked';
 
 /**
- * Step 4's picture on the "how plays like works" page: every comparison chart in one rating band
+ * Step 5's picture on the "how plays like works" page: every comparison chart in one rating bucket
  * as a dot (its constant across, its middle score with popularity evened out up), the fitted
- * typical curve, and where the example chart sits against it. Drawn from a worked example's
+ * typical line, and where the example chart sits against it. Drawn from a worked example's
  * graph (lib/plays-like-worked.ts). The axis fits the band's scores; labels sit in the corners
  * the falling curve leaves empty. No hooks: renders on the server.
  */
 export default function PlaysLikeFitGraph({ example }: { example: WorkedExampleData }) {
   const { graph, constant, title, featured } = example;
-  const { fit, target, points } = graph;
-  const band = example.bands.find((b) => b.from_ === featured)!;
+  const { target, points } = graph;
+  const fit = { a: graph.a, S: graph.S, q: graph.q };
+  const band = example.bands.find((b) => b.from === featured)!;
   const left = 64, right = 740, y0 = 70, bottom = 380;
   // the axis: from just under the lowest 2% of scores to just over the highest, within 90–101.5
   const sorted = points.map((p) => p[1]).sort((a, b) => a - b);
@@ -27,9 +28,9 @@ export default function PlaysLikeFitGraph({ example }: { example: WorkedExampleD
   const lowY = bottom - 16; // the empty bottom-left corner
   return (
     <figure className="pl-graph">
-      <svg viewBox="0 0 760 430" role="img" aria-label={`step 4: ${title} sits ${Math.abs(gap).toFixed(2)}% ${gap >= 0 ? 'above' : 'below'} the typical curve at ${constant}`}>
-        <text x={left} y="24" className="pl-graph-title">{title} sits {Math.abs(gap).toFixed(2)}% {gap >= 0 ? 'above' : 'below'} the typical curve at {constant}</text>
-        <text x={left} y="44" className="pl-graph-sub">band {band.from_.toLocaleString('en-US')}–{band.to.toLocaleString('en-US')} · {points.length} recent charts from {(constant - 0.5).toFixed(1)} to {(constant + 0.5).toFixed(1)}, each dot one chart&apos;s middle score (popularity evened out)</text>
+      <svg viewBox="0 0 760 430" role="img" aria-label={`step 5: ${title} sits ${Math.abs(gap).toFixed(2)}% ${gap >= 0 ? 'above' : 'below'} the typical line at ${constant}`}>
+        <text x={left} y="24" className="pl-graph-title">{title} sits {Math.abs(gap).toFixed(2)}% {gap >= 0 ? 'above' : 'below'} the typical line at {constant}</text>
+        <text x={left} y="44" className="pl-graph-sub">bucket {band.from.toLocaleString('en-US')}–{band.to.toLocaleString('en-US')} · {points.length} charts from {example.era}, constants {(constant - 0.5).toFixed(1)} to {(constant + 0.5).toFixed(1)}, each dot one chart&apos;s middle score (popularity evened out)</text>
         {ticks.map((v) => (
           <g key={v}>
             <line x1={left} x2={right} y1={ys(v)} y2={ys(v)} className="pl-graph-grid" />
@@ -52,12 +53,12 @@ export default function PlaysLikeFitGraph({ example }: { example: WorkedExampleD
         {/* top right: this chart and its gap */}
         <line x1={xs(0.13) - 4} y1={topY + 2} x2={xs(0) + 6} y2={ys(target) - 5} className="pl-graph-leader" />
         <text x={xs(0.13)} y={topY} className="pl-graph-label">{title} {target.toFixed(2)}%</text>
-        <text x={xs(0.13)} y={topY + 17} className="pl-graph-accent">gap {gap >= 0 ? '+' : '−'}{Math.abs(gap).toFixed(2)}% {gap >= 0 ? 'above' : 'below'} the curve</text>
+        <text x={xs(0.13)} y={topY + 17} className="pl-graph-accent">gap {gap >= 0 ? '+' : '−'}{Math.abs(gap).toFixed(2)}% {gap >= 0 ? 'above' : 'below'} the line</text>
         {/* bottom left: the typical score */}
         <line x1={xs(-0.3)} y1={lowY - 13} x2={xs(0) - 4} y2={ys(fit.a) + 4} className="pl-graph-leader" />
-        <text x={xs(-0.52)} y={lowY} className="pl-graph-sub">typical curve, {fit.a.toFixed(2)}% at {constant}</text>
+        <text x={xs(-0.52)} y={lowY} className="pl-graph-sub">typical line, {fit.a.toFixed(2)}% at {constant}</text>
       </svg>
-      <figcaption>fit for this band: typical score {fit.a.toFixed(2)}%, accuracy per +1.0 constant {fit.S.toFixed(2)}%, bend {fit.q.toFixed(2)}, popularity boost {fit.beta.toFixed(2)}% per doubling · maishift rank counts, fetched {example.fetched}</figcaption>
+      <figcaption>fit for this bucket: typical score {fit.a.toFixed(2)}%, accuracy per +1.0 constant {fit.S.toFixed(2)}%, bend {fit.q.toFixed(2)} · popularity evened out at {band.popularity.toFixed(2)}% per doubling of players · maishift rank counts, fetched {example.fetched}</figcaption>
     </figure>
   );
 }
