@@ -35,6 +35,10 @@ import FavoriteScores from '../../../components/FavoriteScores';
 import FavoriteSongs, { type FavoriteSongItem } from '../../../components/FavoriteSongs';
 import { getCatalog, withSongPages } from '../../../lib/song-catalog';
 import RecommendedCharts from '../../../components/RecommendedCharts';
+import FarmPicks from '../../../components/FarmPicks';
+import { buildFarmPicks, type FarmPicks as FarmPicksData } from '../../../lib/farm-picks';
+import { getFarmFeels } from '../../../lib/farm-feels';
+import { chartFeelId } from '../../../lib/chart-feel-store';
 import { buildMyCharts, type RecommendedChart } from '../../../lib/my-charts';
 import { bandStatsFor } from '../../../lib/recommend';
 import { playStats } from '../../../lib/play-stats';
@@ -597,6 +601,7 @@ export default async function UserPage({ params }: UserPageProps) {
 
   let songs: PlayerDocument['songs'] = [];
   let recommendedCharts: RecommendedChart[] = [];
+  let farmPicks: FarmPicksData | null = null;
 
   // the "charts by level" totals, for both region views, and the songs the NA view leaves out
   const levelTotals = { na: {} as Record<string, number>, intl: {} as Record<string, number> };
@@ -652,6 +657,8 @@ export default async function UserPage({ params }: UserPageProps) {
     // (lib/my-charts.ts, maishift's stats). none under 13000, or before the scraper has run
     const band = await bandStatsFor(Number(player.rating) || 0);
     if (band) recommendedCharts = buildMyCharts(playerSongs.filter((s) => (s.achievement ?? 0) > 0), await getCatalog(), band).list;
+    // experimental rating-farm picks (lib/farm-picks.ts), shown on every profile for now to compare
+    farmPicks = buildFarmPicks(playerSongs.filter((s) => (s.achievement ?? 0) > 0), await getCatalog(), await getFarmFeels(), chartFeelId);
 
     // songs not available in North America (na: "0"). a title only counts as
     // excluded if every song with that title is marked, since a few titles are shared
@@ -832,6 +839,7 @@ export default async function UserPage({ params }: UserPageProps) {
               <BestFifty data={songs} extraNewVersions={showJp ? JAPAN_AHEAD_VERSIONS : undefined} />
             </section>
             <RecommendedCharts charts={recommendedCharts} />
+            {farmPicks?.range && <FarmPicks picks={farmPicks.picks} total={farmPicks.total} totals={farmPicks.totals} range={farmPicks.range} playerConstant={farmPicks.playerConstant} />}
         </>
         )}
 
