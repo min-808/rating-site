@@ -6,7 +6,7 @@ import PlaysLikeTabs from '../../components/PlaysLikeTabs';
 import PlaysLikeWorkedExample from '../../components/PlaysLikeWorkedExample';
 import Tex from '../../components/Tex';
 import { CAP, MAX_CONSTANT } from '../../lib/plays-like';
-import { BUCKETS_ABOVE, BUCKETS_BELOW, MIN_CHARTS, MIN_RATE, REACH_TENTHS, SCATTER_MIN, SINGLE_BUCKET_DISAGREE, SPREAD_MIN_CHARTS, SPREAD_TARGET, SURE_RANGE } from '../../lib/maishift-feel';
+import { BUCKETS_ABOVE, BUCKETS_BELOW, LOG_OFFSET, MIN_CHARTS, MIN_RATE, REACH_TENTHS, SCATTER_MIN, SINGLE_BUCKET_DISAGREE, SPREAD_MIN_CHARTS, SPREAD_TARGET, SURE_RANGE } from '../../lib/maishift-feel';
 import { WORKED_EXAMPLES } from '../../lib/plays-like-worked';
 
 /**
@@ -55,19 +55,18 @@ const Why = ({ children }: { children: ReactNode }) => <p className="pl-why">{ch
 const GROUPS = 'FESTiVAL to CiRCLE PLUS (and anything newer) · でらっくす (DX) to UNiVERSE PLUS · maimai to FiNALE';
 
 function Method() {
-  const pop = WORKED_EXAMPLES.kisukitsune.popularity as Record<string, number>;
   return (
     <>
       <nav className="pl-toc" aria-label="steps">
-        <b>steps:</b> <a href="#step-1">1 buckets</a> · <a href="#step-2">2 middle score</a> · <a href="#step-3">3 pool</a> · <a href="#step-4">4 popularity</a> · <a href="#step-5">5 typical line</a> · <a href="#step-6">6 gap</a> · <a href="#step-7">7 in constant</a> · <a href="#step-8">8 combine</a> · <a href="#step-9">9 fit to the level</a> · <a href="#step-10">10 how sure</a>
+        <b>steps:</b> <a href="#step-1">1 buckets</a> · <a href="#step-2">2 middle score</a> · <a href="#step-3">3 pool</a> · <a href="#step-4">4 log gap</a> · <a href="#step-5">5 typical line</a> · <a href="#step-6">6 gap</a> · <a href="#step-7">7 in constant</a> · <a href="#step-8">8 combine</a> · <a href="#step-9">9 fit to the level</a> · <a href="#step-10">10 how sure</a>
       </nav>
 
       <h2 id="in-short">in short</h2>
       <ol className="pl-short">
         <li><b>who:</b> maishift players in rating buckets around what an SSS+ on the chart is worth. <a href="#step-1">step 1</a></li>
-        <li><b>how they do:</b> in each bucket, the score of the middle player, with popularity evened out. <a href="#step-2">step 2</a>, <a href="#step-4">step 4</a></li>
+        <li><b>how they do:</b> in each bucket, the score of the middle player, measured as how far it is from 101% on a log scale. <a href="#step-2">step 2</a>, <a href="#step-4">step 4</a></li>
         <li><b>what&apos;s typical:</b> a best-fit line through every chart from the same group of versions within {W} of this constant: what a typical chart at this constant scores, and how much scores drop per +1.0 constant. <a href="#step-3">step 3</a>, <a href="#step-5">step 5</a></li>
-        <li><b>the gap, in constant:</b> how far above or below the line this chart sits, divided by how much +1.0 constant is worth. <a href="#step-6">step 6</a>, <a href="#step-7">step 7</a></li>
+        <li><b>the gap, in constant:</b> how far better or worse than the line this chart sits, divided by how much +1.0 constant is worth. <a href="#step-6">step 6</a>, <a href="#step-7">step 7</a></li>
         <li><b>every bucket together:</b> each bucket counts as much as its evidence allows, then the result is fitted to how far charts at this level can sensibly differ. <a href="#step-8">step 8</a>, <a href="#step-9">step 9</a></li>
         <li><b>how sure:</b> a 95% range; sure, marked uncertain, or hidden. <a href="#step-10">step 10</a></li>
       </ol>
@@ -92,13 +91,12 @@ function Method() {
             <tr><td><M>{t`V`}</M></td><td>a group of versions: {GROUPS}</td></tr>
             <tr><td><M>{t`P_b,\ j`}</M></td><td>the comparison pool, and one chart in it</td></tr>
             <tr><td><M>{t`d_j`}</M></td><td>constant difference: chart <M>j</M>&apos;s constant minus <M>c</M></td></tr>
-            <tr><td><M>{t`x_j,\ \bar x`}</M></td><td>log&#8322; of chart <M>j</M>&apos;s players, and its average over the pool</td></tr>
-            <tr><td><M>{t`p_k`}</M></td><td>popularity rate: % per doubling of players, for buckets at place <M>k</M></td></tr>
-            <tr><td><M>{t`\tilde m`}</M></td><td>a middle score with popularity evened out (%)</td></tr>
-            <tr><td><M>{t`a_b,\ S_b,\ q_b`}</M></td><td>the typical line: its height at <M>c</M> (%), accuracy lost per +1.0 constant (%), and bend</td></tr>
-            <tr><td><M>{t`s_b`}</M></td><td>scatter: how far charts sit from the line (%)</td></tr>
+            <tr><td><M>{t`\ell_b,\ \ell_j`}</M></td><td>log gap: how far a middle score is from 101%, on a log scale (smaller is better); this chart&apos;s, and chart <M>j</M>&apos;s</td></tr>
+            <tr><td><M>{t`e_{\ell,b}`}</M></td><td>the log gap&apos;s error</td></tr>
+            <tr><td><M>{t`a_b,\ S_b,\ q_b`}</M></td><td>the typical line: a typical chart&apos;s log gap at <M>c</M>, how much the log gap grows per +1.0 constant, and bend</td></tr>
+            <tr><td><M>{t`s_b`}</M></td><td>scatter: how far charts sit from the line (log gap)</td></tr>
             <tr><td><M>{t`\mathrm{se}_a,\ \mathrm{se}_S`}</M></td><td>how sure the line&apos;s height and its rate are</td></tr>
-            <tr><td><M>{t`g_b`}</M></td><td>accuracy gap: evened middle score minus typical score (%)</td></tr>
+            <tr><td><M>{t`g_b`}</M></td><td>gap: typical log gap minus this chart&apos;s (+ is better than typical)</td></tr>
             <tr><td><M>{t`\Delta c_b,\ \Delta c`}</M></td><td>constant gap, per bucket and combined</td></tr>
             <tr><td><M>{t`\epsilon_b,\ \rho_b,\ w_b`}</M></td><td>a bucket&apos;s sample error, rate error, and weight (its say)</td></tr>
             <tr><td><M>{t`\epsilon,\ \rho,\ \delta`}</M></td><td>the result&apos;s sample part, rate part, and how much the buckets disagree</td></tr>
@@ -112,8 +110,9 @@ function Method() {
             <tr><td>buckets</td><td>&minus;{BUCKETS_BELOW} to +{BUCKETS_ABOVE}</td><td>groups around the center rating&apos;s group that are used (each weighed by step 7)</td></tr>
             <tr><td><M>W</M></td><td>{W}</td><td>how far either side of <M>c</M> the comparison charts reach</td></tr>
             <tr><td>fewest charts</td><td>{MIN_CHARTS}</td><td>comparison charts a bucket needs</td></tr>
-            <tr><td><M>{t`S_{\min}`}</M></td><td>{MIN_RATE}%</td><td>a bucket losing this or less per +1.0 constant can&apos;t tell charts apart and is skipped</td></tr>
-            <tr><td><M>{t`s_{\min}`}</M></td><td>{SCATTER_MIN}%</td><td>the lowest scatter allowed</td></tr>
+            <tr><td><M>{t`\theta`}</M></td><td>{LOG_OFFSET}</td><td>added inside the log gap so an AP+ (101%) still has one</td></tr>
+            <tr><td><M>{t`S_{\min}`}</M></td><td>{MIN_RATE}</td><td>a bucket whose log gap grows this or less per +1.0 constant can&apos;t tell charts apart and is skipped</td></tr>
+            <tr><td><M>{t`s_{\min}`}</M></td><td>{SCATTER_MIN}</td><td>the lowest scatter allowed (log gap)</td></tr>
             <tr><td><M>{t`D^{*}`}</M></td><td>{SPREAD_TARGET}</td><td>spread target: how far charts at one constant may differ (step 9), from the site owner&apos;s understanding of the game</td></tr>
             <tr><td><M>r</M></td><td>{SURE_RANGE}</td><td>sure range: a 95% range reaching this far or less either side is sure</td></tr>
             <tr><td><M>K</M></td><td>{CAP}</td><td>the most plays like can move from <M>c</M></td></tr>
@@ -155,62 +154,60 @@ function Method() {
         <Why>a middle score means nothing alone: it needs what these players usually get on charts like this. newer charts score higher than older ones at the same constant, so only charts from the same group of versions count.</Why>
       </Step>
 
-      <Step id="step-4" title="step 4: even out popularity">
-        <Eq tex={t`x_j = \log_2 N_{b,j}, \qquad \bar x_G = \frac{1}{|G|}\sum_{j \in G} x_j, \qquad \bar m_G = \frac{1}{|G|}\sum_{j \in G} m_j`}
-          words={<>first, for every chart: its popularity is log&#8322; of its players in the bucket. then, for each set of charts that share a constant, a group of versions and a bucket at the same place, the average popularity and the average middle score of that set</>}
-          vars={[[t`x_j`, "the result: chart j's popularity, log₂ of its players (doubling the players adds 1)"], [t`N_{b,j}`, "chart j's players in the bucket"], ['G', 'one set of charts with the same constant, group of versions and bucket'], [t`|G|`, 'how many charts are in the set'], [t`m_j`, "chart j's middle score (step 2) (%)"], [t`\bar x_G`, 'the result: the average popularity of the set'], [t`\bar m_G`, 'the result: the average middle score of the set (%)']]} />
-        <Eq tex={t`p_k = \frac{\displaystyle\sum_{G}\ \sum_{j \in G} \big(x_j - \bar x_G\big)\big(m_j - \bar m_G\big)}{\displaystyle\sum_{G}\ \sum_{j \in G} \big(x_j - \bar x_G\big)^2}`}
-          words={<>popularity rate for a bucket&apos;s place = how much a chart&apos;s middle score rises, compared with the average of its set, for each step its popularity is above its set&apos;s average (one step = twice the players). measured inside every set, then pooled over all of them</>}
-          vars={[[t`p_k`, 'the result: popularity rate for buckets at place k (% per doubling of players)'], [t`x_j - \bar x_G`, "how much more popular chart j is than its set's average"], [t`m_j - \bar m_G`, "how much higher chart j's middle score is than its set's average (%)"], [t`\sum_G \sum_{j \in G}`, 'added up over every chart in every set at this place']]} />
-        <Eq tex={t`\tilde m_j = m_j - p_k\,\big(x_j - \bar x\big), \qquad \bar x = \frac{1}{|P_b|}\sum_{j \in P_b} x_j`}
-          words={<>evened middle score = middle score &minus; popularity rate &times; (log&#8322; players &minus; the pool&apos;s average log&#8322; players). this chart and every pool chart are evened out the same way</>}
-          vars={[[t`\tilde m_j`, "the result: chart j's middle score with popularity evened out (%); this chart's is written with b instead of j"], [t`m_j,\ x_j`, "chart j's middle score and popularity"], [t`\bar x`, "the result: the pool's average popularity"], [t`|P_b|`, 'how many charts are in the pool']]} />
+      <Step id="step-4" title="step 4: log gap">
+        <Eq tex={t`\ell_j = \ln\!\big(101 - m_j + \theta\big), \qquad e_{\ell,b} = \frac{e_b}{101 - m_b + \theta}`}
+          words={<>log gap = the natural log of (101 &minus; middle score + {LOG_OFFSET}). it&apos;s how far the middle score is from 101%, on a log scale, so smaller is better. this chart&apos;s is written with <M>b</M>, a comparison chart&apos;s with <M>j</M>. its error is the middle score&apos;s error divided by the same distance from 101%</>}
+          vars={[[t`\ell_j`, "the result: chart j's log gap (this chart's is ℓ_b)"], [t`e_{\ell,b}`, "the result: this chart's log gap error"], [t`m_j`, "chart j's middle score (step 2) (%)"], [t`e_b`, "this chart's middle score error (step 2)"], [t`\theta`, `${LOG_OFFSET}, so an AP+ (101%) still has a log gap`], [t`\ln`, 'natural log']]} />
         <div className="wx-counts">
           <table>
-            <thead><tr><th>bucket&apos;s place <M>k</M></th>{[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4].map((k) => <th key={k}>{k === -5 ? '−5 or lower' : k === 4 ? '+4 or higher' : k > 0 ? `+${k}` : k}</th>)}</tr></thead>
-            <tbody><tr><th><M>{t`p_k`}</M> (% per doubling)</th>{[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4].map((k) => <td key={k}>{pop[String(k)]?.toFixed(2)}</td>)}</tr></tbody>
+            <thead><tr><th>middle score</th>{[95, 97, 98, 99, 99.5, 100, 100.25, 100.5, 100.75].map((m) => <th key={m}>{m}%</th>)}</tr></thead>
+            <tbody><tr><th>log gap</th>{[95, 97, 98, 99, 99.5, 100, 100.25, 100.5, 100.75].map((m) => <td key={m}>{Math.log(101 - m + LOG_OFFSET).toFixed(2)}</td>)}</tr></tbody>
           </table>
-          <span className="wx-from">measured from maishift&apos;s data ({WORKED_EXAMPLES.kisukitsune.fetched}); smaller in high buckets, where players are already near 101%</span>
+          <span className="wx-from">from 100% to 100.5% is about as big a step (0.67) as from 97% to 99% (0.69)</span>
         </div>
-        <Why>charts more people play get more practice, which raises best scores for reasons other than difficulty. maishift gives best scores, not plays, so player count stands in for popularity. measured once from every chart, the rate is steady, and it works both ways: more players than usual lowers a chart, fewer raises it. the data shows the pattern but can&apos;t say why: some of it may be easy charts attracting more players, so this may take out a little real easiness.</Why>
+        <Why>near the top every 0.1% is hard won: going from 100.2% to 100.5% takes as much as going from 97% to 98.5%. on plain percent those top steps look tiny, so high buckets made charts look all the same and their answers were noisy. on the log scale the steps are even, so every bucket gives a steadier answer. the idea is from <a href="https://critlog.me/maimai/articles/perceived-constant" target="_blank" rel="noopener noreferrer">critlog&apos;s perceived-constant method</a>; tested on every maishift chart, the results agreed more between two random halves of the players, and lined up more closely with critlog&apos;s own list.</Why>
+        <details className="pl-more">
+          <summary>what happened to popularity?</summary>
+          <p className="pl-why">until 27 November 2026 this step evened out popularity: charts with more players in a bucket score higher, so every middle score was moved to the pool&apos;s usual player count. but maishift has best scores, not play counts, so it can&apos;t tell whether more players make a chart score higher (practice) or a chart that scores higher draws more players (people farm easy charts). evening it out took away some real easiness, and taking the step out made results agree more between two halves of the players, so it&apos;s gone.</p>
+        </details>
       </Step>
 
       <Step id="step-5" title="step 5: fit the typical line">
-        <Eq tex={t`\tilde m_j \approx a_b - S_b\, d_j + q_b\, d_j^{\,2}, \qquad d_j = c_j - c`}
-          words={<>a chart&apos;s evened middle score &asymp; typical score &minus; accuracy per +1.0 constant &times; constant difference + bend &times; constant difference&sup2;</>}
-          vars={[[t`\tilde m_j`, "chart j's evened middle score (step 4)"], [t`a_b`, 'typical score: the line at this constant (%)'], [t`S_b`, 'accuracy lost per +1.0 constant (%)'], [t`q_b`, 'bend: the line flattens toward 101%'], [t`d_j`, "chart j's constant minus this chart's"]]} />
-        <Eq tex={t`(a_b,\ S_b,\ q_b) = \arg\min \sum_{j \in P_b} \Big(\tilde m_j - a_b + S_b\, d_j - q_b\, d_j^{\,2}\Big)^2`}
-          words={<>the three values that make the line miss the pool&apos;s evened scores least (the smallest total of squared misses). a bucket whose <M>{t`S_b`}</M> comes out {MIN_RATE} or less is skipped</>}
+        <Eq tex={t`\ell_j \approx a_b + S_b\, d_j - q_b\, d_j^{\,2}, \qquad d_j = c_j - c`}
+          words={<>a chart&apos;s log gap &asymp; typical log gap + log gap per +1.0 constant &times; constant difference &minus; bend &times; constant difference&sup2;</>}
+          vars={[[t`\ell_j`, "chart j's log gap (step 4)"], [t`a_b`, "typical log gap: the line at this constant"], [t`S_b`, 'how much the log gap grows (scores get worse) per +1.0 constant'], [t`q_b`, 'bend'], [t`d_j`, "chart j's constant minus this chart's"]]} />
+        <Eq tex={t`(a_b,\ S_b,\ q_b) = \arg\min \sum_{j \in P_b} \Big(\ell_j - a_b - S_b\, d_j + q_b\, d_j^{\,2}\Big)^2`}
+          words={<>the three values that make the line miss the pool&apos;s log gaps least (the smallest total of squared misses). a bucket whose <M>{t`S_b`}</M> comes out {MIN_RATE} or less is skipped</>}
           vars={[[t`a_b,\ S_b,\ q_b`, 'the result: the typical line for bucket b'], [t`\arg\min`, 'the values that make what follows smallest']]} />
         <PlaysLikeFitGraph example={WORKED_EXAMPLES.kisukitsune} />
         <details className="pl-more">
           <summary>how to find the fit yourself</summary>
-          <p>with <M>{t`\beta_0 = a_b,\ \beta_1 = -S_b,\ \beta_2 = q_b`}</M>, solve these three equations together:</p>
-          <Tex block>{t`\begin{pmatrix} |P_b| & \sum\limits_{j} d_j & \sum\limits_{j} d_j^2 \\ \sum\limits_{j} d_j & \sum\limits_{j} d_j^2 & \sum\limits_{j} d_j^3 \\ \sum\limits_{j} d_j^2 & \sum\limits_{j} d_j^3 & \sum\limits_{j} d_j^4 \end{pmatrix} \begin{pmatrix} \beta_0 \\ \beta_1 \\ \beta_2 \end{pmatrix} = \begin{pmatrix} \sum\limits_{j} \tilde m_j \\ \sum\limits_{j} d_j \tilde m_j \\ \sum\limits_{j} d_j^2 \tilde m_j \end{pmatrix}, \qquad j \in P_b`}</Tex>
-          <p className="pl-why">each row: (first &times; <M>{t`\beta_0`}</M>) + (second &times; <M>{t`\beta_1`}</M>) + (third &times; <M>{t`\beta_2`}</M>) = the number on the right. in a spreadsheet, =LINEST(evened score column, the d and d&sup2; columns, TRUE, TRUE) gives <M>{t`q_b`}</M>, <M>{t`-S_b`}</M>, <M>{t`a_b`}</M> and, in its second row, their errors.</p>
+          <p>with <M>{t`\beta_0 = a_b,\ \beta_1 = S_b,\ \beta_2 = -q_b`}</M>, solve these three equations together:</p>
+          <Tex block>{t`\begin{pmatrix} |P_b| & \sum\limits_{j} d_j & \sum\limits_{j} d_j^2 \\ \sum\limits_{j} d_j & \sum\limits_{j} d_j^2 & \sum\limits_{j} d_j^3 \\ \sum\limits_{j} d_j^2 & \sum\limits_{j} d_j^3 & \sum\limits_{j} d_j^4 \end{pmatrix} \begin{pmatrix} \beta_0 \\ \beta_1 \\ \beta_2 \end{pmatrix} = \begin{pmatrix} \sum\limits_{j} \ell_j \\ \sum\limits_{j} d_j \ell_j \\ \sum\limits_{j} d_j^2 \ell_j \end{pmatrix}, \qquad j \in P_b`}</Tex>
+          <p className="pl-why">each row: (first &times; <M>{t`\beta_0`}</M>) + (second &times; <M>{t`\beta_1`}</M>) + (third &times; <M>{t`\beta_2`}</M>) = the number on the right. in a spreadsheet, =LINEST(log gap column, the d and d&sup2; columns, TRUE, TRUE) gives <M>{t`-q_b`}</M>, <M>{t`S_b`}</M>, <M>{t`a_b`}</M> and, in its second row, their errors.</p>
         </details>
-        <Eq tex={t`s_b = \max\!\left(\sqrt{\frac{1}{|P_b| - 3}\displaystyle\sum_{j \in P_b}\big(\tilde m_j - \hat m_j\big)^2},\ s_{\min}\right), \qquad \hat m_j = a_b - S_b\, d_j + q_b\, d_j^{\,2}`}
-          words={<>scatter = how far the pool&apos;s charts sit from the line: the square root of the average squared miss (dividing by charts &minus; 3, for the three fitted values), at least {SCATTER_MIN}%</>}
-          vars={[[t`s_b`, 'the result: scatter, how far charts sit from the line in bucket b (%)'], [t`\hat m_j`, "the line's value at chart j"], [t`s_{\min}`, `${SCATTER_MIN}%`]]} />
+        <Eq tex={t`s_b = \max\!\left(\sqrt{\frac{1}{|P_b| - 3}\displaystyle\sum_{j \in P_b}\big(\ell_j - \hat\ell_j\big)^2},\ s_{\min}\right), \qquad \hat\ell_j = a_b + S_b\, d_j - q_b\, d_j^{\,2}`}
+          words={<>scatter = how far the pool&apos;s charts sit from the line: the square root of the average squared miss (dividing by charts &minus; 3, for the three fitted values), at least {SCATTER_MIN}</>}
+          vars={[[t`s_b`, 'the result: scatter, how far charts sit from the line in bucket b (log gap)'], [t`\hat\ell_j`, "the line's value at chart j"], [t`s_{\min}`, String(SCATTER_MIN)]]} />
         <Eq tex={t`\mathrm{se}_a = s_b\sqrt{\big[(X^{\top}X)^{-1}\big]_{11}}, \qquad \mathrm{se}_S = s_b\sqrt{\big[(X^{\top}X)^{-1}\big]_{22}}`}
-          words={<>the errors of the typical score and of the rate: scatter &times; &radic;(the matching diagonal entry of the inverse of the left-hand table above), the standard least-squares errors</>}
-          vars={[[t`\mathrm{se}_a`, "the result: the typical score's error (%)"], [t`\mathrm{se}_S`, "the result: the rate's error (% per +1.0 constant)"], [t`X^{\top}X`, 'the left-hand table in "how to find the fit yourself"'], [t`[\ ]_{11},\ [\ ]_{22}`, 'its first and second diagonal entries after inverting']]} />
-        <Why>this is what a normal chart at <M>c</M> gets, so there&apos;s something to compare against, and how much +1.0 constant is worth in accuracy for these players. the errors say how well it&apos;s pinned down: more charts and less scatter, smaller errors.</Why>
+          words={<>the errors of the typical log gap and of the rate: scatter &times; &radic;(the matching diagonal entry of the inverse of the left-hand table above), the standard least-squares errors</>}
+          vars={[[t`\mathrm{se}_a`, "the result: the typical log gap's error"], [t`\mathrm{se}_S`, "the result: the rate's error (per +1.0 constant)"], [t`X^{\top}X`, 'the left-hand table in "how to find the fit yourself"'], [t`[\ ]_{11},\ [\ ]_{22}`, 'its first and second diagonal entries after inverting']]} />
+        <Why>this is what a normal chart at <M>c</M> gets, so there&apos;s something to compare against, and how much +1.0 constant is worth in log gap for these players. the errors say how well it&apos;s pinned down: more charts and less scatter, smaller errors.</Why>
       </Step>
 
       <Step id="step-6" title="step 6: this chart's gap">
-        <Eq tex={t`g_b = \tilde m_b - a_b`} words={<>accuracy gap = this chart&apos;s evened middle score &minus; typical score. + means players do better here: easier</>}
-          vars={[[t`g_b`, 'the result: accuracy gap in bucket b (%)'], [t`\tilde m_b`, "this chart's evened middle score (step 4)"], [t`a_b`, 'typical score (step 5)']]} />
-        <Why>the real &ldquo;easier or harder&rdquo; signal, in accuracy.</Why>
+        <Eq tex={t`g_b = a_b - \ell_b`} words={<>gap = typical log gap &minus; this chart&apos;s log gap. + means players get closer to 101% here: easier</>}
+          vars={[[t`g_b`, 'the result: gap in bucket b (log gap)'], [t`\ell_b`, "this chart's log gap (step 4)"], [t`a_b`, 'typical log gap (step 5)']]} />
+        <Why>the real &ldquo;easier or harder&rdquo; signal, in log gap.</Why>
       </Step>
 
       <Step id="step-7" title="step 7: turn it into constant, and weigh it">
-        <Eq tex={t`\Delta c_b = \frac{g_b}{S_b}`} words={<>constant gap = accuracy gap &divide; accuracy per +1.0 constant</>}
-          vars={[[t`\Delta c_b`, 'the result: constant gap in bucket b (+ easier)'], [t`g_b`, 'accuracy gap (step 6)'], [t`S_b`, 'accuracy per +1.0 constant (step 5)']]} />
-        <Eq tex={t`\epsilon_b = \frac{\sqrt{e_b^2 + \mathrm{se}_a^2}}{S_b}, \qquad \rho_b = \frac{|\Delta c_b|\,\mathrm{se}_S}{S_b}, \qquad w_b = \frac{1}{\epsilon_b^2 + \rho_b^2}`}
-          words={<>sample error = how far the middle score and the typical score could be off, together, in constant. rate error = how far the constant gap moves if the rate is off. weight = 1 &divide; (sample error&sup2; + rate error&sup2;)</>}
-          vars={[[t`\epsilon_b`, 'the result: sample error (constant)'], [t`\rho_b`, 'the result: rate error (constant)'], [t`w_b`, "the result: the bucket's weight, its say in step 8"], [t`e_b`, "middle score's error (step 2)"], [t`\mathrm{se}_a,\ \mathrm{se}_S`, 'errors of the typical score and the rate (step 5)']]} />
-        <Why>players care about constant, not percent; each bucket uses its own rate. a bucket&apos;s say comes from its own evidence: enough players, a well-pinned line, and scores that actually change with constant. where most players are near 101%, <M>{t`S_b`}</M> is tiny, so dividing by it makes the errors big and the say small.</Why>
+        <Eq tex={t`\Delta c_b = \frac{g_b}{S_b}`} words={<>constant gap = gap &divide; log gap per +1.0 constant</>}
+          vars={[[t`\Delta c_b`, 'the result: constant gap in bucket b (+ easier)'], [t`g_b`, 'gap (step 6)'], [t`S_b`, 'log gap per +1.0 constant (step 5)']]} />
+        <Eq tex={t`\epsilon_b = \frac{\sqrt{e_{\ell,b}^2 + \mathrm{se}_a^2}}{S_b}, \qquad \rho_b = \frac{|\Delta c_b|\,\mathrm{se}_S}{S_b}, \qquad w_b = \frac{1}{\epsilon_b^2 + \rho_b^2}`}
+          words={<>sample error = how far the log gap and the typical log gap could be off, together, in constant. rate error = how far the constant gap moves if the rate is off. weight = 1 &divide; (sample error&sup2; + rate error&sup2;)</>}
+          vars={[[t`\epsilon_b`, 'the result: sample error (constant)'], [t`\rho_b`, 'the result: rate error (constant)'], [t`w_b`, "the result: the bucket's weight, its say in step 8"], [t`e_{\ell,b}`, "log gap's error (step 4)"], [t`\mathrm{se}_a,\ \mathrm{se}_S`, 'errors of the typical log gap and the rate (step 5)']]} />
+        <Why>players care about constant, not log gaps; each bucket uses its own rate. a bucket&apos;s say comes from its own evidence: enough players, a well-pinned line, and scores that actually change with constant. where most players are near 101%, <M>{t`S_b`}</M> is tiny, so dividing by it makes the errors big and the say small.</Why>
       </Step>
 
       <Step id="step-8" title="step 8: combine the buckets">
@@ -229,7 +226,7 @@ function Method() {
         <Eq tex={t`\Delta c' = \lambda\,\Delta c, \qquad \sigma' = \lambda\,\sigma`} words={<>constant gap and uncertainty are both multiplied by the scale</>}
           vars={[[t`\Delta c'`, 'the result: the constant gap, fitted to the level'], [t`\sigma'`, 'the result: the uncertainty, fitted to the level']]} />
         <Where>
-          <li>example: at 13.4 results spread 0.43, so the scale is 0.25 &divide; 0.43 = 0.58, and 天国と地獄 MASTER&apos;s &minus;0.32 becomes &minus;0.18 (plays like 13.6). from 13.5 up the spread is already about 0.2, so nothing changes</li>
+          <li>example: at 13.4 results spread 0.53, so the scale is 0.25 &divide; 0.53 = 0.47, and 天国と地獄 MASTER&apos;s &minus;0.50 becomes &minus;0.23 (plays like 13.6). from 13.8 up the spread is mostly 0.3 or less, so little or nothing changes</li>
         </Where>
         <Why><b>based on the site owner&apos;s understanding of the game:</b> each step in constant is felt, and within one constant charts feel at most about 0.3 to 0.5 apart. below 13.5 the raw method sees differences of a whole level, which isn&apos;t believable, so its scale is shrunk to fit while keeping which charts are easier or harder. a spread of {SPREAD_TARGET} puts about 95% of charts within 0.5 and 80% within 0.3.</Why>
       </Step>
@@ -267,7 +264,7 @@ export default function PlaysLikePage() {
         &ldquo;plays like&rdquo; is the constant a chart feels like to the players it&apos;s aimed at: how much better or worse they score on it than on typical charts
         of the same constant, turned into constant with a measured rate, with a 95% range that says how sure it is. it&apos;s worked out by the rating bucket method, from maishift&apos;s data.
       </p>
-      <div className="pl-headline">plays like = constant &minus; (accuracy gap &divide; accuracy per +1.0 constant)</div>
+      <div className="pl-headline">plays like = constant &minus; (gap from a typical chart &divide; how much +1.0 constant is worth), both on a log scale of how far scores are from 101%</div>
       <PlaysLikeTabs tabs={[
         { id: 'method', label: 'the rating bucket method', content: <Method /> },
         { id: 'example-kisukitsune', label: `example: ${kisukitsune.title}`, content: <PlaysLikeWorkedExample example={kisukitsune} /> },

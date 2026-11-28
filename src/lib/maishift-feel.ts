@@ -16,14 +16,16 @@ import { CAP, ERAS, MAX_CONSTANT, MIN_PLAYERS, centerRating, type ChartFeel } fr
  *      error e_b (how far it could move with other players)
  *   3. pool P_b: same-era charts within W (0.5) of the constant c, this chart left out; with
  *      fewer than MIN_CHARTS, the versions just outside the era are added, one each side at a time
- *   4. popularity: across every chart, middle scores rise by p_k % per doubling of players (k: how
- *      far the bucket is from the center). Every middle score is evened out to the pool's usual
- *      player count: m~ = m - p_k x (log2 players - their average). Both ways: more players than
- *      usual lowers it, fewer raises it
- *   5. typical line, by least squares over P_b:  m~_j = a - S x d_j + q x d_j^2  (d_j = c_j - c),
+ *   4. log gap: l_b = ln(101 - m_b + LOG_OFFSET), how far the score is from 101% on a log scale,
+ *      so a step near the top counts for more than the same step lower down (the idea is from
+ *      critlog's perceived-constant method). Its error: e_l = e_b / (101 - m_b + LOG_OFFSET).
+ *      Smaller is better. (Until 2026-11-27 this step evened out popularity by player count; with
+ *      best scores only, more players and higher scores can't be told apart as cause and effect,
+ *      and taking it out made results agree more, so it's gone)
+ *   5. typical line, by least squares over P_b:  -l_j = a - S x d_j + q x d_j^2  (d_j = c_j - c),
  *      with the errors of a and S from the fit (se_a, se_S). A bucket whose S is MIN_RATE or less
  *      can't tell charts apart and is skipped
- *   6. gap g_b = m~_b - a_b (%)
+ *   6. gap g_b = -l_b - a_b (in log gap; + is a better score than typical)
  *   7. in constant: dc_b = g_b / S_b; errors: sample_b = sqrt(e_b^2 + se_a^2) / S_b,
  *      rate_b = |dc_b| x se_S / S_b; weight w_b = 1 / (sample_b^2 + rate_b^2)
  *   8. combined: dc = sum(w dc) / sum(w); sigma = sqrt(sample^2 + rate^2 + disagree^2) with
@@ -60,10 +62,12 @@ export const MIN_CHARTS = 15;
 export const BUCKETS_BELOW = 6;
 /** ...to this many over it. */
 export const BUCKETS_ABOVE = 4;
-/** A bucket whose accuracy per +1.0 constant is this or less (%) can't tell charts apart: skipped. */
-export const MIN_RATE = 0.05;
-/** s_min: the smallest scatter allowed (%). */
-export const SCATTER_MIN = 0.05;
+/** Step 4: l = ln(101 - m + LOG_OFFSET); keeps an AP+ middle score (101) finite. */
+export const LOG_OFFSET = 0.02;
+/** A bucket whose log gap per +1.0 constant is this or less can't tell charts apart: skipped. */
+export const MIN_RATE = 0.02;
+/** s_min: the smallest scatter allowed (log gap). */
+export const SCATTER_MIN = 0.01;
 /** Sure when the 95% range reaches no further than this either side. */
 export const SURE_RANGE = 0.2;
 /** Step 9: how spread out results at one constant may be (1 standard deviation); about 95% of charts then move under 0.5. */
@@ -80,16 +84,16 @@ export type MaishiftBand = {
   players: number; // n_b
   middle: number; // m_b (%)
   middleError: number; // e_b (%)
-  popularity: number; // p_k (% per doubling of players)
-  averagePlayers: number; // the pool's usual player count (2 ^ average log2 players)
-  adjusted: number; // m~_b: popularity evened out (%)
-  typicalScore: number; // a_b (%)
-  typicalError: number; // se_a (%)
-  perConstant: number; // S_b (% per 1.0 constant, at c)
+  logGap: number; // l_b = ln(101 - m_b + LOG_OFFSET)
+  logGapError: number; // e_l
+  typicalLogGap: number; // -a_b: a typical chart's log gap here
+  typicalScore: number; // the same as a score (%), for the bars: 101 + LOG_OFFSET - e^(-a_b)
+  typicalError: number; // se_a (log gap)
+  perConstant: number; // S_b (log gap per 1.0 constant, at c)
   perConstantError: number; // se_S
   curve: number; // q_b
-  scatter: number; // s_b (%)
-  gap: number; // g_b (%)
+  scatter: number; // s_b (log gap)
+  gap: number; // g_b (log gap; + is better than typical)
   dc: number; // delta c_b (constant)
   sampleError: number; // sample_b (constant)
   rateError: number; // rate_b (constant)
@@ -121,7 +125,6 @@ export type MaishiftData = {
   charts: Record<string, MaishiftChartInfo | null>;
   byChart: Map<string, number>;
   fetchedAt: string;
-  popularity: Record<number, number>; // step 4: p_k by bucket position k (-5 ... 4)
 };
 
 /** The key both sides share: folded title | standard / dx | basic ... remaster. */
@@ -195,8 +198,9 @@ export function middleWorking(counts: number[]): MiddleWorking {
 }
 export const middleScore = (counts: number[]) => middleWorking(counts).middle;
 
-const mean = (v: number[]) => v.reduce((t, x) => t + x, 0) / v.length;
-const log2 = (n: number) => Math.log2(Math.max(1, n));
+/** Step 4: a middle score as a log gap, and back. */
+export const logGapOf = (m: number) => Math.log(101 - m + LOG_OFFSET);
+export const scoreOfLogGap = (l: number) => 101 + LOG_OFFSET - Math.exp(l);
 const round = (n: number, p: number) => Math.round(n * 10 ** p) / 10 ** p;
 const median = (values: number[]) => {
   const s = [...values].sort((a, b) => a - b);
@@ -241,35 +245,6 @@ export function leastSquares(rows: Array<{ v: number[]; y: number }>) {
   return { b, inv, vtv, vty };
 }
 
-/** Step 4: p_k, measured once from every chart: within one constant, era and bucket, % gained per doubling of players. */
-function measurePopularity(levels: Map<number, MaishiftLevelDoc>, charts: Record<string, MaishiftChartInfo | null>): Record<number, number> {
-  const sums: Record<number, [number, number]> = {};
-  for (const [tenth, doc] of levels) {
-    const constant = tenth / 10;
-    for (const [key, entries] of Object.entries(doc.bands)) {
-      const position = Math.max(-5, Math.min(4, positionOf(Number(key.split('-')[0]), constant)));
-      const byEra = new Map<number, Array<[number, number]>>();
-      for (const e of entries) {
-        const version = charts[e.id]?.version;
-        const code = versionCodeOfName(version);
-        if (code == null) continue;
-        const era = eraOfCode(code);
-        byEra.set(era, [...(byEra.get(era) ?? []), [log2(e.n), middleScore(fullCounts(e))]]);
-      }
-      for (const list of byEra.values()) {
-        if (list.length < 3) continue;
-        const mx = mean(list.map((p) => p[0]));
-        const my = mean(list.map((p) => p[1]));
-        const s = (sums[position] ??= [0, 0]);
-        for (const [x, y] of list) { s[0] += (x - mx) * (y - my); s[1] += (x - mx) ** 2; }
-      }
-    }
-  }
-  const out: Record<number, number> = {};
-  for (let k = -5; k <= 4; k++) out[k] = sums[k] && sums[k][1] > 0 ? sums[k][0] / sums[k][1] : 0;
-  return out;
-}
-
 export function maishiftData(docs: Array<MaishiftLevelDoc | MaishiftChartsDoc>): MaishiftData | null {
   const chartsDoc = docs.find((d): d is MaishiftChartsDoc => d._id === 'charts');
   const levels = new Map(docs.filter((d): d is MaishiftLevelDoc => typeof d._id === 'number').map((d) => [d._id, d]));
@@ -278,17 +253,16 @@ export function maishiftData(docs: Array<MaishiftLevelDoc | MaishiftChartsDoc>):
   for (const [id, info] of Object.entries(chartsDoc.charts)) {
     if (info) byChart.set(maishiftKey(info.title, info.type, info.difficulty), Number(id));
   }
-  return { levels, charts: chartsDoc.charts, byChart, fetchedAt: chartsDoc.fetchedAt, popularity: measurePopularity(levels, chartsDoc.charts) };
+  return { levels, charts: chartsDoc.charts, byChart, fetchedAt: chartsDoc.fetchedAt };
 }
 
 /** One bucket's working, with what the worked examples show. */
 export type BandWorking = MaishiftBand & {
   counts: number[];
   mid: MiddleWorking;
-  logPlayers: number; averageLog: number;
   fit: { b: number[]; vtv: number[][]; vty: number[]; rss: number };
-  points: Array<[number, number]>; // [constant difference, popularity-evened middle score] for every pool chart
-  samples: Array<{ id: number; d: number; n: number; middle: number; adjusted: number }>; // three of them
+  points: Array<[number, number]>; // [constant difference, log gap] for every pool chart
+  samples: Array<{ id: number; d: number; n: number; middle: number; logGap: number }>; // three of them
   w: number;
 };
 
@@ -325,14 +299,10 @@ export function maishiftRaw(constant: number, versionCode: number | null, maishi
     if (pool.length < MIN_CHARTS) continue;
     const widened = lo !== eraLo || hi !== eraHi ? `${VERSION_NAMES[String(VERSION_CODES[lo])]}–${VERSION_NAMES[String(VERSION_CODES[hi])]}` : null;
 
-    // step 4: popularity evened out to the pool's usual player count
     const position = positionOf(from, constant);
-    const p = data.popularity[Math.max(-5, Math.min(4, position))] ?? 0;
-    const averageLog = mean(pool.map(({ e }) => log2(e.n)));
-    const even = (m: number, n: number) => m - p * (log2(n) - averageLog);
 
-    // step 5: the typical line m~ = a - S d + q d^2, with the errors of a and S
-    const rows = pool.map(({ e, d, m }) => ({ v: [1, d, d * d], y: even(m, e.n) }));
+    // step 5: the typical line -l = a - S d + q d^2 (step 4's log gap, turned so higher is better), with the errors of a and S
+    const rows = pool.map(({ d, m }) => ({ v: [1, d, d * d], y: -logGapOf(m) }));
     const fit = leastSquares(rows);
     if (!fit) continue;
     const [a, b1, q] = fit.b;
@@ -346,23 +316,24 @@ export function maishiftRaw(constant: number, versionCode: number | null, maishi
     // steps 6-7
     const counts = fullCounts(target);
     const mid = middleWorking(counts);
-    const adjusted = even(mid.middle, target.n);
-    const gap = adjusted - a;
+    const logGap = logGapOf(mid.middle);
+    const logGapError = mid.error / (101 - mid.middle + LOG_OFFSET);
+    const gap = -logGap - a;
     const dc = gap / S;
-    const sampleError = Math.sqrt(mid.error ** 2 + typicalError ** 2) / S;
+    const sampleError = Math.sqrt(logGapError ** 2 + typicalError ** 2) / S;
     const rateError = (Math.abs(dc) * perConstantError) / S;
     const pick = [...pool].sort((x, y) => x.d - y.d || y.e.n - x.e.n);
     const samples = [pick[0], pick.find((x) => x.d === 0) ?? pick[Math.floor(pick.length / 2)], pick[pick.length - 1]]
-      .map(({ e, d, m }) => ({ id: e.id, d, n: e.n, middle: m, adjusted: even(m, e.n) }));
+      .map(({ e, d, m }) => ({ id: e.id, d, n: e.n, middle: m, logGap: logGapOf(m) }));
 
     bands.push({
       from, to: to - 1, position, players: target.n,
-      middle: mid.middle, middleError: mid.error, popularity: p, averagePlayers: 2 ** averageLog,
-      adjusted, typicalScore: a, typicalError, perConstant: S, perConstantError, curve: q, scatter: s,
+      middle: mid.middle, middleError: mid.error, logGap, logGapError,
+      typicalLogGap: -a, typicalScore: scoreOfLogGap(-a), typicalError, perConstant: S, perConstantError, curve: q, scatter: s,
       gap, dc, sampleError, rateError, weight: 0, comparisonCharts: pool.length, widened,
-      counts, mid, logPlayers: log2(target.n), averageLog,
+      counts, mid,
       fit: { b: fit.b, vtv: fit.vtv, vty: fit.vty, rss },
-      points: rows.map(({ v, y }) => [v[1], y]),
+      points: rows.map(({ v, y }) => [v[1], -y]),
       samples,
       w: 1 / (sampleError ** 2 + rateError ** 2),
     });
@@ -451,8 +422,8 @@ export function maishiftFinish(raw: MaishiftRaw, data: MaishiftData, spreads = s
     maishift: {
       bands: bands.map((b) => ({
         from: b.from, to: b.to, position: b.position, players: b.players,
-        middle: round(b.middle, 3), middleError: round(b.middleError, 4), popularity: round(b.popularity, 3), averagePlayers: Math.round(b.averagePlayers),
-        adjusted: round(b.adjusted, 3), typicalScore: round(b.typicalScore, 3), typicalError: round(b.typicalError, 4),
+        middle: round(b.middle, 3), middleError: round(b.middleError, 4), logGap: round(b.logGap, 4), logGapError: round(b.logGapError, 4),
+        typicalLogGap: round(b.typicalLogGap, 4), typicalScore: round(b.typicalScore, 3), typicalError: round(b.typicalError, 4),
         perConstant: round(b.perConstant, 3), perConstantError: round(b.perConstantError, 4), curve: round(b.curve, 3), scatter: round(b.scatter, 3),
         gap: round(b.gap, 3), dc: round(b.dc, 3), sampleError: round(b.sampleError, 4), rateError: round(b.rateError, 4), weight: round(b.weight, 3),
         comparisonCharts: b.comparisonCharts, widened: b.widened,

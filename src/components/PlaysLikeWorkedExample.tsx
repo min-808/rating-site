@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { CAP } from '../lib/plays-like';
-import { BUCKETS_ABOVE, BUCKETS_BELOW, MIN_CHARTS, SPREAD_TARGET, SURE_RANGE } from '../lib/maishift-feel';
+import { BUCKETS_ABOVE, BUCKETS_BELOW, LOG_OFFSET, MIN_CHARTS, SPREAD_TARGET, SURE_RANGE } from '../lib/maishift-feel';
 import type { WorkedExampleData } from '../lib/plays-like-worked';
 import PlaysLikeFitGraph from './PlaysLikeFitGraph';
 
@@ -20,12 +20,11 @@ const f = (n: number, p = 2) => `${n < 0 ? '−' : ''}${Math.abs(n).toLocaleStri
 const sg = (n: number, p = 2) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${f(Math.abs(n), p)}`;
 const neg = (n: number, p = 2) => (n < 0 ? `(−${f(-n, p)})` : f(n, p));
 const int = (n: number) => n.toLocaleString('en-US');
-const pos = (k: number) => (k === 0 ? 'the center group' : `${Math.abs(k)} group${Math.abs(k) === 1 ? '' : 's'} ${k < 0 ? 'under' : 'over'} the center`);
 
 /** Each result's colour (wx-t0 ... wx-t5 in the page's css). Neighbours in one line never match. */
 const TONE = {
   sss: 1, R: 2, bands: 3, N: 1, half: 2, below: 3, inRank: 4, m: 0, e: 5,
-  pool: 3, p: 4, avg: 1, log2n: 3, adjusted: 5,
+  pool: 3, l: 4, eL: 1,
   a: 1, S: 5, q: 3, s: 0, seA: 2, seS: 4,
   gap: 4, dc: 3, sample: 2, rate: 0, w: 4,
   sumW: 5, sumWdc: 1, rawDc: 0, sampleT: 2, rateT: 4, dis: 3, rawSigma: 1,
@@ -114,25 +113,23 @@ export default function PlaysLikeWorkedExample({ example: X }: { example: Worked
         <Calc t="pool" name="comparison charts" words={<>every chart from {X.era}, from {X.poolFrom} to {X.poolTo}, with players in bucket {band}, this one left out</>} numbers={<>counted in maishift&apos;s data (at least {MIN_CHARTS} needed)</>} result={`${F.pool} charts`} />
       </Block>
 
-      <Block step="step-4" title="even out popularity">
-        <Input label="bucket's place" value={pos(b.position)} from={<>{band} against the center rating&apos;s group (step 1)</>} />
-        <Input label="popularity rate" value={`${f(F.p, 3)}% per doubling of players`} from={<>measured once from every chart at this place (the table on <a href="#step-4">step 4</a>)</>} t="p" />
-        <Calc t="avg" name="usual player count" words={<>average of log&#8322; players over the <U t="pool">{F.pool}</U> comparison charts</>} numbers={<>(log&#8322; of each chart&apos;s players, added up) &divide; <U t="pool">{F.pool}</U></>} result={`${f(F.averageLog, 3)} (about ${int(b.averagePlayers)} players)`} />
-        <Calc t="log2n" name="this chart's players" numbers={<>log&#8322; {b.players}</>} result={f(F.logPlayers, 3)} />
-        <Calc t="adjusted" name="adjusted middle score" words="middle score − popularity rate × (log₂ players − usual)"
-          numbers={<><U t="m">{f(F.mid.middle, 3)}</U> &minus; <U t="p">{f(F.p, 3)}</U> &times; (<U t="log2n">{f(F.logPlayers, 3)}</U> &minus; <U t="avg">{f(F.averageLog, 3)}</U>)</>} result={`${f(b.adjusted, 3)}%`} />
-        <p className="wx-note">{b.players > b.averagePlayers ? 'more players than usual, so it comes down a little' : 'fewer players than usual, so it goes up a little'}. every comparison chart is evened out the same way before step 5.</p>
+      <Block step="step-4" title="log gap">
+        <Calc t="l" name="log gap" words={<>ln(101 &minus; middle score + {LOG_OFFSET}): how far the middle score is from 101%, on a log scale (smaller is better)</>}
+          numbers={<>ln(101 &minus; <U t="m">{f(F.mid.middle, 3)}</U> + {LOG_OFFSET}) = ln({f(101 - F.mid.middle + LOG_OFFSET, 4)})</>} result={f(b.logGap, 4)} />
+        <Calc t="eL" name="log gap's error" words={<>middle score&apos;s error &divide; (101 &minus; middle score + {LOG_OFFSET})</>}
+          numbers={<><U t="e">{f(F.mid.error, 3)}</U> &divide; {f(101 - F.mid.middle + LOG_OFFSET, 4)}</>} result={f(b.logGapError, 4)} />
+        <p className="wx-note">every comparison chart&apos;s middle score is turned into a log gap the same way before step 5. near 101% a small step in score is a big step in log gap, which matches how much harder the top end is.</p>
       </Block>
 
       <Block step="step-5" title="fit the typical line">
         <PlaysLikeFitGraph example={X} />
-        <p className="wx-note">for each of the <U t="pool">{F.pool}</U> comparison charts: its constant difference, that squared, and its middle score evened out like step 4. three of them:</p>
+        <p className="wx-note">for each of the <U t="pool">{F.pool}</U> comparison charts: its constant difference, that squared, and its log gap (step 4). three of them:</p>
         <div className="wx-counts">
           <table>
-            <thead><tr><th>chart</th><th>constant</th><th>difference</th><th>difference&sup2;</th><th>players</th><th>middle score</th><th>evened out</th></tr></thead>
+            <thead><tr><th>chart</th><th>constant</th><th>difference</th><th>difference&sup2;</th><th>players</th><th>middle score</th><th>log gap</th></tr></thead>
             <tbody>
               {F.samples.map((r) => (
-                <tr key={`${r.title}${r.d}`}><td>{r.title} {r.difficulty}</td><td>{r.constant}</td><td>{r.d ? sg(r.d, 1) : '0.0'}</td><td>{f(r.d * r.d)}</td><td>{r.n}</td><td>{f(r.middle)}%</td><td>{f(r.adjusted)}%</td></tr>
+                <tr key={`${r.title}${r.d}`}><td>{r.title} {r.difficulty}</td><td>{r.constant}</td><td>{r.d ? sg(r.d, 1) : '0.0'}</td><td>{f(r.d * r.d)}</td><td>{r.n}</td><td>{f(r.middle)}%</td><td>{f(r.logGap, 3)}</td></tr>
               ))}
             </tbody>
           </table>
@@ -143,47 +140,47 @@ export default function PlaysLikeWorkedExample({ example: X }: { example: Worked
           <table>
             <tbody>
               <tr><th>charts</th><td><U t="pool">{f(V[0][0], 0)}</U></td><th>Σ difference</th><td>{f(V[0][1], 2)}</td><th>Σ difference&sup2;</th><td>{f(V[0][2], 2)}</td></tr>
-              <tr><th>Σ difference&sup3;</th><td>{f(V[1][2], 3)}</td><th>Σ difference&#8308;</th><td>{f(V[2][2], 4)}</td><th>Σ evened score</th><td>{f(F.vty[0], 2)}</td></tr>
-              <tr><th>Σ difference &times; score</th><td>{f(F.vty[1], 2)}</td><th>Σ difference&sup2; &times; score</th><td>{f(F.vty[2], 2)}</td><td colSpan={2} /></tr>
+              <tr><th>Σ difference&sup3;</th><td>{f(V[1][2], 3)}</td><th>Σ difference&#8308;</th><td>{f(V[2][2], 4)}</td><th>Σ log gap</th><td>{f(F.vty[0], 3)}</td></tr>
+              <tr><th>Σ difference &times; log gap</th><td>{f(F.vty[1], 3)}</td><th>Σ difference&sup2; &times; log gap</th><td>{f(F.vty[2], 3)}</td><td colSpan={2} /></tr>
             </tbody>
           </table>
         </div>
         <div className="wx-calc">
           <div className="wx-name">solve the three equations</div>
-          <div className="wx-words">= the values that make the line miss the evened scores least (the equations: <a href="#step-5">step 5</a>)</div>
+          <div className="wx-words">= the values that make the line miss the log gaps least (the equations: <a href="#step-5">step 5</a>)</div>
           <div className="wx-numbers">= b0, b1, b2 = <span className={`wx-result wx-t${TONE.a}`}>{f(F.b[0], 3)}</span>, <span className={`wx-result wx-t${TONE.S}`}>{f(F.b[1], 3)}</span>, <span className={`wx-result wx-t${TONE.q}`}>{f(F.b[2], 3)}</span></div>
         </div>
-        <Calc t="a" name="typical score" words="b0" numbers={<U t="a">{f(F.b[0], 3)}</U>} result={`${f(b.typical, 3)}%`} />
-        <Calc t="S" name="accuracy per +1.0 constant" words={<>&minus;b1</>} numbers={<>&minus;<U t="S">{neg(F.b[1], 3)}</U></>} result={`${f(b.S, 3)}% per +1.0 constant`} />
-        <Calc t="q" name="bend" words={<>b2 (the line flattens toward 101%)</>} numbers={<U t="q">{f(F.b[2], 3)}</U>} result={sg(b.q, 3)} />
-        <Calc t="s" name="scatter" words={<>&radic;(Σ each chart&apos;s miss from the line, squared &divide; (charts &minus; 3))</>} numbers={<>&radic;({f(F.rss, 2)} &divide; (<U t="pool">{F.pool}</U> &minus; 3))</>} result={`${f(F.s, 3)}%`} />
-        <Calc t="seA" name="typical score's error" words={<>scatter &times; &radic;(the fit&apos;s first diagonal entry): how sure the line&apos;s height at {X.constant} is</>} numbers={<><U t="s">{f(F.s, 3)}</U> &times; &radic;{f(F.invA, 6)}</>} result={`${f(b.typicalError, 4)}%`} />
-        <Calc t="seS" name="rate's error" words={<>scatter &times; &radic;(the fit&apos;s second diagonal entry): how sure the accuracy per +1.0 constant is</>} numbers={<><U t="s">{f(F.s, 3)}</U> &times; &radic;{f(F.invS, 6)}</>} result={f(b.SError, 4)} />
+        <Calc t="a" name="typical log gap" words="b0" numbers={<U t="a">{f(F.b[0], 3)}</U>} result={`${f(b.typical, 4)} (a score of ${f(b.typicalScore, 2)}%)`} />
+        <Calc t="S" name="log gap per +1.0 constant" words="b1" numbers={<U t="S">{f(F.b[1], 3)}</U>} result={`${f(b.S, 3)} per +1.0 constant`} />
+        <Calc t="q" name="bend" words={<>&minus;b2</>} numbers={<>&minus;<U t="q">{neg(F.b[2], 3)}</U></>} result={sg(b.q, 3)} />
+        <Calc t="s" name="scatter" words={<>&radic;(Σ each chart&apos;s miss from the line, squared &divide; (charts &minus; 3))</>} numbers={<>&radic;({f(F.rss, 3)} &divide; (<U t="pool">{F.pool}</U> &minus; 3))</>} result={f(F.s, 3)} />
+        <Calc t="seA" name="typical log gap's error" words={<>scatter &times; &radic;(the fit&apos;s first diagonal entry): how sure the line&apos;s height at {X.constant} is</>} numbers={<><U t="s">{f(F.s, 3)}</U> &times; &radic;{f(F.invA, 6)}</>} result={f(b.typicalError, 4)} />
+        <Calc t="seS" name="rate's error" words={<>scatter &times; &radic;(the fit&apos;s second diagonal entry): how sure the log gap per +1.0 constant is</>} numbers={<><U t="s">{f(F.s, 3)}</U> &times; &radic;{f(F.invS, 6)}</>} result={f(b.SError, 4)} />
       </Block>
 
       <Block step="step-6" title="this chart's gap">
-        <Calc t="gap" name="accuracy gap" words="adjusted middle score − typical score" numbers={<><U t="adjusted">{f(b.adjusted, 3)}</U> &minus; <U t="a">{f(b.typical, 3)}</U></>} result={`${sg(b.gap, 3)}% (${b.gap >= 0 ? 'better: easier' : 'worse: harder'})`} />
+        <Calc t="gap" name="gap" words="typical log gap − this chart's log gap" numbers={<><U t="a">{f(b.typical, 4)}</U> &minus; <U t="l">{neg(b.logGap, 4)}</U></>} result={`${sg(b.gap, 3)} (${b.gap >= 0 ? 'better: easier' : 'worse: harder'})`} />
       </Block>
 
       <Block step="step-7" title="turn it into constant, and how clear it is">
-        <Calc t="dc" name="constant gap" words="accuracy gap ÷ accuracy per +1.0 constant" numbers={<><U t="gap">{neg(b.gap, 3)}</U> &divide; <U t="S">{f(b.S, 3)}</U></>} result={`${sg(b.dc, 3)} (${b.dc >= 0 ? 'easier' : 'harder'})`} />
-        <Calc t="sample" name="sample error" words="√(middle score's error² + typical score's error²) ÷ accuracy per +1.0 constant"
-          numbers={<>&radic;(<U t="e">{f(F.mid.error, 3)}</U>&sup2; + <U t="seA">{f(b.typicalError, 4)}</U>&sup2;) &divide; <U t="S">{f(b.S, 3)}</U></>} result={f(b.sample, 4)} />
-        <Calc t="rate" name="rate error" words="|constant gap| × rate's error ÷ accuracy per +1.0 constant" numbers={<><U t="dc">{f(Math.abs(b.dc), 3)}</U> &times; <U t="seS">{f(b.SError, 4)}</U> &divide; <U t="S">{f(b.S, 3)}</U></>} result={f(b.rate, 4)} />
+        <Calc t="dc" name="constant gap" words="gap ÷ log gap per +1.0 constant" numbers={<><U t="gap">{neg(b.gap, 3)}</U> &divide; <U t="S">{f(b.S, 3)}</U></>} result={`${sg(b.dc, 3)} (${b.dc >= 0 ? 'easier' : 'harder'})`} />
+        <Calc t="sample" name="sample error" words="√(log gap's error² + typical log gap's error²) ÷ log gap per +1.0 constant"
+          numbers={<>&radic;(<U t="eL">{f(b.logGapError, 4)}</U>&sup2; + <U t="seA">{f(b.typicalError, 4)}</U>&sup2;) &divide; <U t="S">{f(b.S, 3)}</U></>} result={f(b.sample, 4)} />
+        <Calc t="rate" name="rate error" words="|constant gap| × rate's error ÷ log gap per +1.0 constant" numbers={<><U t="dc">{f(Math.abs(b.dc), 3)}</U> &times; <U t="seS">{f(b.SError, 4)}</U> &divide; <U t="S">{f(b.S, 3)}</U></>} result={f(b.rate, 4)} />
         <Calc t="w" name="say (weight)" words="1 ÷ (sample error² + rate error²)" numbers={<>1 &divide; (<U t="sample">{f(b.sample, 4)}</U>&sup2; + <U t="rate">{f(b.rate, 4)}</U>&sup2;)</>} result={f(b.w, 1)} />
-        <p className="wx-note">every bucket, through steps 2 to 7 (the bucket worked above is highlighted). high buckets, where most players are near 101%, change little per +1.0 constant, so their answers are fuzzy and their say is small:</p>
+        <p className="wx-note">every bucket, through steps 2 to 7 (the bucket worked above is highlighted). high buckets, where most players are near 101%, change less per +1.0 constant, so their answers are fuzzier and their say is smaller:</p>
         <div className="wx-counts">
           <table>
-            <thead><tr><th>bucket</th><th>players</th><th>middle</th><th>evened</th><th>typical</th><th>per +1.0</th><th>gap</th><th>constant gap</th><th>sample</th><th>rate</th><th>say</th></tr></thead>
+            <thead><tr><th>bucket</th><th>players</th><th>middle</th><th>log gap</th><th>typical</th><th>per +1.0</th><th>gap</th><th>constant gap</th><th>sample</th><th>rate</th><th>say</th></tr></thead>
             <tbody>
               {X.bands.map((x) => isB(x) ? (
                 <tr key={x.from} className="wx-hit-row">
-                  <td>{int(x.from)}</td><td>{x.players}</td><td><U t="m">{f(x.middle)}%</U></td><td><U t="adjusted">{f(x.adjusted)}%</U></td><td><U t="a">{f(x.typical)}%</U></td><td><U t="S">{f(x.S)}%</U></td>
-                  <td><U t="gap">{sg(x.gap)}%</U></td><td><U t="dc">{sg(x.dc)}</U></td><td><U t="sample">{f(x.sample, 3)}</U></td><td><U t="rate">{f(x.rate, 3)}</U></td><td><U t="w">{Math.round(x.share * 100)}%</U></td>
+                  <td>{int(x.from)}</td><td>{x.players}</td><td><U t="m">{f(x.middle)}%</U></td><td><U t="l">{f(x.logGap, 3)}</U></td><td><U t="a">{f(x.typical, 3)}</U></td><td><U t="S">{f(x.S)}</U></td>
+                  <td><U t="gap">{sg(x.gap, 3)}</U></td><td><U t="dc">{sg(x.dc)}</U></td><td><U t="sample">{f(x.sample, 3)}</U></td><td><U t="rate">{f(x.rate, 3)}</U></td><td><U t="w">{Math.round(x.share * 100)}%</U></td>
                 </tr>
               ) : (
                 <tr key={x.from}>
-                  <td>{int(x.from)}</td><td>{x.players}</td><td>{f(x.middle)}%</td><td>{f(x.adjusted)}%</td><td>{f(x.typical)}%</td><td>{f(x.S)}%</td><td>{sg(x.gap)}%</td><td>{sg(x.dc)}</td><td>{f(x.sample, 3)}</td><td>{f(x.rate, 3)}</td><td>{x.share < 0.01 ? '<1%' : `${Math.round(x.share * 100)}%`}</td>
+                  <td>{int(x.from)}</td><td>{x.players}</td><td>{f(x.middle)}%</td><td>{f(x.logGap, 3)}</td><td>{f(x.typical, 3)}</td><td>{f(x.S)}</td><td>{sg(x.gap, 3)}</td><td>{sg(x.dc)}</td><td>{f(x.sample, 3)}</td><td>{f(x.rate, 3)}</td><td>{x.share < 0.01 ? '<1%' : `${Math.round(x.share * 100)}%`}</td>
                 </tr>
               ))}
             </tbody>

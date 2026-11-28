@@ -25,7 +25,7 @@ import { maishiftData, maishiftFeel, maishiftKey, type MaishiftChartsDoc, type M
  */
 
 /** Bump when the way "plays like" is worked out changes: every chart is worked out again on the next run. */
-const FEEL_VERSION = 13; // 13: rating bucket method: every bucket weighed by its own evidence, popularity measured once (both ways), uncertainty worked out with a 95% range, results fitted to each level's spread (SPREAD_TARGET). 12: sigma 0.25-0.5 shown marked uncertain. 11: curved typical line, only shown when sigma <= 0.25. 10: accuracy gap / measured accuracy per constant (no K). 3: only half the change kept. 4: unused fields dropped. 5: compared with same-era charts, popularity corrected. 6: cap 0.5. 7: maishift's data where it has some. 8: K 0.4. 9: K 0.2
+const FEEL_VERSION = 14; // 14: log gap (scores compared as ln(101 - m + 0.02)), popularity step taken out. 13: rating bucket method: every bucket weighed by its own evidence, popularity measured once (both ways), uncertainty worked out with a 95% range, results fitted to each level's spread (SPREAD_TARGET). 12: sigma 0.25-0.5 shown marked uncertain. 11: curved typical line, only shown when sigma <= 0.25. 10: accuracy gap / measured accuracy per constant (no K). 3: only half the change kept. 4: unused fields dropped. 5: compared with same-era charts, popularity corrected. 6: cap 0.5. 7: maishift's data where it has some. 8: K 0.4. 9: K 0.2
 const COLLECTION = 'chart_feel';
 /** Documents written per second, at most: half the free Atlas tier's 100 operations a second, leaving the rest for the site. */
 const WRITES_PER_SECOND = 50;

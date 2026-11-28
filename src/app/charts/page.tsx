@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import SongBrowser from '../../components/SongBrowser';
 import JumpIcon from '../../components/JumpIcon';
+import ChartsTabs from '../../components/ChartsTabs';
 import { getCatalog, toBrowserList } from '../../lib/song-catalog';
 import { connectMongo } from '../../lib/connect-db';
 
@@ -42,6 +43,7 @@ export default async function SongsPage() {
           <JumpIcon src="/favicon.ico" className="sg-title-icon" />
         </span>
       </h1>
+      <ChartsTabs on="all" />
       <SongBrowser
         songs={songs}
         jacketBase={jacketBase}
