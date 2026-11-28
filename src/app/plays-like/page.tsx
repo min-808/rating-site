@@ -11,7 +11,7 @@ import { WORKED_EXAMPLES } from '../../lib/plays-like-worked';
 
 /**
  * "how plays like works": a switch between the rating bucket method (every step as an equation, each
- * with a dropdown that says it in words, and what each value is) and two worked examples that run a
+ * with an "in detail" dropdown that explains it, and what each value is) and two worked examples that run a
  * chart through every calculation (components/PlaysLikeWorkedExample.tsx): a sure result and an
  * uncertain one. The song page's popup (components/SongPageView.tsx, SimpleHow) links to the
  * steps by id (#step-1 ... #step-10); PlaysLikeTabs opens the right tab for any link. Settings
@@ -30,11 +30,11 @@ function Where({ children }: { children: ReactNode }) {
   return <ul className="pl-where">{children}</ul>;
 }
 const t = String.raw;
-/** An equation in symbols, with a dropdown that says it in words and what each symbol is. */
+/** An equation in symbols, with an "in detail" dropdown that explains it and what each symbol is. */
 function Eq({ tex, words, vars }: { tex: string; words: ReactNode; vars?: Array<[string, ReactNode]> }) {
   return (
     <details className="pl-eq">
-      <summary><span className="pl-eq-math"><Tex block>{tex}</Tex></span><span className="pl-eq-hint">in words</span></summary>
+      <summary><span className="pl-eq-math"><Tex block>{tex}</Tex></span><span className="pl-eq-hint">in detail</span></summary>
       <div className="pl-eq-words">
         <p>{words}</p>
         {vars && <ul className="pl-where">{vars.map(([s, m], i) => <li key={i}><Tex>{s}</Tex>: {m}</li>)}</ul>}
@@ -105,32 +105,34 @@ function Method() {
           </tbody>
         </table>
         <table className="pl-table">
-          <thead><tr><th>setting</th><th>value</th><th>what it does</th></tr></thead>
+          <thead><tr><th>setting</th><th>value</th><th>what it does</th><th>where it comes from</th></tr></thead>
           <tbody>
-            <tr><td>buckets</td><td>&minus;{BUCKETS_BELOW} to +{BUCKETS_ABOVE}</td><td>groups around the center rating&apos;s group that are used (each weighed by step 7)</td></tr>
-            <tr><td><M>W</M></td><td>{W}</td><td>how far either side of <M>c</M> the comparison charts reach</td></tr>
-            <tr><td>fewest charts</td><td>{MIN_CHARTS}</td><td>comparison charts a bucket needs</td></tr>
-            <tr><td><M>{t`\theta`}</M></td><td>{LOG_OFFSET}</td><td>added inside the log gap so an AP+ (101%) still has one</td></tr>
-            <tr><td><M>{t`S_{\min}`}</M></td><td>{MIN_RATE}</td><td>a bucket whose log gap grows this or less per +1.0 constant can&apos;t tell charts apart and is skipped</td></tr>
-            <tr><td><M>{t`s_{\min}`}</M></td><td>{SCATTER_MIN}</td><td>the lowest scatter allowed (log gap)</td></tr>
-            <tr><td><M>{t`D^{*}`}</M></td><td>{SPREAD_TARGET}</td><td>spread target: how far charts at one constant may differ (step 9), from the site owner&apos;s understanding of the game</td></tr>
-            <tr><td><M>r</M></td><td>{SURE_RANGE}</td><td>sure range: a 95% range reaching this far or less either side is sure</td></tr>
-            <tr><td><M>K</M></td><td>{CAP}</td><td>the most plays like can move from <M>c</M></td></tr>
-            <tr><td><M>{t`c_{\max}`}</M></td><td>{MAX_CONSTANT.toFixed(1)}</td><td>the highest constant</td></tr>
+            <tr><td>buckets</td><td>&minus;{BUCKETS_BELOW} to +{BUCKETS_ABOVE}</td><td>groups around the center rating&apos;s group that are used (each weighed by step 7)</td><td>chosen wide, so every bucket with something to say is in; step 7 decides how much each counts</td></tr>
+            <tr><td><M>W</M></td><td>{W}</td><td>how far either side of <M>c</M> the comparison charts reach</td><td>chosen: five constants either side, enough to measure how scores change with constant without reaching charts that play very differently</td></tr>
+            <tr><td>fewest charts</td><td>{MIN_CHARTS}</td><td>comparison charts a bucket needs</td><td>chosen: the line in step 5 fits three values, and fewer charts than this make them jumpy</td></tr>
+            <tr><td><M>{t`\theta`}</M></td><td>{LOG_OFFSET}</td><td>added inside the log gap so an AP+ (101%) still has one</td><td>the value critlog&apos;s perceived-constant method uses; small enough not to change anything below 100.9%</td></tr>
+            <tr><td><M>{t`S_{\min}`}</M></td><td>{MIN_RATE}</td><td>a bucket whose log gap grows this or less per +1.0 constant can&apos;t tell charts apart and is skipped</td><td>chosen: below this, dividing by the rate in step 7 blows small score differences up into huge constant gaps</td></tr>
+            <tr><td><M>{t`s_{\min}`}</M></td><td>{SCATTER_MIN}</td><td>the lowest scatter allowed (log gap)</td><td>chosen: a floor, so a pool that happens to sit very close to its line can&apos;t claim no error at all</td></tr>
+            <tr><td><M>{t`D^{*}`}</M></td><td>{SPREAD_TARGET}</td><td>spread target: how far charts at one constant may differ (step 9)</td><td>the site owner&apos;s understanding of the game: charts at one constant feel at most about 0.3 to 0.5 apart, and 0.25 puts about 95% of them within 0.5</td></tr>
+            <tr><td><M>r</M></td><td>{SURE_RANGE}</td><td>sure range: a 95% range reaching this far or less either side is sure</td><td>chosen: the range then spans at most about four tenths, close enough to trust the tenth shown</td></tr>
+            <tr><td><M>K</M></td><td>{CAP}</td><td>the most plays like can move from <M>c</M></td><td>the site owner&apos;s understanding of the game: a chart plays at most about half a level from its constant</td></tr>
+            <tr><td><M>{t`c_{\max}`}</M></td><td>{MAX_CONSTANT.toFixed(1)}</td><td>the highest constant</td><td>the game: no chart is rated above 15.0</td></tr>
+            <tr><td>fewest charts for the spread</td><td>{SPREAD_MIN_CHARTS}</td><td>charts it takes to measure the spread in step 9; with fewer, the constants next to it are added</td><td>chosen: a median from fewer charts than this jumps around</td></tr>
+            <tr><td>one-bucket disagreement</td><td>{SINGLE_BUCKET_DISAGREE}</td><td>the disagreement counted when only one bucket has the chart (step 8)</td><td>chosen: one bucket can&apos;t be checked against another, so it counts as clearly unsure; on its own it keeps the result from ever being sure</td></tr>
           </tbody>
         </table>
       </details>
 
       <h2 id="maishift">the steps (the rating bucket method)</h2>
-      <p className="pl-hint">click an equation to read it in words, with what each symbol is. the examples tabs above run real charts through every step.</p>
+      <p className="pl-hint">click an equation to read it in detail, with what each symbol is. the examples tabs above run real charts through every step.</p>
 
       <Step id="step-1" title="step 1: pick the buckets">
         <Eq tex={t`R = \min\!\Big(50\,\big\lfloor 22.4 \times 1.005 \times \min(c,\ c_{\max}) \big\rfloor,\ 16600\Big)`}
-          words={<>center rating = the game&apos;s rating for an SSS+ (100.5%) on a chart of this constant, rounded down, &times; 50, at most 16,600</>}
-          vars={[['R', 'the result: center rating, the rating an SSS+ on this chart gives × 50'], ['c', "the chart's constant (song list)"], [t`c_{\max}`, MAX_CONSTANT.toFixed(1)], [t`\lfloor\ \rfloor`, 'round down']]} />
+          words={<>center rating = the game&apos;s rating for an SSS+ (100.5%) on a chart of this constant, rounded down, &times; 50, at most 16,600. this is the game&apos;s own rating formula: a chart is worth constant &times; the rank&apos;s factor &times; the score, and an SSS+ (100.5% or more) has the factor 22.4. &times; 50 because a rating adds up your best 50 charts, so R is the rating you&apos;d have if every one of them were this chart</>}
+          vars={[['R', 'the result: center rating, the rating an SSS+ on this chart gives × 50'], ['c', "the chart's constant (song list)"], ['22.4', "the game's rating factor for an SSS+"], ['1.005', '100.5%, the score an SSS+ counts as'], ['50', 'the charts in a rating (best 35 old + best 15 new)'], ['16600', 'the highest center rating the site uses; the game\'s real maximum rating is about 16,663 to 16,690 depending on the version'], [t`c_{\max}`, `${MAX_CONSTANT.toFixed(1)}, the highest constant in the game`], [t`\lfloor\ \rfloor`, 'round down, as the game does']]} />
         <Eq tex={t`B = \big\{\, b \;:\; g(R) - ${String(BUCKETS_BELOW)} \;\le\; g(b) \;\le\; g(R) + ${String(BUCKETS_ABOVE)} \,\big\}, \qquad g(x) = \left\lfloor \frac{x}{250} \right\rfloor`}
           words={<>the buckets used are every maishift bucket whose group is at least {BUCKETS_BELOW} groups below the center rating&apos;s group and at most {BUCKETS_ABOVE} groups above it. a group is a 250-wide slice of rating (15,250–15,499 is one)</>}
-          vars={[['B', 'the result: every bucket used'], ['b', "one of maishift's buckets: 13,000–13,500, 13,500–14,000, then every 250 up to 17,000"], ['g(x)', 'the group a rating x is in']]} />
+          vars={[['B', 'the result: every bucket used'], ['b', "one of maishift's buckets: 13,000–13,500, 13,500–14,000, then every 250 up to 17,000"], ['g(x)', 'the group a rating x is in'], ['250', "the width of maishift's buckets from 14,000 up"], [`${BUCKETS_BELOW}, ${BUCKETS_ABOVE}`, 'how many groups below and above are used (see settings)']]} />
         <Why>inside one bucket everyone is about as skilled, so differences between charts come from the charts. no bucket is picked by hand: a bucket where most players are near 101% can still say a chart is easy, but step 7 gives it little say because its scores barely change between constants.</Why>
       </Step>
 
@@ -139,8 +141,8 @@ function Method() {
           words={<>middle score = the low end of the middle player&apos;s rank + (half the players &minus; players in the ranks below it) &divide; players in that rank &times; the rank&apos;s width. with exact scores you&apos;d sort them and take the middle one; maishift only gives rank counts, so this finds the rank the middle player is in and places them inside it as if that rank&apos;s players were spread evenly</>}
           vars={[[t`m_b`, "the result: this chart's middle score in bucket b (%)"], [t`N_b`, "players in the bucket (maishift; players its rank counts miss count as SSS+)"], [t`n_r`, 'players with rank r, from r = 0 (<94) to 8 (AP+)'], [t`C_i`, 'running total of players up to rank i'], ['k', "the middle player's rank: the first where the running total reaches half"], [t`L_k,\ H_k`, "that rank's range: <94 90–94, AAA 94–97, S 97–98, S+ 98–99, SS 99–99.5, SS+ 99.5–100, SSS 100–100.5, SSS+ 100.5–101, AP+ 101"]]} />
         <Eq tex={t`e_b = \frac{\big(H_k - L_k\big)\sqrt{N_b}}{2\,n_k}`}
-          words={<>middle score&apos;s error = rank width &times; &radic;players &divide; (2 &times; players in that rank): the usual error of a median from grouped counts (AP+ has no width: 0.5 is used)</>}
-          vars={[[t`e_b`, "the result: the middle score's error, how far it could move with a different set of players (%)"], [t`H_k - L_k`, "the middle player's rank's width"], [t`n_k`, 'players in that rank']]} />
+          words={<>middle score&apos;s error = rank width &times; &radic;players &divide; (2 &times; players in that rank): the standard error of a median when only counts per range are known: about 1 &divide; (2 &times; how densely players sit at the middle &times; &radic;players), and that density is players in the rank &divide; (all players &times; rank width). AP+ is a single score with no width, so 0.5 (the width of the ranks next to it) is used instead</>}
+          vars={[[t`e_b`, "the result: the middle score's error, how far it could move with a different set of players (%)"], [t`H_k - L_k`, "the middle player's rank's width"], [t`n_k`, 'players in that rank'], ['2', 'from the standard error of a median'], ['0.5', "used as AP+'s width"]]} />
         <Why>the middle player stands for the bucket: one AP+ or one fail barely moves it. more players, or more of them in the middle rank, means a steadier middle.</Why>
       </Step>
 
@@ -157,7 +159,7 @@ function Method() {
       <Step id="step-4" title="step 4: log gap">
         <Eq tex={t`\ell_j = \ln\!\big(101 - m_j + \theta\big), \qquad e_{\ell,b} = \frac{e_b}{101 - m_b + \theta}`}
           words={<>log gap = the natural log of (101 &minus; middle score + {LOG_OFFSET}). it&apos;s how far the middle score is from 101%, on a log scale, so smaller is better. this chart&apos;s is written with <M>b</M>, a comparison chart&apos;s with <M>j</M>. its error is the middle score&apos;s error divided by the same distance from 101%</>}
-          vars={[[t`\ell_j`, "the result: chart j's log gap (this chart's is ℓ_b)"], [t`e_{\ell,b}`, "the result: this chart's log gap error"], [t`m_j`, "chart j's middle score (step 2) (%)"], [t`e_b`, "this chart's middle score error (step 2)"], [t`\theta`, `${LOG_OFFSET}, so an AP+ (101%) still has a log gap`], [t`\ln`, 'natural log']]} />
+          vars={[[t`\ell_j`, "the result: chart j's log gap (this chart's is ℓ_b)"], [t`e_{\ell,b}`, "the result: this chart's log gap error"], [t`m_j`, "chart j's middle score (step 2) (%)"], [t`e_b`, "this chart's middle score error (step 2)"], [t`\theta`, `${LOG_OFFSET}, so an AP+ (101%) still has a log gap (the value critlog uses)`], ['101', 'the highest score there is (AP+)'], [t`\ln`, 'natural log']]} />
         <div className="wx-counts">
           <table>
             <thead><tr><th>middle score</th>{[95, 97, 98, 99, 99.5, 100, 100.25, 100.5, 100.75].map((m) => <th key={m}>{m}%</th>)}</tr></thead>
@@ -165,11 +167,7 @@ function Method() {
           </table>
           <span className="wx-from">from 100% to 100.5% is about as big a step (0.67) as from 97% to 99% (0.69)</span>
         </div>
-        <Why>near the top every 0.1% is hard won: going from 100.2% to 100.5% takes as much as going from 97% to 98.5%. on plain percent those top steps look tiny, so high buckets made charts look all the same and their answers were noisy. on the log scale the steps are even, so every bucket gives a steadier answer. the idea is from <a href="https://critlog.me/maimai/articles/perceived-constant" target="_blank" rel="noopener noreferrer">critlog&apos;s perceived-constant method</a>; tested on every maishift chart, the results agreed more between two random halves of the players, and lined up more closely with critlog&apos;s own list.</Why>
-        <details className="pl-more">
-          <summary>what happened to popularity?</summary>
-          <p className="pl-why">until 27 November 2026 this step evened out popularity: charts with more players in a bucket score higher, so every middle score was moved to the pool&apos;s usual player count. but maishift has best scores, not play counts, so it can&apos;t tell whether more players make a chart score higher (practice) or a chart that scores higher draws more players (people farm easy charts). evening it out took away some real easiness, and taking the step out made results agree more between two halves of the players, so it&apos;s gone.</p>
-        </details>
+        <Why>near the top every 0.1% is hard won: going from 100.2% to 100.5% takes as much as going from 97% to 98.5%. on plain percent those top steps look tiny, so high buckets would make every chart look the same. on the log scale the steps are even, so every bucket gives a steady answer. the idea is from <a href="https://critlog.me/maimai/articles/perceived-constant" target="_blank" rel="noopener noreferrer">critlog&apos;s perceived-constant method</a>.</Why>
       </Step>
 
       <Step id="step-5" title="step 5: fit the typical line">
@@ -214,15 +212,15 @@ function Method() {
         <Eq tex={t`\Delta c = \frac{\displaystyle\sum_{b \in B} w_b\, \Delta c_b}{\displaystyle\sum_{b \in B} w_b}`} words={<>constant gap = (each bucket&apos;s weight &times; its constant gap, added up) &divide; (every weight added up)</>}
           vars={[[t`\Delta c`, "the result: this chart's constant gap, all buckets together (+ easier)"], [t`\sum_{b \in B}`, 'added up over every bucket used (step 1)']]} />
         <Eq tex={t`\sigma = \sqrt{\epsilon^2 + \rho^2 + \delta^2}, \qquad \epsilon = \Big(\sum_{b \in B} \epsilon_b^{-2}\Big)^{-1/2}, \qquad \rho = \frac{\displaystyle\sum_{b \in B} w_b\, \rho_b}{\displaystyle\sum_{b \in B} w_b}, \qquad \delta = \sqrt{\frac{\displaystyle\sum_{b \in B} w_b\,(\Delta c_b - \Delta c)^2}{(|B| - 1)\displaystyle\sum_{b \in B} w_b}}`}
-          words={<>uncertainty = &radic;(sample part&sup2; + rate part&sup2; + disagreement&sup2;). the sample part shrinks as buckets are added (different players in each); the rate part is a weighted average, not shrunk (every bucket&apos;s rate could be off the same way); the disagreement says how far the buckets&apos; answers spread around the combined one (one bucket alone counts as {SINGLE_BUCKET_DISAGREE})</>}
+          words={<>uncertainty = &radic;(sample part&sup2; + rate part&sup2; + disagreement&sup2;). the sample part shrinks as buckets are added (different players in each); the rate part is a weighted average, not shrunk (every bucket&apos;s rate could be off the same way); the disagreement says how far the buckets&apos; answers spread around the combined one (one bucket alone can&apos;t be checked against another, so it counts as {SINGLE_BUCKET_DISAGREE}: clearly unsure). the squares add because the three are separate ways to be off</>}
           vars={[[t`\sigma`, "the result: this chart's uncertainty (constant)"], [t`\epsilon`, 'the result: sample part'], [t`\rho`, 'the result: rate part'], [t`\delta`, 'the result: disagreement between buckets'], [t`|B|`, 'how many buckets']]} />
         <Why>one bucket alone could be a fluke; agreement across skill levels is more convincing. three separate ways to be off combine by squaring, adding and taking the root.</Why>
       </Step>
 
       <Step id="step-9" title="step 9: fit to the level">
         <Eq tex={t`D = 1.4826 \cdot \operatorname*{median}_{i \in Q_c} \Big|\, \Delta c_i - \operatorname*{median}_{i \in Q_c} \Delta c_i \,\Big|, \qquad \lambda = \min\!\Big(1,\ \frac{D^{*}}{D}\Big)`}
-          words={<>spread = how widely step 8&apos;s results vary among every chart at this constant that isn&apos;t hidden (1.4826 &times; the median distance from the median, so outliers barely count). scale = spread target &divide; spread, at most 1. with fewer than {SPREAD_MIN_CHARTS} charts at <M>c</M>, the constants next to it are added</>}
-          vars={[['D', 'the result: the spread of results at this constant'], [t`\lambda`, 'the result: the scale'], [t`Q_c`, 'every maishift chart at this constant whose result isn\'t hidden'], [t`\Delta c_i`, "chart i's constant gap (step 8)"], [t`D^{*}`, `spread target, ${SPREAD_TARGET}`]]} />
+          words={<>spread = how widely step 8&apos;s results vary among every chart at this constant that isn&apos;t hidden (the median distance from the median, so a few odd charts barely count, &times; 1.4826, the number that puts it on the same scale as a standard deviation: for normally spread values the median distance is 0.6745 standard deviations, and 1 &divide; 0.6745 = 1.4826). scale = spread target &divide; spread, at most 1. with fewer than {SPREAD_MIN_CHARTS} charts at <M>c</M>, the constants next to it are added</>}
+          vars={[['D', 'the result: the spread of results at this constant'], [t`\lambda`, 'the result: the scale'], [t`Q_c`, 'every maishift chart at this constant whose result isn\'t hidden'], [t`\Delta c_i`, "chart i's constant gap (step 8)"], [t`D^{*}`, `spread target, ${SPREAD_TARGET} (see settings)`], ['1.4826', '1 ÷ 0.6745: turns a median distance into a standard deviation']]} />
         <Eq tex={t`\Delta c' = \lambda\,\Delta c, \qquad \sigma' = \lambda\,\sigma`} words={<>constant gap and uncertainty are both multiplied by the scale</>}
           vars={[[t`\Delta c'`, 'the result: the constant gap, fitted to the level'], [t`\sigma'`, 'the result: the uncertainty, fitted to the level']]} />
         <Where>
@@ -233,11 +231,11 @@ function Method() {
 
       <Step id="step-10" title="step 10: how sure?">
         <Eq tex={t`\text{plays like} = \min\!\Big(c_{\max},\ \operatorname{round}_{0.1}\!\big(c - \operatorname{clamp}(\Delta c',\, -K,\, K)\big)\Big), \qquad \text{range} = c - \big(\Delta c' \pm 2\sigma'\big)`}
-          words={<>plays like = constant &minus; constant gap (held within &plusmn;{CAP}), rounded to 0.1, at most {MAX_CONSTANT.toFixed(1)}; the 95% range is the same with the constant gap &plusmn; 2 &times; uncertainty</>}
-          vars={[[t`\text{plays like}`, 'the result shown on the song page'], [t`\text{range}`, 'the result: the 95% range, shown with it'], [t`\operatorname{clamp}(x, -K, K)`, `x held between −${CAP} and +${CAP}`], ['K', String(CAP)], [t`\operatorname{round}_{0.1}`, 'round to the nearest 0.1']]} />
+          words={<>plays like = constant &minus; constant gap (held within &plusmn;{CAP}), rounded to 0.1, at most {MAX_CONSTANT.toFixed(1)}; the 95% range is the same with the constant gap &plusmn; 2 &times; uncertainty (for normally spread errors, 95% fall within 1.96 standard deviations, rounded to 2)</>}
+          vars={[[t`\text{plays like}`, 'the result shown on the song page'], [t`\text{range}`, 'the result: the 95% range, shown with it'], [t`\operatorname{clamp}(x, -K, K)`, `x held between −${CAP} and +${CAP}`], ['K', `${CAP}, the most plays like moves (see settings)`], ['2', '1.96 rounded: 95% of normally spread errors fall within it'], [t`\operatorname{round}_{0.1}`, 'round to the nearest 0.1, as constants are written']]} />
         <Eq tex={t`\text{status} = \begin{cases} \text{sure} & 2\sigma' \le r \\ \text{uncertain} & 2\sigma' > r \ \text{and}\ |\Delta c'| > 2\sigma' \\ \text{hidden} & \text{otherwise} \end{cases}`}
           words={<>sure if the 95% range reaches no more than {SURE_RANGE} either side; otherwise shown marked uncertain if it clearly leans one way (the whole range is on one side of the constant); otherwise hidden</>}
-          vars={[[t`\text{status}`, 'the result: sure, uncertain (shown with an amber label) or hidden'], ['r', String(SURE_RANGE)]]} />
+          vars={[[t`\text{status}`, 'the result: sure, uncertain (shown with an amber label) or hidden'], ['r', `${SURE_RANGE} (see settings)`]]} />
         <Why>the true answer is inside the 95% range 19 times out of 20. a chart with many players and buckets that agree gets a narrow range; few players or mixed signals, a wide one. the song page shows the range, so players know how much to trust the number, and nothing at all when it can&apos;t even tell which way the chart leans.</Why>
       </Step>
 
@@ -246,7 +244,7 @@ function Method() {
         <li><b>step 9 is a judgement:</b> it trusts the method for which charts are easier or harder, and the site owner&apos;s understanding of the game for how much. the uncertainty is scaled too, so low-level results look surer than the raw numbers alone would say.</li>
         <li><b>the rate in step 5:</b> below 13.5, scores change much less per +1.0 constant and same-constant charts spread about three times as widely as above. the cause isn&apos;t known yet (players far above the chart grinding more or less, coarse ranks at the bottom, or the data); step 9 covers it for now.</li>
         <li><b>what the uncertainty can&apos;t catch:</b> it says how well the result is known if the method is right; a rate that&apos;s off everywhere wouldn&apos;t show in it.</li>
-        <li><b>best scores, not plays:</b> maishift gives each player&apos;s best rank, not how often they played, so practice can only be guessed from player counts (step 4).</li>
+        <li><b>best scores, not plays:</b> maishift gives each player&apos;s best rank, not how often they played, so practice isn&apos;t taken into account: a chart people grind a lot may look a little easier than it is.</li>
         <li><b>middle score, not SSS+:</b> a chart can be easy to score well on but hard to max out; plays like follows the middle player. the middle score also assumes players are spread evenly inside a rank.</li>
       </ul>
     </>

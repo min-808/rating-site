@@ -19,9 +19,8 @@ import { CAP, ERAS, MAX_CONSTANT, MIN_PLAYERS, centerRating, type ChartFeel } fr
  *   4. log gap: l_b = ln(101 - m_b + LOG_OFFSET), how far the score is from 101% on a log scale,
  *      so a step near the top counts for more than the same step lower down (the idea is from
  *      critlog's perceived-constant method). Its error: e_l = e_b / (101 - m_b + LOG_OFFSET).
- *      Smaller is better. (Until 2026-11-27 this step evened out popularity by player count; with
- *      best scores only, more players and higher scores can't be told apart as cause and effect,
- *      and taking it out made results agree more, so it's gone)
+ *      Smaller is better. Popularity isn't evened out: with best scores only, more players and
+ *      higher scores can't be told apart as cause and effect
  *   5. typical line, by least squares over P_b:  -l_j = a - S x d_j + q x d_j^2  (d_j = c_j - c),
  *      with the errors of a and S from the fit (se_a, se_S). A bucket whose S is MIN_RATE or less
  *      can't tell charts apart and is skipped
